@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/**
+ * Paleta de Regenera Market.
+ *
+ * Verde bosque para la identidad, crema para el fondo (el blanco puro hace ver
+ * barato un marketplace artesanal) y terracota como acento de acción secundaria,
+ * heredado del prototipo.
+ *
+ * El sitio se compromete con el modo claro: los productos se juzgan por su
+ * foto y su ficha, y una inversión a oscuras cambia cómo se leen los materiales
+ * naturales. Se declara explícitamente para que el navegador no lo invierta.
+ */
+@theme {
+  --color-brand-50: #eef7f1;
+  --color-brand-100: #d6ecdf;
+  --color-brand-200: #aedac0;
+  --color-brand-300: #7fc39c;
+  --color-brand-400: #4faa78;
+  --color-brand-500: #2f9060;
+  --color-brand-600: #23744d;
+  --color-brand-700: #1b5b3d;
+  --color-brand-800: #16452f;
+  --color-brand-900: #0f3221;
+
+  --color-clay-100: #f6ece1;
+  --color-clay-300: #ddb894;
+  --color-clay-500: #b5824f;
+  --color-clay-600: #9a6c3f;
+
+  --color-cream: #faf8f4;
+  --color-sand: #f0ebe2;
+  --color-ink: #17241d;
+  --color-muted: #5f6f66;
+  --color-hairline: #e3ded3;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Anillo de foco visible y consistente: navegar con teclado no puede ser peor
+   experiencia que navegar con mouse. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@utility container-page {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+/* Oculta la barra de scroll en los carruseles horizontales sin perder el
+   desplazamiento con rueda o gesto. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
