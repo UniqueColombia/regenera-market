@@ -6,6 +6,10 @@
 /supabase/                  @UniqueColombia
 /src/lib/pricing.ts         @UniqueColombia
 /src/lib/payments.ts        @UniqueColombia
+# El motor de puntaje: define qué significa "proveedor verificado", y desde que
+# el repo es público su rúbrica es visible para el evaluado. Ver dominio-regenera.
+/src/lib/sustainability.ts  @UniqueColombia
+/src/lib/orders.ts          @UniqueColombia
 /CLAUDE.md                  @UniqueColombia
 /.claude/                   @UniqueColombia
 /.github/                   @UniqueColombia

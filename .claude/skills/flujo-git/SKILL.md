@@ -61,7 +61,20 @@ mergea.
 De ahí la conclusión que conviene tener clara: **la protección de rama nunca
 estuvo defendiendo el repositorio de terceros.** Lo único que hacía era
 estorbarnos a nosotros dos. Por eso está reducida al mínimo, con
-`scripts/politica-de-ramas.sh`:
+`scripts/politica-de-ramas.sh`.
+
+> **Comprueba antes de confiar.** Verificado el 2026-08-23, el script todavía no
+> se ha aplicado: `branches/main/protection` responde 404. Mientras siga así,
+> **ni el borrado de `main` está bloqueado** — la única fila de la tabla que la
+> política sí quiere imponer.
+>
+> ```bash
+> gh api repos/UniqueColombia/regenera-market/branches/main/protection >/dev/null 2>&1 >   && echo "aplicada" || echo "SIN aplicar — corre scripts/politica-de-ramas.sh"
+> ```
+>
+> Regla general: **una skill no afirma que un control externo está activo; da el
+> comando para comprobarlo.** El repositorio puede describir su propio código con
+> certeza, nunca la configuración de un servicio ajeno.
 
 | | `main` y `staging` |
 |---|---|
@@ -95,9 +108,9 @@ sostiene: antes GitHub, ahora vos.
 ## Las tres capas de ramas
 
 ```
-main       ← PRODUCCIÓN. Lo que ve un cliente real. Protegida.
+main       ← PRODUCCIÓN. Lo que ve un cliente real.
   ↑ PR de release (solo desde staging o hotfix/*)
-staging    ← INTEGRACIÓN. Todo se junta y se prueba aquí primero. Protegida.
+staging    ← INTEGRACIÓN. Todo se junta y se prueba aquí primero.
   ↑ PR de trabajo
 feat/js-panel-proveedor      ← RAMAS DE TRABAJO. Una por tarea. Efímeras.
 fix/id-comision-redondeo
@@ -213,10 +226,16 @@ git checkout staging && git pull origin staging
 gh pr create --base main --head staging --title "release: <fecha o alcance>"
 ```
 
-Este PR lo aprueba y mergea **Ivan** (es producción y es su repo). Se mergea con
-`--merge`, no con squash: queremos ver en `main` qué tareas entraron.
+**Lo mergea cualquiera de los dos.** Antes esta skill decía que solo Ivan, y
+quedó desactualizada con la política de ramas abierta: no hay PR obligatorio ni
+aprobaciones. Lo que no cambia es que **el agente abre el PR y no lo mergea sin
+que su persona se lo pida** — un release va a producción.
 
-Después, etiquetar:
+Se mergea con `--merge`, no con squash: queremos ver en `main` qué tareas
+entraron.
+
+**El release no termina hasta que está etiquetado.** No es opcional y es el paso
+que se olvida:
 
 ```bash
 git checkout main && git pull origin main
@@ -226,7 +245,21 @@ git push origin v0.2.0
 
 Versionado: `v0.MINOR.PATCH` mientras el producto sea pre-lanzamiento. Sube
 `MINOR` cuando entra una fase del `docs/ROADMAP.md`, `PATCH` cuando es solo
-corrección. Cada release debería tener su hito en `hitos/`.
+corrección.
+
+Sin etiqueta no hay forma de responder «qué había en producción el martes»: los
+merges de `staging` a `main` se ven todos iguales en el log. Los cuatro primeros
+releases del 2026-08-23 se hicieron sin etiquetar; el estado resultante quedó
+marcado como `v0.1.0` (Fase 0 cerrada) y desde ahí la numeración es continua. No
+se etiquetaron hacia atrás: inventar cuatro versiones retroactivas para commits
+que nadie desplegó por separado documenta menos que la nota que estás leyendo.
+
+Comprobar antes de dar un release por terminado:
+
+```bash
+git fetch --tags && git tag --points-at origin/main
+# vacío = el release no está etiquetado
+```
 
 ## Hotfix (producción caída)
 
