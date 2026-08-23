@@ -96,12 +96,88 @@ una opción: es el bug que la arquitectura evita a propósito.
 
 **Neon como reemplazo de Supabase.** Ver arriba.
 
+## Colaboración en Vercel: el plan Hobby no la permite en repos privados
+
+Vercel está conectado desde el 2026-08-18 (hay un deployment de Production sobre
+`d649aa5`). Pero los previews de las ramas de Jesús fallan:
+
+```
+Git author seiler18 must have access to the project on Vercel to create deployments.
+```
+
+No es un permiso mal puesto. En plan **Hobby**, Vercel compara el autor del
+commit contra los miembros del equipo, y en Hobby el equipo tiene un solo
+miembro: el dueño. Todo commit de un colaborador, un bot de CI o un asistente se
+rechaza al desplegar. **Hobby no soporta colaboración en repositorios privados;
+en repositorios públicos sí, y es gratis.**
+
+De ahí las tres salidas, con su costo real:
+
+### A. Upgrade a Pro — cuesta plata, no cuesta nada más
+
+Colaboración por miembro de equipo. Es la opción limpia. Verificar el precio por
+asiento al momento de decidir.
+
+### B. Hacer el repositorio público — gratis, y el costo NO es obvio
+
+Lo que se publicaría, medido en este repo:
+
+- **`COMMISSION_RATE = 0.12`** en `src/lib/pricing.ts`. La comisión exacta que
+  cobra Seregenera, visible para cualquier competidor y para cada proveedor
+  **antes** de sentarse a negociar.
+- **`src/lib/sustainability.ts` completo**: las cinco dimensiones con sus pesos y
+  **los puntos exactos que otorga cada opción de cada pregunta**. Esto es lo
+  grave. Todo el valor del producto es "proveedores verificados"; publicar la
+  rúbrica con el puntaje por respuesta convierte la evaluación en un examen con
+  el solucionario adjunto. Un proveedor puede leer el archivo y responder
+  exactamente lo necesario para llegar a Bosque. La skill `dominio-regenera`
+  exige que el puntaje sea auditable punto por punto — auditable por un admin, no
+  público para el evaluado.
+- **`0001_init.sql` con las ~35 políticas RLS.** Le regala el análisis de
+  superficie de ataque a cualquiera que quiera probar la app desplegada.
+- **El flujo de pago manual de `payments.ts`**, con la cuenta de Bancolombia
+  descrita y el correo de contacto. Es una plantilla de phishing lista para
+  clonar el sitio y cambiar el número de cuenta.
+
+Publicar el repo para ahorrar una suscripción cambia un límite de negocio y de
+seguridad por una cuota mensual. **No se recomienda.**
+
+### C. No usar previews por rama — gratis, y ya funciona
+
+La que conviene evaluar primero, porque el flujo de la skill `flujo-git` ya la
+resuelve sin querer:
+
+- El CI verifica build, tipos, lint y secretos en **cada** PR. Eso es lo que
+  bloquea un merge malo, no el preview.
+- Cuando Ivan mergea un PR a `staging`, **el commit de merge lo firma Ivan**, así
+  que el preview de `staging` sí despliega. La URL que se le pasa a un cliente
+  para revisar sigue existiendo.
+- Lo único que se pierde son los previews por rama de trabajo de Jesús. El costo
+  real: revisar el diff y el CI en vez de mirar una URL.
+
+Efecto secundario a limpiar: los PRs de Jesús muestran el check de Vercel en
+rojo. Se puede desactivar el deploy por rama desde la configuración del proyecto
+o con `git.deploymentEnabled` en `vercel.json` — verificar la sintaxis vigente
+antes de aplicarlo.
+
+**Recomendación:** empezar por **C**. Si al mes los previews por rama resultan
+imprescindibles, entonces **A**. **B** no.
+
+### Lo que NO se debe hacer
+
+Circula como solución "reescribir el autor del commit" (`git commit --amend
+--author`) para que todo aparezca firmado por el dueño de la cuenta Hobby. **No.**
+Toda la trazabilidad de este proyecto —las iniciales en las ramas, la autoría en
+`hitos/`, `CODEOWNERS`— existe para responder "quién hizo qué". Falsificar el
+autor para ahorrar una suscripción destruye exactamente eso, y a cambio de nada:
+el CI seguiría siendo la única verificación real.
+
 ## Al conectar Vercel (checklist para Ivan)
 
 Requiere ser dueño del repo y de la cuenta de Vercel.
 
-- [ ] Importar `UniqueColombia/regenera-market` en Vercel. Framework: Next.js
-      (autodetectado). Sin variables: debe compilar igual.
+- [x] Importar el repo en Vercel. Hecho el 2026-08-18.
+- [ ] Decidir la colaboración: ver la sección anterior (recomendación: opción C).
 - [ ] Asignar `main` a Production y `staging` a una Preview estable.
 - [ ] `NEXT_PUBLIC_SITE_URL` por entorno, con el dominio real en Production.
 - [ ] Dominio y SSL. **Antes:** cerrar el nombre — ver `docs/ROADMAP.md` y el
