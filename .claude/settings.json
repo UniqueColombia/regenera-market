@@ -25,7 +25,8 @@
       "Bash(gh pr status:*)",
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
-      "Bash(gh repo view:*)"
+      "Bash(gh repo view:*)",
+      "Bash(gh pr merge:*)"
     ],
     "deny": [
       "Read(./.env)",
@@ -33,6 +34,22 @@
       "Read(./.env.*.local)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(gh pr merge:*)",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/scripts/verificar-antes-de-merge.sh\"",
+            "timeout": 60,
+            "statusMessage": "Verificando el CI del PR antes de mergear"
+          }
+        ]
+      }
     ]
   }
 }
