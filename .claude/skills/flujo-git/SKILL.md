@@ -37,39 +37,60 @@ archivos cuesta media hora.**
 Esto no es una recomendación de higiene: es la primera acción de cualquier
 tarea. Si no sabes si tu clon está al día, no está al día.
 
-## Los guardarraíles SÍ están activos
+## Quién puede hacer qué
 
-Desde el 2026-08-23 el repositorio es **público** y `main` y `staging` están
-protegidas. Aplicado con `scripts/proteger-ramas.sh`.
+**Ivan y Jesús pueden hacer cualquier modificación en cualquier rama, sin pedirle
+permiso ni revisión al otro.** Push directo a `main` y a `staging` incluido. No
+hay PR obligatorio, no hay aprobaciones, no hay Code Owners bloqueando nada.
 
-| | `main` | `staging` |
-|---|---|---|
-| Push directo | rechazado | rechazado |
-| PR obligatorio | sí | sí |
-| CI (`verificar`, `secretos`) | debe estar verde | debe estar verde |
-| Aprobaciones | 1, y de un Code Owner | 0 |
-| Rama al día antes de mergear | obligatorio | no |
-| `--force` y borrado | prohibidos | prohibidos |
+**Nadie más puede empujar nada.** Y eso no depende de la protección de rama:
+depende de la lista de colaboradores del repositorio.
 
-Qué significa para ti, agente:
+```bash
+gh api repos/UniqueColombia/regenera-market/collaborators \
+  --jq '.[] | "\(.login) \(.role_name)"'
+# UniqueColombia  admin
+# seiler18        write
+```
 
-- **Un `git push` a `main` o `staging` va a ser rechazado por el servidor.** Ya
-  no depende de tu disciplina. Si te pasa, no busques cómo forzarlo: abre un PR.
-- `.github/CODEOWNERS` ahora obliga. Tocar `supabase/`, `pricing.ts`,
-  `payments.ts`, `sustainability.ts`, `orders.ts`, `CLAUDE.md`, `.claude/` o
-  `.github/` exige la revisión de Ivan antes de entrar a `main`.
-- **El CI bloquea el merge.** Un PR en rojo ya no se puede mergear, y además el
-  hook `scripts/verificar-antes-de-merge.sh` corta cualquier `gh pr merge` que
-  un agente intente sobre un PR con checks rojos o pendientes.
+Esos dos, y nadie más. Que el repositorio sea **público** significa que
+cualquiera puede leerlo y abrir un PR **desde su propio fork** — nunca empujar al
+nuestro. Un PR de un fork no toca ninguna rama hasta que uno de los dos lo
+mergea.
 
-Quién puede empujar no lo decide la protección sino la lista de colaboradores:
-Ivan (`admin`) y Jesús (`write`). Que el repositorio sea público significa que
-cualquiera puede leerlo y abrir un PR desde un fork — no que pueda empujar.
+De ahí la conclusión que conviene tener clara: **la protección de rama nunca
+estuvo defendiendo el repositorio de terceros.** Lo único que hacía era
+estorbarnos a nosotros dos. Por eso está reducida al mínimo, con
+`scripts/politica-de-ramas.sh`:
 
-Ivan conserva el bypass de admin, y existe por una razón concreta: es el único
-Code Owner, así que sus propios PRs a `main` no pueden recibir una revisión de
-Code Owner —GitHub no deja aprobarse a uno mismo— y sin el bypass quedarían
-bloqueados para siempre. Es una salida de emergencia, no un atajo.
+| | `main` y `staging` |
+|---|---|
+| Push directo de Ivan o Jesús | permitido |
+| PR obligatorio | no |
+| Revisión / aprobaciones | no |
+| CI en verde para mergear | no lo impone el servidor |
+| Push de cualquier otra persona | imposible: no es colaborador |
+| Borrar la rama | bloqueado |
+
+## Las reglas siguen existiendo — para el agente
+
+Que el servidor ya no te detenga no las deroga. Lo que cambia es quién las
+sostiene: antes GitHub, ahora vos.
+
+- **El agente no empuja a `main` ni a `staging`.** Abre un PR. La persona decide
+  si se salta el paso; el agente no.
+- **El agente no reescribe historia compartida.** `git push --force` está
+  permitido en el servidor para que Ivan o Jesús puedan rehacer algo si hace
+  falta, pero sigue denegado en `.claude/settings.json`. La distinción es
+  deliberada.
+- **El CI sigue corriendo en cada PR y sigue diciendo la verdad.** El servidor ya
+  no bloquea el merge, pero el hook `scripts/verificar-antes-de-merge.sh` corta
+  cualquier `gh pr merge` que un agente intente sobre un PR con checks rojos o
+  pendientes.
+- **`.github/CODEOWNERS` es informativo.** Ya no bloquea: solo pide la revisión
+  automáticamente, para que quien toca `supabase/`, `pricing.ts`, `payments.ts`,
+  `sustainability.ts`, `orders.ts`, `CLAUDE.md`, `.claude/` o `.github/` sepa que
+  al otro le interesa enterarse.
 
 ## Las tres capas de ramas
 
