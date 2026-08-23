@@ -61,7 +61,20 @@ mergea.
 De ahí la conclusión que conviene tener clara: **la protección de rama nunca
 estuvo defendiendo el repositorio de terceros.** Lo único que hacía era
 estorbarnos a nosotros dos. Por eso está reducida al mínimo, con
-`scripts/politica-de-ramas.sh`:
+`scripts/politica-de-ramas.sh`.
+
+> **Comprueba antes de confiar.** Verificado el 2026-08-23, el script todavía no
+> se ha aplicado: `branches/main/protection` responde 404. Mientras siga así,
+> **ni el borrado de `main` está bloqueado** — la única fila de la tabla que la
+> política sí quiere imponer.
+>
+> ```bash
+> gh api repos/UniqueColombia/regenera-market/branches/main/protection >/dev/null 2>&1 >   && echo "aplicada" || echo "SIN aplicar — corre scripts/politica-de-ramas.sh"
+> ```
+>
+> Regla general: **una skill no afirma que un control externo está activo; da el
+> comando para comprobarlo.** El repositorio puede describir su propio código con
+> certeza, nunca la configuración de un servicio ajeno.
 
 | | `main` y `staging` |
 |---|---|
@@ -95,9 +108,9 @@ sostiene: antes GitHub, ahora vos.
 ## Las tres capas de ramas
 
 ```
-main       ← PRODUCCIÓN. Lo que ve un cliente real. Protegida.
+main       ← PRODUCCIÓN. Lo que ve un cliente real.
   ↑ PR de release (solo desde staging o hotfix/*)
-staging    ← INTEGRACIÓN. Todo se junta y se prueba aquí primero. Protegida.
+staging    ← INTEGRACIÓN. Todo se junta y se prueba aquí primero.
   ↑ PR de trabajo
 feat/js-panel-proveedor      ← RAMAS DE TRABAJO. Una por tarea. Efímeras.
 fix/id-comision-redondeo

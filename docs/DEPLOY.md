@@ -96,154 +96,109 @@ una opción: es el bug que la arquitectura evita a propósito.
 
 **Neon como reemplazo de Supabase.** Ver arriba.
 
-## Colaboración en Vercel: el plan Hobby no la permite en repos privados
+## Cómo se llegó a la decisión
 
-Vercel está conectado desde el 2026-08-18 (hay un deployment de Production sobre
-`d649aa5`). Pero los previews de las ramas de Jesús fallan:
+Se deja el resumen porque explica por qué el repositorio es público, y porque el
+razonamiento vuelve a servir si algún día se plantea volverlo privado.
 
+Con el repositorio **privado** y ambos servicios en plan gratuito, la
+colaboración estaba bloqueada en los dos a la vez:
+
+- **Vercel Hobby** compara el autor del commit contra los miembros del equipo, y
+  en Hobby el equipo tiene un solo miembro. Los deployments de Jesús fallaban con
+  `Git author seiler18 must have access to the project on Vercel`. Hobby no
+  soporta colaboración en repos privados; en públicos sí, gratis.
+- **GitHub Free** no permite protección de ramas en repos privados:
+  `GET /rulesets` respondía `403: "Upgrade to GitHub Pro or make this repository
+  public to enable this feature."`
+
+Tres salidas: pagar las dos suscripciones, hacerlo público, o aceptar el límite
+(el CI ya verificaba cada PR, y los merges de Ivan a `staging` sí desplegaban
+porque los firma él). Se eligió hacerlo público.
+
+Una cosa que se descartó explícitamente y conviene que siga descartada:
+**reescribir el autor del commit** (`git commit --amend --author`) para que todo
+apareciera firmado por el dueño de la cuenta. Circula como solución al bloqueo de
+Hobby. Destruiría la trazabilidad que sostiene `hitos/`, `CODEOWNERS` y las
+iniciales en las ramas, a cambio de nada.
+
+## La decisión que se tomó: repositorio público
+
+**El 2026-08-23 el repositorio pasó a público.** GitHub y Vercel chocaban con la
+misma pared —plan gratuito + repositorio privado = sin funciones de
+colaboración— y hacerlo público las abre las dos de una vez, gratis. Efecto
+inmediato y comprobado: los deployments de Vercel de Jesús pasaron de
+`Deployment was blocked` a `Deployment has completed`.
+
+Este documento recomendaba lo contrario. La decisión se tomó con ese análisis a
+la vista; queda registrada, no se discute de nuevo. Lo que sigue es lo que hay
+que hacer **a partir de aquí**.
+
+### Lo que se ganó
+
+- Colaboración en Vercel sin plan Pro: Jesús despliega previews.
+- Protección de ramas disponible sin pagar (en Free solo aplica a repos
+  públicos). Ver la política adoptada en la skill `flujo-git`, que la reduce
+  deliberadamente al mínimo.
+- Secret scanning con push protection y alertas de Dependabot, gratis.
+
+### Lo que quedó expuesto, y qué hacer
+
+**No hay secretos.** Se escaneó el historial completo el 2026-08-23 —`git log
+--all -p` contra patrones de JWT, claves de servicio, llaves privadas y
+credenciales de Wompi y AWS— y los únicos hallazgos son documentación que
+menciona **nombres** de variables. El único archivo `.env*` que ha existido es
+`.env.example`.
+
+Lo expuesto es lógica de negocio:
+
+| Qué | Por qué importa | Mitigación |
+|---|---|---|
+| `src/lib/sustainability.ts` | Publica **los puntos exactos de cada opción de cada pregunta**. Un proveedor puede leerlo y responder lo justo para llegar a Bosque | Mover pesos y puntajes a base de datos: son **datos**, no código. El puntaje ya lo escribe un trigger |
+| `COMMISSION_RATE = 0.12` | Cada proveedor la ve antes de negociar | A configuración en base. Ya estaba previsto diferenciarla por tipo de oferta en Fase 5 |
+| Instrucciones de pago en `payments.ts` | Describen la cuenta de Bancolombia y el correo de contacto: plantilla lista para clonar el sitio y cambiar el número | Texto a base de datos o variables de entorno |
+| Las ~35 políticas RLS de `0001_init.sql` | Facilita el análisis de superficie de ataque | Ninguna necesaria: la seguridad de RLS no depende de ser secreta. Sí exige probar cada política **con el rol equivocado** |
+
+**El control real de la verificación no es el cuestionario, es la evidencia.**
+Varias preguntas llevan `requiresEvidence: true` y un admin las revisa antes de
+aprobar. Que la rúbrica sea pública debilita el autodiagnóstico, no la
+verificación — siempre que la revisión de evidencia se haga de verdad. Si algún
+día se aprueba sin mirarla, el puntaje deja de significar nada, y ahora además
+cualquiera sabe cómo aprovecharlo.
+
+Las tres mitigaciones son movimientos de código a datos, no rediseños, y caben
+en la Fase 1.
+
+### Pendiente
+
+1. **Correr `scripts/politica-de-ramas.sh`.** Requiere admin (Ivan). Verificado
+   el 2026-08-23: `branches/main/protection` y `branches/staging/protection`
+   responden **404**, así que la política escrita todavía no está aplicada —
+   incluido el bloqueo de borrado de `main` y `staging`, que es lo único que la
+   política sí quiere impedir.
+2. Activar **secret scanning con push protection** y **Dependabot** en
+   Settings → Security. Gratis en repos públicos.
+3. Las tres mitigaciones de la tabla, en Fase 1.
+
+Comprobar el estado real en un comando:
+
+```bash
+gh api repos/UniqueColombia/regenera-market/branches/main/protection >/dev/null 2>&1   && echo "con política aplicada" || echo "SIN aplicar — corre scripts/politica-de-ramas.sh"
 ```
-Git author seiler18 must have access to the project on Vercel to create deployments.
-```
 
-No es un permiso mal puesto. En plan **Hobby**, Vercel compara el autor del
-commit contra los miembros del equipo, y en Hobby el equipo tiene un solo
-miembro: el dueño. Todo commit de un colaborador, un bot de CI o un asistente se
-rechaza al desplegar. **Hobby no soporta colaboración en repositorios privados;
-en repositorios públicos sí, y es gratis.**
+## Vercel: estado y lo que falta
 
-De ahí las tres salidas, con su costo real:
-
-### A. Upgrade a Pro — cuesta plata, no cuesta nada más
-
-Colaboración por miembro de equipo. Es la opción limpia. Verificar el precio por
-asiento al momento de decidir.
-
-### B. Hacer el repositorio público — gratis, y el costo NO es obvio
-
-Lo que se publicaría, medido en este repo:
-
-- **`COMMISSION_RATE = 0.12`** en `src/lib/pricing.ts`. La comisión exacta que
-  cobra Seregenera, visible para cualquier competidor y para cada proveedor
-  **antes** de sentarse a negociar.
-- **`src/lib/sustainability.ts` completo**: las cinco dimensiones con sus pesos y
-  **los puntos exactos que otorga cada opción de cada pregunta**. Esto es lo
-  grave. Todo el valor del producto es "proveedores verificados"; publicar la
-  rúbrica con el puntaje por respuesta convierte la evaluación en un examen con
-  el solucionario adjunto. Un proveedor puede leer el archivo y responder
-  exactamente lo necesario para llegar a Bosque. La skill `dominio-regenera`
-  exige que el puntaje sea auditable punto por punto — auditable por un admin, no
-  público para el evaluado.
-- **`0001_init.sql` con las ~35 políticas RLS.** Le regala el análisis de
-  superficie de ataque a cualquiera que quiera probar la app desplegada.
-- **El flujo de pago manual de `payments.ts`**, con la cuenta de Bancolombia
-  descrita y el correo de contacto. Es una plantilla de phishing lista para
-  clonar el sitio y cambiar el número de cuenta.
-
-Publicar el repo para ahorrar una suscripción cambia un límite de negocio y de
-seguridad por una cuota mensual. **No se recomienda.**
-
-### C. No usar previews por rama — gratis, y ya funciona
-
-La que conviene evaluar primero, porque el flujo de la skill `flujo-git` ya la
-resuelve sin querer:
-
-- El CI verifica build, tipos, lint y secretos en **cada** PR. Eso es lo que
-  bloquea un merge malo, no el preview.
-- Cuando Ivan mergea un PR a `staging`, **el commit de merge lo firma Ivan**, así
-  que el preview de `staging` sí despliega. La URL que se le pasa a un cliente
-  para revisar sigue existiendo.
-- Lo único que se pierde son los previews por rama de trabajo de Jesús. El costo
-  real: revisar el diff y el CI en vez de mirar una URL.
-
-Efecto secundario a limpiar: los PRs de Jesús muestran el check de Vercel en
-rojo. Se puede desactivar el deploy por rama desde la configuración del proyecto
-o con `git.deploymentEnabled` en `vercel.json` — verificar la sintaxis vigente
-antes de aplicarlo.
-
-**Recomendación:** empezar por **C**. Si al mes los previews por rama resultan
-imprescindibles, entonces **A**. **B** no.
-
-### Lo que NO se debe hacer
-
-Circula como solución "reescribir el autor del commit" (`git commit --amend
---author`) para que todo aparezca firmado por el dueño de la cuenta Hobby. **No.**
-Toda la trazabilidad de este proyecto —las iniciales en las ramas, la autoría en
-`hitos/`, `CODEOWNERS`— existe para responder "quién hizo qué". Falsificar el
-autor para ahorrar una suscripción destruye exactamente eso, y a cambio de nada:
-el CI seguiría siendo la única verificación real.
-
-## Gobernanza del repositorio: la protección de ramas también está bloqueada
-
-Verificado el 2026-08-23 contra la API de GitHub. La respuesta es literal:
-
-```
-GET /repos/UniqueColombia/regenera-market/rulesets
-403: "Upgrade to GitHub Pro or make this repository public to enable this feature."
-```
-
-No hay protección en `main` ni en `staging` (404 en ambas), y **no es que Ivan no
-la haya configurado: en plan Free no puede.** La protección de ramas en el plan
-gratuito solo aplica a repositorios **públicos**. Para un repo privado hace falta
-GitHub Pro.
-
-Consecuencias concretas, hoy:
-
-- **`main` y `staging` no están protegidas.** Nada impide un `git push` directo a
-  producción, ni un `push --force`. El flujo de la skill `flujo-git` depende de
-  disciplina, no de la plataforma.
-- **`.github/CODEOWNERS` es decorativo.** La revisión obligatoria por Code Owners
-  requiere protección de rama, que requiere Pro. El archivo está correcto y
-  entra en vigor solo, sin cambios, el día que exista el plan.
-- **Los status checks del CI no son bloqueantes.** El CI corre y se ve verde o
-  rojo, pero nada impide mergear en rojo.
-
-`UniqueColombia` es una cuenta de **usuario** (Ivan Duarte), no una organización.
-Eso importa: el plan aplicable es **GitHub Pro** —individual, el más barato de
-GitHub— y no GitHub Team, que es el de organizaciones. Verificar el precio
-vigente al decidir.
-
-## La decisión es una, no dos
-
-GitHub y Vercel chocan con la misma pared: **plan gratuito + repositorio privado
-= sin funciones de colaboración.** Y ofrecen la misma escapatoria gratis: hacerlo
-público.
-
-| Opción | GitHub | Vercel | Veredicto |
-|---|---|---|---|
-| Pagar | Pro (individual) | Pro (por asiento) | Lo correcto cuando el proyecto opere de verdad |
-| Repo público | Protección gratis | Colaboración gratis | **No** — publica la rúbrica de verificación con su puntaje por respuesta |
-| Aceptar el límite | Disciplina en vez de reglas | Sin previews por rama | Suficiente hoy |
-
-Si se va a pagar una sola cosa, **GitHub Pro rinde más que Vercel Pro**: activa
-protección de ramas, CODEOWNERS y checks bloqueantes de una vez —los tres
-guardarraíles que impiden romper producción— mientras Vercel Pro solo agrega la
-comodidad de un preview por rama. Los previews ya se resuelven gratis con la
-opción C.
-
-**Recomendación priorizada:**
-
-1. Nada, por ahora. Somos dos personas que se hablan; la disciplina alcanza
-   mientras no haya clientes reales.
-2. Cuando entre el primer cliente real: **GitHub Pro**. A partir de ahí
-   `main` es intocable de verdad y no por acuerdo verbal.
-3. Vercel Pro solo si los previews por rama resultan imprescindibles.
-4. Repositorio público: no, en ningún escenario, mientras la rúbrica de
-   sostenibilidad y la comisión vivan en el código.
-
-## Al conectar Vercel (checklist para Ivan)
-
-Requiere ser dueño del repo y de la cuenta de Vercel.
-
-- [x] Importar el repo en Vercel. Hecho el 2026-08-18.
-- [ ] Decidir la colaboración: ver la sección anterior (recomendación: opción C).
+- [x] Repo importado en Vercel. Hecho el 2026-08-18.
+- [x] Previews de los dos colaboradores. Desbloqueado al pasar el repo a público:
+      los deployments de Jesús pasaron a `Deployment has completed`.
 - [ ] Asignar `main` a Production y `staging` a una Preview estable.
 - [ ] `NEXT_PUBLIC_SITE_URL` por entorno, con el dominio real en Production.
-- [ ] Dominio y SSL. **Antes:** cerrar el nombre — ver `docs/ROADMAP.md` y el
-      hito de la marca. El repo se llama `regenera-market` y el producto
-      **Seregenera**; renombrar el repositorio requiere permiso de admin y
-      GitHub mantiene la redirección del URL antiguo.
-- [ ] Verificar que las Preview de PRs de forks queden restringidas: una preview
-      pública con variables de entorno es una fuga.
+- [ ] Dominio y SSL. **Antes:** cerrar el nombre. El repo se llama
+      `regenera-market` y el producto **Seregenera**; renombrar el repositorio
+      requiere admin y GitHub mantiene la redirección del URL antiguo.
+- [ ] Confirmar que la versión de Node del proyecto en Vercel coincide con la del
+      CI (`node-version: 22` en `.github/workflows/ci.yml`). Si no coinciden, el
+      CI pasa en verde y producción falla.
 
 ## Cuando entre Supabase (Fase 1)
 

@@ -15,3 +15,4 @@ referencie al anterior.
 | 2026-08-23 | [MVP navegable de Regenera Market](2026-08-23-mvp-navegable.md) | Ivan Duarte | 0 — Prototipo |
 | 2026-08-23 | [Infraestructura de colaboración](2026-08-23-infraestructura-colaboracion.md) | Jesús Seiler | 0 — Prototipo |
 | 2026-08-23 | [La marca es Seregenera, y el stack de despliegue queda definido](2026-08-23-marca-seregenera.md) | Jesús Seiler | 0 — Prototipo |
+| 2026-08-23 | [El repositorio pasó a público y la política de ramas se abrió](2026-08-23-repositorio-publico.md) | Ivan Duarte · Jesús Seiler | 0 — Prototipo |
