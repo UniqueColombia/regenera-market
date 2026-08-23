@@ -172,6 +172,64 @@ Toda la trazabilidad de este proyecto —las iniciales en las ramas, la autoría
 autor para ahorrar una suscripción destruye exactamente eso, y a cambio de nada:
 el CI seguiría siendo la única verificación real.
 
+## Gobernanza del repositorio: la protección de ramas también está bloqueada
+
+Verificado el 2026-08-23 contra la API de GitHub. La respuesta es literal:
+
+```
+GET /repos/UniqueColombia/regenera-market/rulesets
+403: "Upgrade to GitHub Pro or make this repository public to enable this feature."
+```
+
+No hay protección en `main` ni en `staging` (404 en ambas), y **no es que Ivan no
+la haya configurado: en plan Free no puede.** La protección de ramas en el plan
+gratuito solo aplica a repositorios **públicos**. Para un repo privado hace falta
+GitHub Pro.
+
+Consecuencias concretas, hoy:
+
+- **`main` y `staging` no están protegidas.** Nada impide un `git push` directo a
+  producción, ni un `push --force`. El flujo de la skill `flujo-git` depende de
+  disciplina, no de la plataforma.
+- **`.github/CODEOWNERS` es decorativo.** La revisión obligatoria por Code Owners
+  requiere protección de rama, que requiere Pro. El archivo está correcto y
+  entra en vigor solo, sin cambios, el día que exista el plan.
+- **Los status checks del CI no son bloqueantes.** El CI corre y se ve verde o
+  rojo, pero nada impide mergear en rojo.
+
+`UniqueColombia` es una cuenta de **usuario** (Ivan Duarte), no una organización.
+Eso importa: el plan aplicable es **GitHub Pro** —individual, el más barato de
+GitHub— y no GitHub Team, que es el de organizaciones. Verificar el precio
+vigente al decidir.
+
+## La decisión es una, no dos
+
+GitHub y Vercel chocan con la misma pared: **plan gratuito + repositorio privado
+= sin funciones de colaboración.** Y ofrecen la misma escapatoria gratis: hacerlo
+público.
+
+| Opción | GitHub | Vercel | Veredicto |
+|---|---|---|---|
+| Pagar | Pro (individual) | Pro (por asiento) | Lo correcto cuando el proyecto opere de verdad |
+| Repo público | Protección gratis | Colaboración gratis | **No** — publica la rúbrica de verificación con su puntaje por respuesta |
+| Aceptar el límite | Disciplina en vez de reglas | Sin previews por rama | Suficiente hoy |
+
+Si se va a pagar una sola cosa, **GitHub Pro rinde más que Vercel Pro**: activa
+protección de ramas, CODEOWNERS y checks bloqueantes de una vez —los tres
+guardarraíles que impiden romper producción— mientras Vercel Pro solo agrega la
+comodidad de un preview por rama. Los previews ya se resuelven gratis con la
+opción C.
+
+**Recomendación priorizada:**
+
+1. Nada, por ahora. Somos dos personas que se hablan; la disciplina alcanza
+   mientras no haya clientes reales.
+2. Cuando entre el primer cliente real: **GitHub Pro**. A partir de ahí
+   `main` es intocable de verdad y no por acuerdo verbal.
+3. Vercel Pro solo si los previews por rama resultan imprescindibles.
+4. Repositorio público: no, en ningún escenario, mientras la rúbrica de
+   sostenibilidad y la comisión vivan en el código.
+
 ## Al conectar Vercel (checklist para Ivan)
 
 Requiere ser dueño del repo y de la cuenta de Vercel.
