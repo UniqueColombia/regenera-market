@@ -9,22 +9,67 @@ Dos personas (Ivan `UniqueColombia`, Jesús `seiler18`), cada una con su agente,
 sobre el mismo repositorio. La estrategia existe para que **nadie rompa
 producción y siempre se sepa quién hizo qué**.
 
-## Antes de nada: los guardarraíles no están activos
+## Regla cero: sincroniza antes de tocar nada
 
-**`main` y `staging` NO están protegidas.** Verificado el 2026-08-23: la
-protección de ramas requiere GitHub Pro en repositorios privados, y el repo está
-en plan Free. Ver `docs/DEPLOY.md`.
+**Antes de modificar una sola línea, trae lo que haya en el repositorio.** No al
+final, no antes de empujar: **antes de abrir el primer archivo.**
+
+```bash
+git fetch origin
+git status                       # ¿hay algo sin commitear? resuélvelo primero
+git switch staging && git pull origin staging
+git switch -c <tipo>/<iniciales>-<tarea>
+```
+
+Y si ya llevas rato en una rama de trabajo, antes de seguir editando:
+
+```bash
+git fetch origin
+git rebase origin/staging        # rebase, no merge hacia adentro
+```
+
+Somos dos personas con un agente cada una sobre el mismo repositorio. Empezar a
+editar sobre un clon viejo es la forma más rápida de producir un conflicto que
+nadie pidió, o —peor— de reescribir sin darte cuenta algo que el otro acababa de
+arreglar. **Un `git fetch` cuesta un segundo; deshacer un conflicto de tres
+archivos cuesta media hora.**
+
+Esto no es una recomendación de higiene: es la primera acción de cualquier
+tarea. Si no sabes si tu clon está al día, no está al día.
+
+## Los guardarraíles SÍ están activos
+
+Desde el 2026-08-23 el repositorio es **público** y `main` y `staging` están
+protegidas. Aplicado con `scripts/proteger-ramas.sh`.
+
+| | `main` | `staging` |
+|---|---|---|
+| Push directo | rechazado | rechazado |
+| PR obligatorio | sí | sí |
+| CI (`verificar`, `secretos`) | debe estar verde | debe estar verde |
+| Aprobaciones | 1, y de un Code Owner | 0 |
+| Rama al día antes de mergear | obligatorio | no |
+| `--force` y borrado | prohibidos | prohibidos |
 
 Qué significa para ti, agente:
 
-- Un `git push` a `main` **no va a ser rechazado**. No cuentes con que la
-  plataforma te detenga: las reglas de abajo son lo único que hay.
-- `.github/CODEOWNERS` no obliga a nada todavía.
-- El CI corre en cada PR, pero **no bloquea el merge**. Un PR en rojo se puede
-  mergear. No lo hagas.
+- **Un `git push` a `main` o `staging` va a ser rechazado por el servidor.** Ya
+  no depende de tu disciplina. Si te pasa, no busques cómo forzarlo: abre un PR.
+- `.github/CODEOWNERS` ahora obliga. Tocar `supabase/`, `pricing.ts`,
+  `payments.ts`, `sustainability.ts`, `orders.ts`, `CLAUDE.md`, `.claude/` o
+  `.github/` exige la revisión de Ivan antes de entrar a `main`.
+- **El CI bloquea el merge.** Un PR en rojo ya no se puede mergear, y además el
+  hook `scripts/verificar-antes-de-merge.sh` corta cualquier `gh pr merge` que
+  un agente intente sobre un PR con checks rojos o pendientes.
 
-Todo lo que sigue es, por ahora, disciplina. Trátalo como si fuera obligatorio,
-porque es lo único que separa esto de romper producción.
+Quién puede empujar no lo decide la protección sino la lista de colaboradores:
+Ivan (`admin`) y Jesús (`write`). Que el repositorio sea público significa que
+cualquiera puede leerlo y abrir un PR desde un fork — no que pueda empujar.
+
+Ivan conserva el bypass de admin, y existe por una razón concreta: es el único
+Code Owner, así que sus propios PRs a `main` no pueden recibir una revisión de
+Code Owner —GitHub no deja aprobarse a uno mismo— y sin el bypass quedarían
+bloqueados para siempre. Es una salida de emergencia, no un atajo.
 
 ## Las tres capas de ramas
 
@@ -202,6 +247,7 @@ nuevo). Si pasa, quedan los dos.
 
 ## Nunca
 
+- **Empezar a editar sin un `git fetch` previo.** Ver la regla cero
 - `git push --force` a `main` o `staging`
 - `git commit` con `main` o `staging` checkout
 - Commitear `.env.local`, `node_modules/` o cualquier clave
