@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  # Sin filtro de rama a propósito: así el CI también corre en PRs apilados
+  # (base = otra rama de trabajo). Con `branches: [main, staging]` un PR apilado
+  # se mergea sin haber pasado por CI nunca.
   pull_request:
-    branches: [main, staging]
   push:
     branches: [main, staging]
 
