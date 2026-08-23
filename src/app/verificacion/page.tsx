@@ -8,7 +8,7 @@ import { TIERS } from "@/lib/taxonomy";
 export const metadata: Metadata = {
   title: "Cómo verificamos",
   description:
-    "La metodología de verificación de Regenera Market: seis dimensiones, evidencia documental y revisión humana antes de asignar el nivel Semilla, Raíz o Bosque.",
+    "La metodología de verificación de Seregenera: seis dimensiones, evidencia documental y revisión humana antes de asignar el nivel Semilla, Raíz o Bosque.",
 };
 
 const STEPS = [

@@ -1,6 +1,6 @@
 ---
 name: registrar-hito
-description: Cómo y cuándo escribir un archivo en hitos/ para dejar trazabilidad de quién hizo qué en Regenera Market. Úsala al terminar un cambio estructural (una fase del roadmap, un módulo nuevo, una migración aplicada, una integración conectada, una decisión de arquitectura, un release) para que la otra persona pueda reconstruirlo sin preguntar. Incluye la plantilla y la convención de nombres.
+description: Cómo y cuándo escribir un archivo en hitos/ para dejar trazabilidad de quién hizo qué en Seregenera. Úsala al terminar un cambio estructural (una fase del roadmap, un módulo nuevo, una migración aplicada, una integración conectada, una decisión de arquitectura, un release) para que la otra persona pueda reconstruirlo sin preguntar. Incluye la plantilla y la convención de nombres.
 ---
 
 # Registrar un hito

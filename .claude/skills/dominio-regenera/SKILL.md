@@ -1,11 +1,11 @@
 ---
 name: dominio-regenera
-description: Invariantes de negocio y seguridad de Regenera Market. Cárgala ANTES de escribir código que toque precios, carrito, comisiones, órdenes, checkout, pagos, roles de usuario, verificación de proveedores o puntaje de sostenibilidad. Estas reglas no son estilo — violarlas produce un bug de dinero, de auditoría o de privilegios.
+description: Invariantes de negocio y seguridad de Seregenera. Cárgala ANTES de escribir código que toque precios, carrito, comisiones, órdenes, checkout, pagos, roles de usuario, verificación de proveedores o puntaje de sostenibilidad. Estas reglas no son estilo — violarlas produce un bug de dinero, de auditoría o de privilegios.
 ---
 
 # Invariantes del dominio
 
-Regenera Market es un marketplace **multi-proveedor con comisión**: en una misma
+Seregenera es un marketplace **multi-proveedor con comisión**: en una misma
 orden hay dinero de varias empresas distintas. Eso convierte varias decisiones
 que parecen de estilo en decisiones de auditoría. Cada regla de abajo tiene un
 modo de fallo concreto; si tu cambio la rompe, no es refactor, es un bug.
@@ -67,7 +67,7 @@ descuento de cupo va en la misma transacción que la creación de la orden, no e
 código de aplicación.
 
 **11. `generateReference()` no garantiza unicidad.** Es
-`RM-AAMMDD-<4 chars aleatorios>`, legible para poner en una transferencia. Cuando
+`SR-AAMMDD-<4 chars aleatorios>`, legible para poner en una transferencia. Cuando
 las órdenes se persistan, la unicidad la impone un `UNIQUE` en la base y un
 reintento, no la aleatoriedad.
 
