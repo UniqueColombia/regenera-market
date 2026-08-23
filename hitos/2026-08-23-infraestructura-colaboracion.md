@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-08-23
 - **Autor:** Jesús Seiler (`seiler18`)
-- **Rama / PR:** `chore/js-infraestructura-colaboracion` → PR pendiente
+- **Rama / PR:** `chore/js-infraestructura-colaboracion` → #1
 - **Fase del roadmap:** 0 — Prototipo (habilitante, no funcionalidad)
 
 ## Qué se hizo
