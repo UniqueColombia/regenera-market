@@ -34,7 +34,7 @@ agente del otro.
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
 | `hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
-| `scripts/` | Utilidades de repositorio: proteger ramas, verificar antes de mergear | Humanos y hooks |
+| `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear | Humanos y hooks |
 | `src/` | Aplicación Next.js (App Router) | — |
 | `supabase/migrations/` | Esquema SQL con RLS | — |
 
@@ -63,7 +63,9 @@ frontmatter `name` + `description`, y una fila en esta tabla. Nada más.
    **antes de abrir el primer archivo**, no antes de empujar: somos dos
    personas con un agente cada una sobre el mismo repositorio, y editar sobre un
    clon viejo produce conflictos que nadie pidió. Carga `flujo-git`, regla cero.
-   Nunca commits directos a `main` ni a `staging` — el servidor los rechaza.
+   El **agente** nunca commitea directo a `main` ni a `staging`: abre un PR.
+   Ivan y Jesús sí pueden, y no necesitan revisión de nadie — ver `flujo-git`,
+   «Quién puede hacer qué».
 2. **Cargar el contexto del dominio.** Si la tarea toca dinero, órdenes, roles o
    puntajes, carga `dominio-regenera` antes de escribir código. Esas reglas no
    son estilo: violarlas es un bug de negocio o de seguridad.
