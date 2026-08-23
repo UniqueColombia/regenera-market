@@ -58,7 +58,7 @@ export function SiteHeader() {
           <Leaf className="size-7 text-brand-600" />
           <span className="leading-none">
             <span className="block font-display text-lg font-semibold text-brand-700">
-              Regenera Market
+              Seregenera
             </span>
             <span className="block text-[11px] text-muted">
               Turismo que regenera

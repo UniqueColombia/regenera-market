@@ -1,4 +1,4 @@
--- Regenera Market — esquema inicial
+-- Seregenera — esquema inicial
 --
 -- Marketplace multi-proveedor: terceros publican, los compradores compran o
 -- piden cotización, y la plataforma retiene comisión. Todo el control de acceso

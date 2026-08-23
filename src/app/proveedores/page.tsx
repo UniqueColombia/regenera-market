@@ -8,7 +8,7 @@ import { certLabel, TRAIT_LABEL } from "@/lib/taxonomy";
 export const metadata: Metadata = {
   title: "Proveedores aliados",
   description:
-    "Las empresas, cooperativas y comunidades colombianas que producen lo que se vende en Regenera Market, con su nivel de verificación de sostenibilidad.",
+    "Las empresas, cooperativas y comunidades colombianas que producen lo que se vende en Seregenera, con su nivel de verificación de sostenibilidad.",
 };
 
 export default async function ProveedoresPage() {

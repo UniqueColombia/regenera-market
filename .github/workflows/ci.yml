@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  # Sin filtro de rama a propósito: así el CI también corre en PRs apilados
+  # (base = otra rama de trabajo). Con `branches: [main, staging]` un PR apilado
+  # se mergea sin haber pasado por CI nunca.
+  pull_request:
+  push:
+    branches: [main, staging]
+
+# Un push nuevo a la misma rama cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          # Debe coincidir con la versión de Node del proyecto en Vercel. Si no
+          # coinciden, el CI pasa en verde y producción falla.
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # El build va PRIMERO: genera los tipos de rutas (PageProps,
+      # LayoutProps) que tsc necesita. En un clon limpio, `tsc --noEmit` sin
+      # build previo falla con TS2304 en cada page.tsx.
+      #
+      # Corre sin credenciales a propósito: si el build necesita un secreto para
+      # compilar, la app dejó de ser clonable y navegable sin configurar nada.
+      # Ver la skill nueva-integracion.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+      - name: Tipos
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint .
+
+  secretos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Ningún .env versionado
+        run: |
+          if git ls-files | grep -E '^\.env' | grep -v '^\.env\.example$'; then
+            echo "::error::Hay un archivo .env versionado. Solo .env.example puede estar en el repo."
+            exit 1
+          fi
+
+      - name: Ninguna clave de servicio en el código
+        run: |
+          if git grep -nIE 'NEXT_PUBLIC_[A-Z_]*(SERVICE_ROLE|PRIVATE|SECRET)' -- . ':!.github/workflows/ci.yml'; then
+            echo "::error::Un secreto con prefijo NEXT_PUBLIC_ queda expuesto en el bundle del navegador."
+            exit 1
+          fi

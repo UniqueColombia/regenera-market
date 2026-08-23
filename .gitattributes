@@ -1,0 +1,17 @@
+# Normaliza fin de línea. Sin esto, un archivo tocado en Windows y otro en
+# macOS producen diffs de archivo completo y conflictos falsos en cada PR.
+* text=auto eol=lf
+
+# Binarios: nunca normalizar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# El lockfile es generado: colapsarlo en el diff del PR.
+package-lock.json -diff linguist-generated
