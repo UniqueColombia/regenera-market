@@ -1,0 +1,11 @@
+# Revisión obligatoria por defecto: el dueño del repo.
+*                           @UniqueColombia
+
+# Zonas de riesgo: dinero, esquema, permisos y la infraestructura de agentes.
+# Un cambio aquí nunca se mergea sin que Ivan lo haya visto.
+/supabase/                  @UniqueColombia
+/src/lib/pricing.ts         @UniqueColombia
+/src/lib/payments.ts        @UniqueColombia
+/CLAUDE.md                  @UniqueColombia
+/.claude/                   @UniqueColombia
+/.github/                   @UniqueColombia
