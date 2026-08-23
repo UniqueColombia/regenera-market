@@ -10,7 +10,7 @@ export function SiteFooter() {
           <div className="flex items-center gap-2">
             <Leaf className="size-7 text-brand-300" />
             <span className="font-display text-lg font-semibold text-white">
-              Regenera Market
+              Seregenera
             </span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-brand-200">
@@ -54,7 +54,7 @@ export function SiteFooter() {
             </li>
             <li>
               <Link href="/vender" className="text-brand-200 hover:text-white">
-                Vende en Regenera
+                Vende en Seregenera
               </Link>
             </li>
             <li>
@@ -95,7 +95,7 @@ export function SiteFooter() {
 
       <div className="border-t border-brand-800">
         <p className="container-page py-5 text-center text-xs text-brand-300">
-          © {new Date().getFullYear()} Regenera Market — Dimension Natural SAS.
+          © {new Date().getFullYear()} Seregenera — Dimension Natural SAS.
           Turismo que regenera vidas y paisajes.
         </p>
       </div>

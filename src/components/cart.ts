@@ -16,7 +16,7 @@ import type { CartLine } from "@/lib/types";
  * comprar a un precio que ya no existe.
  */
 
-const STORAGE_KEY = "regenera.cart.v1";
+const STORAGE_KEY = "seregenera.cart.v1";
 
 /** Referencia estable para el caso vacío: useSyncExternalStore compara por identidad. */
 const EMPTY: CartLine[] = [];

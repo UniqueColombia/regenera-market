@@ -1,5 +1,5 @@
 /**
- * Modelo de dominio de Regenera Market.
+ * Modelo de dominio de Seregenera.
  *
  * Un "listing" es cualquier cosa vendible: producto físico, experiencia con
  * reserva o servicio profesional. Los tres comparten precio, impacto y
@@ -151,7 +151,7 @@ export interface OrderItem {
   unitPriceCop: number;
   qty: number;
   date?: string;
-  /** Comisión de Regenera Market sobre este ítem, en COP */
+  /** Comisión de Seregenera sobre este ítem, en COP */
   commissionCop: number;
 }
 

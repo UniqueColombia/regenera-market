@@ -1,4 +1,4 @@
-# Regenera Market
+# Seregenera
 
 Marketplace multi-proveedor de productos, experiencias y servicios regenerativos
 para el sector turístico colombiano. Operado por **Dimension Natural SAS**.
@@ -85,9 +85,31 @@ Estado real, sin adornos:
       reiniciar.
 - [ ] **Reseñas.** La tabla y su política existen; falta la interfaz.
 
+## Trabajar en este repo
+
+Proyecto colaborativo entre **Ivan Duarte** (`UniqueColombia`) y **Jesús Seiler**
+(`seiler18`), ambos con Claude Code.
+
+| Ruta | Qué es |
+|---|---|
+| `CLAUDE.md` | Orquestador: quién trabaja aquí, dónde está cada cosa, qué skill cargar |
+| `.claude/skills/` | Habilidades del proyecto (`flujo-git`, `dominio-regenera`, `supabase-schema`, `nueva-integracion`, `registrar-hito`) |
+| `hitos/` | Trazabilidad: un archivo por hito, append-only |
+| `docs/ROADMAP.md` | Fases del producto con criterio de salida |
+| `docs/DEPLOY.md` | Stack de despliegue: GitHub + Vercel + Supabase, y por qué |
+
+Ramas: `main` es **producción** y no recibe commits directos; `staging` es
+integración; el trabajo va en `feat/<iniciales>-<slug>` y entra por PR contra
+`staging`. El detalle está en la skill `flujo-git`.
+
 ## Verificación
 
+En este orden — `next build` genera los tipos de rutas (`PageProps`,
+`LayoutProps`) que `tsc` necesita, así que en un clon limpio `tsc` sin build
+previo falla con `TS2304` en cada `page.tsx`:
+
 ```bash
+npm run build        # compila y genera tipos de rutas
 npx tsc --noEmit     # tipos
 npx eslint .         # lint
 ```
