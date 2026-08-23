@@ -1,4 +1,4 @@
-# Roadmap — Regenera Market
+# Roadmap — Seregenera
 
 El camino de aquí a una plataforma que sostiene varios clientes y varios
 servicios. Cada fase tiene **criterio de salida verificable**: mientras no se
@@ -28,7 +28,7 @@ portada → catálogo → ficha → carrito → orden. ✅
 
 **Objetivo:** que nada se pierda al reiniciar el servidor.
 
-- Crear el proyecto de Supabase (dev y prod separados)
+- Crear el proyecto de Supabase (dev y prod separados) — ver `docs/DEPLOY.md`
 - Aplicar `0001_init.sql`
 - `scripts/seed.ts`: cargar `src/data/` con la service role key
 - Reemplazar los cuerpos de `src/lib/repo.ts` por consultas reales, uno a uno

@@ -1,4 +1,4 @@
-# Regenera Market
+# Seregenera
 
 Marketplace multi-proveedor de productos, experiencias y servicios regenerativos
 para el sector turístico colombiano. Operado por **Dimension Natural SAS**.
@@ -96,6 +96,7 @@ Proyecto colaborativo entre **Ivan Duarte** (`UniqueColombia`) y **Jesús Seiler
 | `.claude/skills/` | Habilidades del proyecto (`flujo-git`, `dominio-regenera`, `supabase-schema`, `nueva-integracion`, `registrar-hito`) |
 | `hitos/` | Trazabilidad: un archivo por hito, append-only |
 | `docs/ROADMAP.md` | Fases del producto con criterio de salida |
+| `docs/DEPLOY.md` | Stack de despliegue: GitHub + Vercel + Supabase, y por qué |
 
 Ramas: `main` es **producción** y no recibe commits directos; `staging` es
 integración; el trabajo va en `feat/<iniciales>-<slug>` y entra por PR contra
