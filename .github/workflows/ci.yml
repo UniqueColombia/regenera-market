@@ -19,11 +19,13 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          # Debe coincidir con la versión de Node del proyecto en Vercel. Si no
+          # coinciden, el CI pasa en verde y producción falla.
+          node-version: 22
           cache: npm
 
       - name: Instalar dependencias
@@ -51,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Ningún .env versionado
         run: |
