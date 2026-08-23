@@ -1,11 +1,11 @@
 ---
 name: nueva-integracion
-description: Patrón para conectar un servicio externo a Regenera Market — pasarela de pagos (Wompi), correo transaccional, WhatsApp, facturación electrónica, o el sistema de un cliente hotelero. Cárgala antes de agregar un SDK, una variable de entorno nueva, un webhook o un cliente HTTP. Define cómo se aísla el proveedor detrás de una interfaz para que la plataforma pueda tener varios sin reescribirse.
+description: Patrón para conectar un servicio externo a Seregenera — pasarela de pagos (Wompi), correo transaccional, WhatsApp, facturación electrónica, o el sistema de un cliente hotelero. Cárgala antes de agregar un SDK, una variable de entorno nueva, un webhook o un cliente HTTP. Define cómo se aísla el proveedor detrás de una interfaz para que la plataforma pueda tener varios sin reescribirse.
 ---
 
 # Conectar un servicio externo
 
-Regenera Market va a integrar varios servicios y, más adelante, sistemas de
+Seregenera va a integrar varios servicios y, más adelante, sistemas de
 clientes distintos. La regla que hace eso posible sin reescribir la app cada vez
 es una sola: **el resto del código nunca conoce el nombre del proveedor.**
 

@@ -5,7 +5,7 @@ import { ApplicationForm } from "./application-form";
 import { COMMISSION_RATE } from "@/lib/pricing";
 
 export const metadata: Metadata = {
-  title: "Vende en Regenera Market",
+  title: "Vende en Seregenera",
   description:
     "Postula tu empresa, cooperativa o comunidad para vender productos, experiencias y servicios regenerativos a hoteles, glampings, restaurantes y operadores de todo Colombia.",
 };
