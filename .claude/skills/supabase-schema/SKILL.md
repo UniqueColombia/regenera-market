@@ -1,6 +1,6 @@
 ---
 name: supabase-schema
-description: Reglas para tocar supabase/migrations/ y src/lib/repo.ts en Regenera Market — migraciones aditivas, políticas RLS, y la migración del catálogo desde datos semilla en memoria a consultas reales. Cárgala antes de crear una tabla, cambiar una columna, escribir una política RLS, sembrar datos o reemplazar el cuerpo de una función de repo.
+description: Reglas para tocar supabase/migrations/ y src/lib/repo.ts en Seregenera — migraciones aditivas, políticas RLS, y la migración del catálogo desde datos semilla en memoria a consultas reales. Cárgala antes de crear una tabla, cambiar una columna, escribir una política RLS, sembrar datos o reemplazar el cuerpo de una función de repo.
 ---
 
 # Esquema y acceso a datos

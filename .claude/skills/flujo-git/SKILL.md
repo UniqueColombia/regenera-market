@@ -1,6 +1,6 @@
 ---
 name: flujo-git
-description: Estrategia de ramas, commits, Pull Requests y releases de Regenera Market. Úsala ANTES del primer commit de cualquier tarea, y también para abrir un PR, hacer un release, meter un hotfix, resolver un conflicto o cuando no tengas claro sobre qué rama estás trabajando. Cubre la separación main=producción / staging=integración y la convención de nombres que identifica quién hizo qué.
+description: Estrategia de ramas, commits, Pull Requests y releases de Seregenera. Úsala ANTES del primer commit de cualquier tarea, y también para abrir un PR, hacer un release, meter un hotfix, resolver un conflicto o cuando no tengas claro sobre qué rama estás trabajando. Cubre la separación main=producción / staging=integración y la convención de nombres que identifica quién hizo qué.
 ---
 
 # Flujo de trabajo con Git
