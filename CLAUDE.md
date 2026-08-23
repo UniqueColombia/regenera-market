@@ -50,6 +50,8 @@ pueden pedir a mano con `/<nombre>`.
 | `dominio-regenera` | Tocas precios, comisiones, órdenes, roles o puntaje de sostenibilidad |
 | `supabase-schema` | Tocas `supabase/migrations/` o `src/lib/repo.ts` |
 | `nueva-integracion` | Conectas un servicio externo (pasarela, correo, WhatsApp, ERP de un cliente) |
+| `componentizacion` | Creas un archivo en `src/components/`, dudas entre Server y Client Component, o una página pasa de ~150 líneas de JSX |
+| `diseno-visual` | Escribes clases de Tailwind, eliges un color, maquetas una página o ajustas el aspecto de un componente |
 
 Para agregar una skill: carpeta nueva en `.claude/skills/`, un `SKILL.md` con
 frontmatter `name` + `description`, y una fila en esta tabla. Nada más.
