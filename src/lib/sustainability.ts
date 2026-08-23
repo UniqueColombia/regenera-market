@@ -200,7 +200,7 @@ export const DIMENSIONS: Dimension[] = [
       },
       {
         id: "gob_auditoria",
-        text: "¿Acepta visitas de verificación en sitio por parte de Regenera Market?",
+        text: "¿Acepta visitas de verificación en sitio por parte de Seregenera?",
         options: YES_NO(3),
       },
     ],

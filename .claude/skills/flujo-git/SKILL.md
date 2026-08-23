@@ -1,6 +1,6 @@
 ---
 name: flujo-git
-description: Estrategia de ramas, commits, Pull Requests y releases de Regenera Market. Úsala ANTES del primer commit de cualquier tarea, y también para abrir un PR, hacer un release, meter un hotfix, resolver un conflicto o cuando no tengas claro sobre qué rama estás trabajando. Cubre la separación main=producción / staging=integración y la convención de nombres que identifica quién hizo qué.
+description: Estrategia de ramas, commits, Pull Requests y releases de Seregenera. Úsala ANTES del primer commit de cualquier tarea, y también para abrir un PR, hacer un release, meter un hotfix, resolver un conflicto o cuando no tengas claro sobre qué rama estás trabajando. Cubre la separación main=producción / staging=integración y la convención de nombres que identifica quién hizo qué.
 ---
 
 # Flujo de trabajo con Git
@@ -8,6 +8,23 @@ description: Estrategia de ramas, commits, Pull Requests y releases de Regenera 
 Dos personas (Ivan `UniqueColombia`, Jesús `seiler18`), cada una con su agente,
 sobre el mismo repositorio. La estrategia existe para que **nadie rompa
 producción y siempre se sepa quién hizo qué**.
+
+## Antes de nada: los guardarraíles no están activos
+
+**`main` y `staging` NO están protegidas.** Verificado el 2026-08-23: la
+protección de ramas requiere GitHub Pro en repositorios privados, y el repo está
+en plan Free. Ver `docs/DEPLOY.md`.
+
+Qué significa para ti, agente:
+
+- Un `git push` a `main` **no va a ser rechazado**. No cuentes con que la
+  plataforma te detenga: las reglas de abajo son lo único que hay.
+- `.github/CODEOWNERS` no obliga a nada todavía.
+- El CI corre en cada PR, pero **no bloquea el merge**. Un PR en rojo se puede
+  mergear. No lo hagas.
+
+Todo lo que sigue es, por ahora, disciplina. Trátalo como si fuera obligatorio,
+porque es lo único que separa esto de romper producción.
 
 ## Las tres capas de ramas
 

@@ -16,8 +16,8 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "Regenera Market | Productos y servicios regenerativos para el turismo colombiano",
-    template: "%s | Regenera Market",
+    default: "Seregenera | Productos y servicios regenerativos para el turismo colombiano",
+    template: "%s | Seregenera",
   },
   description:
     "Marketplace que conecta hoteles, glampings, restaurantes, transportadores y operadores con proveedores colombianos verificados de productos, experiencias y servicios regenerativos.",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_CO",
-    siteName: "Regenera Market",
+    siteName: "Seregenera",
   },
 };
 

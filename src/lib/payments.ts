@@ -62,7 +62,7 @@ export function getGateway(): PaymentGateway {
   return new ManualGateway();
 }
 
-/** Referencia legible y única por orden: RM-260817-4F2A */
+/** Referencia legible y única por orden: SR-260817-4F2A */
 export function generateReference(): string {
   const now = new Date();
   const stamp = [
@@ -71,5 +71,5 @@ export function generateReference(): string {
     String(now.getDate()).padStart(2, "0"),
   ].join("");
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `RM-${stamp}-${rand}`;
+  return `SR-${stamp}-${rand}`;
 }
