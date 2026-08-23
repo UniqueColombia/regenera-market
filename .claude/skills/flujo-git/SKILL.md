@@ -226,10 +226,16 @@ git checkout staging && git pull origin staging
 gh pr create --base main --head staging --title "release: <fecha o alcance>"
 ```
 
-Este PR lo aprueba y mergea **Ivan** (es producción y es su repo). Se mergea con
-`--merge`, no con squash: queremos ver en `main` qué tareas entraron.
+**Lo mergea cualquiera de los dos.** Antes esta skill decía que solo Ivan, y
+quedó desactualizada con la política de ramas abierta: no hay PR obligatorio ni
+aprobaciones. Lo que no cambia es que **el agente abre el PR y no lo mergea sin
+que su persona se lo pida** — un release va a producción.
 
-Después, etiquetar:
+Se mergea con `--merge`, no con squash: queremos ver en `main` qué tareas
+entraron.
+
+**El release no termina hasta que está etiquetado.** No es opcional y es el paso
+que se olvida:
 
 ```bash
 git checkout main && git pull origin main
@@ -239,7 +245,21 @@ git push origin v0.2.0
 
 Versionado: `v0.MINOR.PATCH` mientras el producto sea pre-lanzamiento. Sube
 `MINOR` cuando entra una fase del `docs/ROADMAP.md`, `PATCH` cuando es solo
-corrección. Cada release debería tener su hito en `hitos/`.
+corrección.
+
+Sin etiqueta no hay forma de responder «qué había en producción el martes»: los
+merges de `staging` a `main` se ven todos iguales en el log. Los cuatro primeros
+releases del 2026-08-23 se hicieron sin etiquetar; el estado resultante quedó
+marcado como `v0.1.0` (Fase 0 cerrada) y desde ahí la numeración es continua. No
+se etiquetaron hacia atrás: inventar cuatro versiones retroactivas para commits
+que nadie desplegó por separado documenta menos que la nota que estás leyendo.
+
+Comprobar antes de dar un release por terminado:
+
+```bash
+git fetch --tags && git tag --points-at origin/main
+# vacío = el release no está etiquetado
+```
 
 ## Hotfix (producción caída)
 
