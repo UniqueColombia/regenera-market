@@ -30,6 +30,7 @@ agente del otro.
 | `AGENTS.md` | Bloque que regenera `next dev`. No editar a mano | Agentes |
 | `README.md` | Qué es el producto, cómo correrlo, decisiones de diseño | Humanos y agentes |
 | `docs/ROADMAP.md` | Camino del producto por fases, con criterio de salida | Humanos y agentes |
+| `docs/BETA.md` | Cómo se ejecutan las Fases 1 y 2, bloque por bloque | Humanos y agentes |
 | `docs/DEPLOY.md` | Stack de despliegue, por qué se eligió y qué se descartó | Humanos y agentes |
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
 | `hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
