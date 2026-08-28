@@ -119,7 +119,7 @@ porque los firma él). Se eligió hacerlo público.
 Una cosa que se descartó explícitamente y conviene que siga descartada:
 **reescribir el autor del commit** (`git commit --amend --author`) para que todo
 apareciera firmado por el dueño de la cuenta. Circula como solución al bloqueo de
-Hobby. Destruiría la trazabilidad que sostiene `hitos/`, `CODEOWNERS` y las
+Hobby. Destruiría la trazabilidad que sostiene `.claude/hitos/`, `CODEOWNERS` y las
 iniciales en las ramas, a cambio de nada.
 
 ## La decisión que se tomó: repositorio público

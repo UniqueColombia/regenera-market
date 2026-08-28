@@ -94,7 +94,7 @@ Proyecto colaborativo entre **Ivan Duarte** (`UniqueColombia`) y **Jesús Seiler
 |---|---|
 | `CLAUDE.md` | Orquestador: quién trabaja aquí, dónde está cada cosa, qué skill cargar |
 | `.claude/skills/` | Habilidades del proyecto (`flujo-git`, `dominio-regenera`, `supabase-schema`, `nueva-integracion`, `registrar-hito`) |
-| `hitos/` | Trazabilidad: un archivo por hito, append-only |
+| `.claude/hitos/` | Trazabilidad: un archivo por hito, append-only |
 | `docs/ROADMAP.md` | Fases del producto con criterio de salida |
 | `docs/DEPLOY.md` | Stack de despliegue: GitHub + Vercel + Supabase, y por qué |
 

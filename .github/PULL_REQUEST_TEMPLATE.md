@@ -20,7 +20,7 @@
 - [ ] Variables de entorno nuevas documentadas en `.env.example`, sin valores
 - [ ] Si toca precios, comisiones, órdenes, roles o puntajes: revisado contra la skill `dominio-regenera`
 - [ ] Si toca `supabase/migrations/`: migración aditiva, RLS activa, rollback comentado
-- [ ] Hito registrado en `hitos/` si el cambio es estructural
+- [ ] Hito registrado en `.claude/hitos/` si el cambio es estructural
 
 ## Requiere autorización explícita
 
