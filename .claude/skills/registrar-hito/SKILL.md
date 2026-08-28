@@ -1,11 +1,11 @@
 ---
 name: registrar-hito
-description: Cómo y cuándo escribir un archivo en hitos/ para dejar trazabilidad de quién hizo qué en Seregenera. Úsala al terminar un cambio estructural (una fase del roadmap, un módulo nuevo, una migración aplicada, una integración conectada, una decisión de arquitectura, un release) para que la otra persona pueda reconstruirlo sin preguntar. Incluye la plantilla y la convención de nombres.
+description: Cómo y cuándo escribir un archivo en .claude/hitos/ para dejar trazabilidad de quién hizo qué en Seregenera. Úsala al terminar un cambio estructural (una fase del roadmap, un módulo nuevo, una migración aplicada, una integración conectada, una decisión de arquitectura, un release) para que la otra persona pueda reconstruirlo sin preguntar. Incluye la plantilla y la convención de nombres.
 ---
 
 # Registrar un hito
 
-`hitos/` es la memoria del proyecto. Existe para que `CLAUDE.md` no se convierta
+`.claude/hitos/` es la memoria del proyecto. Existe para que `CLAUDE.md` no se convierta
 en un diario y para que, seis meses después, cualquiera pueda responder **"¿quién
 decidió esto y por qué?"** leyendo un archivo en vez de arqueología de commits.
 
@@ -33,17 +33,17 @@ hito.
 
 ## Nombre del archivo
 
-`hitos/AAAA-MM-DD-slug-en-kebab-case.md`
+`.claude/hitos/AAAA-MM-DD-slug-en-kebab-case.md`
 
 Fecha en que se **terminó**, no en que se empezó. La fecha primero para que
-`ls hitos/` salga en orden cronológico.
+`ls .claude/hitos/` salga en orden cronológico.
 
 Ejemplos: `2026-08-23-mvp-navegable.md`,
 `2026-09-04-supabase-en-produccion.md`, `2026-09-20-wompi-pagos-reales.md`.
 
 ## Plantilla
 
-Copia `hitos/_plantilla.md`. Estructura:
+Copia `.claude/hitos/_plantilla.md`. Estructura:
 
 ```markdown
 # <Título del hito>
@@ -82,4 +82,4 @@ Cómo se comprobó que funciona. Comandos, rutas visitadas, datos usados.
   correo real de proveedor. Nombra la variable de entorno, no su valor.
 - El hito entra **en el mismo PR** que el trabajo que describe, como último
   commit: `docs(hitos): registrar <slug>`.
-- Actualiza `hitos/README.md` agregando la fila del hito nuevo al índice.
+- Actualiza `.claude/hitos/README.md` agregando la fila del hito nuevo al índice.

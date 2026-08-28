@@ -5,7 +5,7 @@
 Este archivo es el **punto de entrada de todo agente** (Claude Code u otro) que
 trabaje en este repositorio. Describe la infraestructura: quién trabaja aquí,
 dónde vive cada cosa y qué habilidad cargar según la tarea. **No documenta el
-producto** (eso es `README.md`) **ni el historial** (eso es `hitos/`).
+producto** (eso es `README.md`) **ni el historial** (eso es `.claude/hitos/`).
 
 Regla de oro: si algo que aprendes vale para la próxima sesión, no lo escribas
 aquí. Va a una skill (si es "cómo hacer algo") o a un hito (si es "qué se hizo").
@@ -33,7 +33,7 @@ agente del otro.
 | `docs/BETA.md` | Cómo se ejecutan las Fases 1 y 2, bloque por bloque | Humanos y agentes |
 | `docs/DEPLOY.md` | Stack de despliegue, por qué se eligió y qué se descartó | Humanos y agentes |
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
-| `hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
+| `.claude/hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
 | `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear | Humanos y hooks |
 | `src/` | Aplicación Next.js (App Router) | — |
@@ -87,7 +87,7 @@ frontmatter `name` + `description`, y una fila en esta tabla. Nada más.
 - **No se hace `push --force` a `main` ni a `staging`.**
 - **No se aplican migraciones destructivas** sin que el dueño del repo lo
   autorice explícitamente en el PR.
-- **No se borra ni se reescribe un archivo de `hitos/`.** Si un hito quedó mal,
+- **No se borra ni se reescribe un archivo de `.claude/hitos/`.** Si un hito quedó mal,
   se escribe otro que lo corrija y lo referencie.
 - El agente no decide por el equipo: si una tarea implica cambiar la estrategia
   de ramas, el modelo de datos compartido o el costo de un servicio externo, se
