@@ -26,6 +26,9 @@ portada → catálogo → ficha → carrito → orden. ✅
 
 ## Fase 1 — Persistencia real
 
+> Las Fases 1 y 2 son la **beta gratuita**. Su plan de ejecución paso a paso
+> —quién hace cada bloque, cómo, y con qué trampas— está en `docs/BETA.md`.
+
 **Objetivo:** que nada se pierda al reiniciar el servidor.
 
 - Crear el proyecto de Supabase (dev y prod separados) — ver `docs/DEPLOY.md`
