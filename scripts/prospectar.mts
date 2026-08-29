@@ -279,10 +279,33 @@ const PERFILES: Perfil[] = [
 ];
 
 /**
+ * Códigos «n.c.p.» — no clasificados previamente. Son los cajones de sastre del
+ * CIIU y hay que tratarlos aparte de todo lo demás.
+ *
+ * El problema es de tamaño y de señal a la vez. `9499`, «actividades de otras
+ * asociaciones», tiene 92.503 empresas activas: todas las juntas de acción
+ * comunal, clubes deportivos y asociaciones de copropietarios del país. Ahí
+ * dentro están las asociaciones campesinas y de recicladores que sí queremos,
+ * pero pedirlas sin filtrar devuelve un universo intratable y un ranking donde
+ * el buen candidato no aparece.
+ *
+ * Se resuelve en dos sitios: la consulta al RUES les exige además una señal en
+ * el nombre (`condicionesRues`), y el puntaje les da menos peso que a un código
+ * específico (`puntuar`). Un cajón de sastre nunca vale lo que un CIIU que
+ * describe de verdad el negocio.
+ */
+const CIIU_CAJON = new Set(["1089", "2029", "2599", "3290", "4649", "7490", "9499"]);
+
+/**
  * Términos que, en la razón social o la sigla, sugieren que la empresa ya se
  * posiciona como sostenible. Es señal débil a propósito: hay empresas verdes
  * con nombre neutro y empresas convencionales con nombre verde. Suma, no
  * decide, y por eso el tope es bajo.
+ *
+ * Se comparan **al inicio de una palabra**, no como subcadena. "eco" dentro de
+ * "RECOLECCION" y "bio" dentro de "TABIO" no dicen nada de nadie; buscarlos
+ * sueltos llenaba el ranking de empresas que solo tenían la mala suerte de
+ * llamarse así.
  */
 const SENALES_VERDES = [
   "eco",
@@ -353,11 +376,40 @@ function comillasSoql(valor: string): string {
   return `'${valor.replace(/'/g, "''")}'`;
 }
 
+function enAlgunCiiu(codigos: string[]): string {
+  const lista = codigos.map(comillasSoql).join(",");
+  return `(cod_ciiu_act_econ_pri IN (${lista}) OR cod_ciiu_act_econ_sec IN (${lista}))`;
+}
+
+/**
+ * A los códigos cajón de sastre se les exige, además, una señal en el nombre.
+ *
+ * El filtro va en el servidor y no aquí abajo por una razón de orden de
+ * magnitud: pedir `9499` entero son 92.503 filas, y con la señal son 5.451. La
+ * diferencia no es de comodidad, es la que separa una consulta que responde en
+ * ocho segundos de una que se corta por timeout.
+ *
+ * `like` no tiene frontera de palabra, así que este filtro es deliberadamente
+ * generoso —deja pasar «RECOLECCION» por contener «eco»—. No importa: es un
+ * prefiltro para que la consulta sea tratable, y la precisión la pone `puntuar`,
+ * que sí compara al inicio de palabra.
+ */
 function condicionesRues(ciiu: string[], camaras: string[], desdeAnio: number): string {
-  const lista = ciiu.map(comillasSoql).join(",");
+  const especificos = ciiu.filter((c) => !CIIU_CAJON.has(c));
+  const cajon = ciiu.filter((c) => CIIU_CAJON.has(c));
+
+  const alternativas: string[] = [];
+  if (especificos.length > 0) alternativas.push(enAlgunCiiu(especificos));
+  if (cajon.length > 0) {
+    const señal = SENALES_VERDES.map(
+      (s) => `upper(razon_social) like ${comillasSoql(`%${s.toUpperCase()}%`)}`,
+    ).join(" OR ");
+    alternativas.push(`(${enAlgunCiiu(cajon)} AND (${señal}))`);
+  }
+
   const condiciones = [
     "estado_matricula='ACTIVA'",
-    `(cod_ciiu_act_econ_pri IN (${lista}) OR cod_ciiu_act_econ_sec IN (${lista}))`,
+    `(${alternativas.join(" OR ")})`,
     `ultimo_ano_renovado >= ${comillasSoql(String(desdeAnio))}`,
   ];
   if (camaras.length > 0) {
@@ -395,7 +447,7 @@ async function contarRues(where: string): Promise<number> {
  */
 async function consultarRues(where: string, cupo: number): Promise<RegistroRues[]> {
   const filas: RegistroRues[] = [];
-  const porPagina = 20_000;
+  const porPagina = 5_000;
 
   for (let offset = 0; offset < cupo; offset += porPagina) {
     const url = new URL(RUES_URL);
@@ -614,16 +666,20 @@ function puntuar(registro: RegistroRues, perfiles: Perfil[], anioActual: number)
   }
 
   const principal = registro.cod_ciiu_act_econ_pri ?? "";
-  if (perfiles.some((p) => p.ciiu.includes(principal))) {
+  if (perfiles.some((p) => p.ciiu.includes(principal)) && !CIIU_CAJON.has(principal)) {
     puntaje += 15;
     motivos.push(`CIIU principal ${principal}`);
+  } else if (perfiles.some((p) => p.ciiu.includes(principal))) {
+    puntaje += 6;
+    motivos.push(`CIIU principal ${principal}, cajón de sastre`);
   } else {
     puntaje += 5;
     motivos.push(`CIIU solo secundario ${registro.cod_ciiu_act_econ_sec ?? "?"}`);
   }
 
   const nombre = normalizar(`${registro.razon_social ?? ""} ${registro.sigla ?? ""}`);
-  const verdes = SENALES_VERDES.filter((s) => nombre.includes(s));
+  const palabras = nombre.split(/[^a-z0-9]+/);
+  const verdes = SENALES_VERDES.filter((s) => palabras.some((p) => p.startsWith(s)));
   if (verdes.length > 0) {
     puntaje += Math.min(30, verdes.length * 12);
     motivos.push(`nombre sugiere sostenibilidad (${verdes.join(", ")})`);

@@ -35,7 +35,8 @@ agente del otro.
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
 | `.claude/agents/` | Subagentes con encargo propio. Un archivo por agente | Claude Code |
 | `.claude/hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
-| `.claude/prospectos/` | Salida del prospector. **No se versiona** (ver Límites duros) | Humanos |
+| `.claude/prospectos/` | CSV crudos del prospector. **No se versiona** (ver Límites duros) | Humanos |
+| `outputs/` | Entregables generados (el Excel de prospectos). **No se versiona** | Humanos |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
 | `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear, prospectar proveedores | Humanos y hooks |
 | `src/` | Aplicación Next.js (App Router) | — |
@@ -73,7 +74,7 @@ se hace X", es una skill. Si es "andá y traeme X", es un subagente.
 
 | Subagente | Delégale… |
 |---|---|
-| `prospector-proveedores` | Encontrar candidatos a proveedor para una vertical o categoría, con el contacto verificado y el encaje ya juzgado. Parte del registro mercantil (RUES) |
+| `prospector-proveedores` | Encontrar candidatos a proveedor para una vertical o categoría, con el contacto verificado y el encaje ya juzgado. Parte del registro mercantil (RUES) y entrega un Excel en `outputs/` |
 
 Para agregar uno: archivo nuevo en `.claude/agents/`, frontmatter `name` +
 `description` + `tools`, y una fila en esta tabla.
@@ -109,8 +110,8 @@ Para agregar uno: archivo nuevo en `.claude/agents/`, frontmatter `name` +
   autorice explícitamente en el PR.
 - **No se borra ni se reescribe un archivo de `.claude/hitos/`.** Si un hito quedó mal,
   se escribe otro que lo corrija y lo referencie.
-- **No se versionan listas de prospectos.** `.claude/prospectos/` está en
-  `.gitignore`: son datos de empresas y personas identificables, y el
+- **No se versionan listas de prospectos.** `.claude/prospectos/` y `outputs/`
+  están en `.gitignore`: son datos de empresas y personas identificables, y el
   repositorio es público. Que el RUES los publique no nos autoriza a
   republicarlos agregados y puntuados en GitHub. Se versiona la maquinaria
   (`scripts/prospectar.mts`), nunca su salida.
