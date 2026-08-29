@@ -18,3 +18,4 @@ referencie al anterior.
 | 2026-08-23 | [El repositorio pasó a público y la política de ramas se abrió](2026-08-23-repositorio-publico.md) | Ivan Duarte · Jesús Seiler | 0 — Prototipo |
 | 2026-08-28 | [Prospector de proveedores, y los hitos se mudan a `.claude/`](2026-08-28-prospector-de-proveedores.md) | Jesús Seiler | — (habilita la 4) |
 | 2026-08-29 | [Los prospectos salen en Excel, y el puntaje aprende a separar](2026-08-29-excel-de-prospectos.md) | Jesús Seiler | — (habilita la 4) |
+| 2026-08-29 | [El primer lote enriquecido corrige tres perfiles mal cableados](2026-08-29-primer-lote-enriquecido.md) | Jesús Seiler | — (habilita la 4) |
