@@ -202,6 +202,42 @@ Para comprobar que un libro generado abre de verdad, sin abrir Excel:
 python -c "import openpyxl; print(openpyxl.load_workbook('outputs/…xlsx').sheetnames)"
 ```
 
+## Enriquecer: del universo a una lista de llamadas
+
+El CSV crudo no sirve para llamar a nadie: no trae contacto ni juicio. Ese paso
+lo hace el subagente `prospector-proveedores`, y el circuito es este.
+
+1. **Extraer el lote.** Los de prioridad alta (puntaje 72 o más) desde la hoja
+   `Todos` del libro.
+2. **Partirlo en lotes intercalados, nunca por vertical.** Un tercio largo de
+   los prospectos sirve a más de una vertical: partir por vertical hace que dos
+   agentes investiguen la misma empresa. Intercalar (`filas[i::n]`) reparte
+   además los puntajes altos entre todos los lotes en vez de dejar el trabajo
+   fácil en uno solo.
+3. **Un subagente por lote.** Cada uno escribe
+   `.claude/prospectos/enriquecer/lote-N-enriquecido.csv`, con las **mismas 25
+   columnas y el mismo formato**.
+4. **Volver a exportar.**
+
+```bash
+node scripts/exportar-excel.mts --enriquecido .claude/prospectos/enriquecer
+```
+
+El exportador superpone el enriquecimiento sobre los registros crudos casando
+por **NIT**, y añade la hoja **Contactar** con solo los de encaje `alto` y
+`medio`, ordenados por encaje y luego por puntaje. Es la hoja que se usa; el
+resto es trazabilidad.
+
+Dos detalles que parecen menores y no lo son:
+
+- **Solo se copia lo que trae contenido.** Una celda vacía en el CSV enriquecido
+  significa «se buscó y no se encontró», y no debe borrar nada. Lo único que
+  distingue «investigado sin resultado» de «sin investigar» es que `encaje` esté
+  lleno.
+- **Los CSV enriquecidos llevan los títulos legibles** («Razón social», «Sitio
+  web»), no las claves internas: se generan desde el libro para que una persona
+  pueda revisarlos a mano. La traducción vive en `COLUMNAS`.
+
 ## Los CSV no se versionan
 
 `.claude/prospectos/` y `outputs/` están en `.gitignore`. Son datos de empresas
