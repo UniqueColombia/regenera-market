@@ -4,7 +4,7 @@ Qué imágenes le faltan al sitio, dónde va cada una, con qué prompt se genera
 qué hago yo después con ella. Este documento es el encargo; `public/img/` es el
 resultado.
 
-**Estado a 2026-08-29:** el sitio no tiene **ninguna** imagen propia. Los cinco
+**Estado al escribir esto:** el sitio no tenía **ninguna** imagen propia. Los cinco
 SVG de `public/` son los que trae Next.js de fábrica y no se usan en ningún
 lado. Todo lo visual sale hoy de iconos de `lucide-react` y degradados de la
 paleta — funciona, pero un marketplace de productos que no enseña ningún
@@ -14,7 +14,7 @@ producto no vende.
 
 | Bloque | Faltan | Se generan con IA | Los deriva Claude |
 |---|---|---|---|
-| Logo e identidad | 21 archivos | 4 conceptos (eliges 1) | 21 |
+| Logo e identidad | 21 archivos | 4 conceptos (eliges 1) | 21 → salieron 28 |
 | Fotografía de sección | 9 | 9 | 9 (recortes) |
 | Fotografía de oferta | 18 | 18 | 18 |
 | Avatar de proveedor | 13 | **0** — ver abajo | 13 (monograma en código) |
@@ -248,11 +248,11 @@ solo. No hay que tocar el `layout.tsx`.
 | `favicon.ico` | 32 + 16 px | La pestaña. Hoy hay uno: el de Next de fábrica |
 | `icon.png` | 512×512 | Pestañas modernas, PWA, marcador de Android |
 | `apple-icon.png` | 180×180 | «Añadir a pantalla de inicio» en iPhone |
-| `opengraph-image.png` | 1200×630 | La tarjeta al compartir en WhatsApp, Slack, Facebook |
-| `twitter-image.png` | 1200×630 | Lo mismo en X |
+| `opengraph-image.jpg` | 1200×630 | La tarjeta al compartir en WhatsApp, Slack, Facebook |
+| `twitter-image.jpg` | 1200×630 | Lo mismo en X |
 
 Hoy, si alguien pega un enlace de Seregenera en un grupo de WhatsApp, sale un
-rectángulo gris con la URL. Con `opengraph-image.png` sale la marca, el nombre y
+rectángulo gris con la URL. Con `opengraph-image.jpg` sale la marca, el nombre y
 la promesa — es la imagen que más veces se va a ver del proyecto y no existe.
 
 ### Redes sociales (`public/img/marca/redes/`)
@@ -269,10 +269,10 @@ un logo centrado en un cuadrado se decapita al volverse círculo.
 | `avatar-640.png` | 640×640 | WhatsApp Business | Circular |
 | `avatar-200.png` | 200×200 | TikTok | Circular |
 | `banner-linkedin-empresa.png` | 1128×191 | Portada de página de empresa | Franja bajísima: solo logotipo horizontal y una línea |
-| `banner-linkedin-personal.png` | 1584×396 | Tu perfil y el de Ivan | El avatar tapa la esquina inferior izquierda |
-| `banner-facebook.png` | 1640×856 | Portada de página | En móvil recorta a los 1200×630 centrales |
-| `banner-x.png` | 1500×500 | Cabecera de X | El avatar tapa la esquina inferior izquierda |
-| `banner-youtube.png` | 2560×1440 | Canal | Solo se ve garantizado el centro de 1546×423 |
+| `banner-linkedin-personal.jpg` | 1584×396 | Tu perfil y el de Ivan | El avatar tapa la esquina inferior izquierda |
+| `banner-facebook.jpg` | 1640×856 | Portada de página | En móvil recorta a los 1200×630 centrales |
+| `banner-x.jpg` | 1500×500 | Cabecera de X | El avatar tapa la esquina inferior izquierda |
+| `banner-youtube.jpg` | 2560×1440 | Canal | Solo se ve garantizado el centro de 1546×423 |
 | `firma-correo.png` | 320×80 | Firma de Gmail | Fondo blanco, no transparente: Outlook lo pinta gris |
 
 **Los banners no son el logo estirado.** Llevan el logotipo horizontal sobre un
@@ -720,29 +720,146 @@ Aspect ratio 4:3.
 
 ---
 
-# 4. Qué hago yo cuando lleguen
 
-Por orden, y todo en la rama `feat/js-identidad-visual`:
+# 4. Qué quedó hecho — 2026-08-29
 
-1. **Optimizar.** `bash scripts/optimizar-imagenes.sh` — convierte a WebP con el
-   ancho que le toca a cada carpeta y las deja en `public/img/`.
-2. **Logo.** Escribo el SVG a mano a partir del concepto elegido, y de ahí
-   derivo los 21 archivos: vectores, iconos de `src/app/` y avatares y banners
-   de redes.
-3. **Conectar las ofertas.** Llenar el campo `images` de los 18 listings.
-   `listing-media.tsx` ya sabe qué hacer: en cuanto el array deja de estar
-   vacío, muestra la foto en vez del degradado. Aprovecho para pasar las rutas
-   locales por `next/image`, que hoy no se puede usar porque las fotos futuras
-   vienen de Supabase Storage con dominio desconocido en build.
-4. **Conectar las secciones.** Foto de fondo en los cuatro héroes, oscurecida
-   con el degradado que ya existe para que el texto blanco siga cumpliendo
-   contraste AA, y foto en las cinco tarjetas de vertical de la portada.
-5. **Avatar de proveedor.** Componente de monograma determinista, y portada de
-   la ficha de proveedor tomada de su mejor oferta.
-6. **Verificar.** `npm run build`, `npx tsc --noEmit`, `npx eslint .`. Los tres
-   en limpio antes de abrir el PR contra `staging`.
-7. **Registrar el hito** en `hitos/`.
+Las 28 imágenes llegaron y están conectadas. Lo de abajo es el estado real, no
+el plan.
 
-La revisión visual la haces tú: aquí no hay navegador automatizado. Yo puedo
-afirmar que compila, que pesa lo que debe y que el contraste calculado cumple —
-no que se ve bien.
+## Las dos máquinas
+
+```
+tools/img-originales/          98 MB de JPG grandes, sin versionar
+        │
+        ├── bash scripts/optimizar-imagenes.sh   →  public/img/{ofertas,secciones}/  9,7 MB en WebP
+        │      27 fotos. El logo lo salta a propósito: es vector, no fotografía.
+        │
+        └── bash scripts/generar-marca.sh        →  28 archivos de marca
+               Parte de los SVG de public/img/marca/, no del JPG.
+```
+
+Las dos son idempotentes: se pueden volver a correr cuantas veces haga falta.
+**Si mañana cambia el logo, se edita el SVG y se corre `generar-marca.sh`.** Es
+lo único que mantiene el favicon, el avatar de LinkedIn y la tarjeta de WhatsApp
+siendo el mismo logo dentro de un año.
+
+## El logo
+
+El concepto que llegó es el A —hoja, mundo y raíz— con un mundo añadido en el
+centro. Se dibujó a mano en SVG, no se vectorizó automáticamente.
+
+**Son dos dibujos, no uno**, y esa es la decisión de diseño que importa aquí:
+
+| Archivo | Cuándo | Qué tiene |
+|---|---|---|
+| `isotipo.svg` | De 32 px hacia arriba | Nervios de hoja, continentes, cuatro pares de raíces |
+| `isotipo-compacto.svg` | Por debajo de 32 px | Silueta sola, trazo más grueso, dos pares de raíces |
+
+El original a 16 px se convierte en una mancha: las raíces finas y el mapa se
+empastan hasta que no queda nada reconocible. La versión compacta conserva la
+silueta de hoja, mundo y raíz, que es lo único que alguien identifica a ese
+tamaño. Comparten `viewBox`, así que se intercambian en el mismo hueco sin
+recalcular nada.
+
+Los dos usan `currentColor` en todo el trazo: **no hay un solo hex dentro del
+SVG**. Recolorear el logo es `text-brand-600` o `text-white`, no un archivo
+nuevo. Las variantes con color escrito (`-blanco`, `-negro`, `-verde`) existen
+solo para quien abre el archivo fuera del sitio, en Illustrator o en un Word.
+
+Dentro de la aplicación no se usan estos archivos sino
+`src/components/isotipo.tsx`, que lleva la misma geometría inline. A través de
+`<img src="…svg">` el SVG se carga en su propio documento y `currentColor` deja
+de resolver contra el texto de alrededor; inline, el mismo componente sale verde
+en la cabecera y blanco en el pie sin una petición de red extra.
+
+### La palabra
+
+«Seregenera» va en Fraunces, la tipografía de titulares que el sitio ya carga.
+En la cabecera es texto HTML, no una imagen: se puede seleccionar, escala solo y
+siempre sale con la fuente correcta.
+
+**En lo rasterizado —banners, firma de correo, tarjeta de compartir— la palabra
+va en Georgia.** Fraunces se sirve desde Google Fonts y no está instalada en
+esta máquina, así que ImageMagick no puede componerla. Georgia es el respaldo
+que `globals.css` ya declara para `--font-display`, y a tamaño de banner la
+diferencia es pequeña. Si en algún momento importa que sea Fraunces exacta,
+hay que sacar las curvas en un editor vectorial: aquí no hay forma.
+
+## Los 28 archivos de marca
+
+| Dónde | Qué |
+|---|---|
+| `public/img/marca/*.svg` | 3 fuentes (isotipo, compacto, logotipo horizontal) × 3 colores + las 3 originales con `currentColor` = 12 |
+| `src/app/` | `favicon.ico`, `icon.png`, `apple-icon.png`, `opengraph-image.jpg`, `twitter-image.jpg` = 5 |
+| `public/img/marca/redes/` | 5 avatares, 5 banners, firma de correo = 11 |
+
+Dos cambios respecto al plan:
+
+- **Los banners con foto y la tarjeta de compartir son JPG, no PNG.** Son
+  fotografías: en PNG, el banner de YouTube pesaba 3,8 MB y ahora pesa 671 KB.
+  Lo que sigue en PNG es lo que tiene color plano o transparencia — avatares,
+  banner de LinkedIn de empresa, firma.
+- **El favicon y los avatares llevan fondo verde macizo**, con la marca en
+  crema. Un favicon de fondo claro desaparece en una fila de pestañas que ya son
+  todas blancas.
+
+## Dónde quedó cada foto
+
+| Foto | Se ve en |
+|---|---|
+| `hero-home` | Portada, detrás del velo. También el banner de LinkedIn personal y la tarjeta de compartir |
+| `hero-verificacion` | Cabecera de `/verificacion`. También el banner de YouTube |
+| `hero-vender` | Cabecera de `/vender`. También el banner de Facebook |
+| `hero-proveedores` | Cabecera de `/proveedores`, y respaldo de la ficha de un proveedor sin ofertas con foto. También el banner de X |
+| `vertical-*` (5) | Tarjetas de «Soluciones para cada tipo de negocio» en la portada |
+| Las 18 de oferta | Tarjeta del catálogo y ficha de la oferta |
+
+`/catalogo` se quedó **sin** fotografía de cabecera a propósito. Es una
+herramienta de trabajo con filtros: una franja alta con foto empuja los
+resultados fuera de la pantalla y estorba a quien vino a buscar algo.
+`/proveedores` sí la lleva porque es una página que cuenta quiénes son antes de
+listarlos.
+
+## Decisiones que se tomaron al conectarlas
+
+**La ficha de oferta pasó de 16:9 a 3:2.** Las fotos llegaron en 4:3. En un
+hueco 16:9 el recorte se come el 12 % de arriba y el 12 % de abajo; en 3:2 se
+queda en un 6 % por lado. Con 18 fotos, esa diferencia es entre perderle la
+cabeza a un producto y no perdérsela.
+
+**Las rutas locales pasan por `next/image`; las de Supabase Storage, no.**
+`listing-media.tsx` mira si la ruta empieza por `/`. Las de aquí las recorta y
+las sirve Next en el tamaño de cada hueco; las del futuro Storage siguen con
+`<img>` pelado porque el dominio no se conoce en build y `next/image` exige
+declararlo en `next.config` antes de tocarlo. El día que exista el bucket, se
+declara el dominio y se borra la segunda rama.
+
+**El velo de las cabeceras vive en un solo componente.**
+`src/components/hero-banner.tsx`. Es lo único que separa un titular blanco de
+una foto con niebla clara detrás: repetido a mano en cuatro páginas, basta con
+que alguien lo aclare en una para dejar un titular ilegible sin que nadie lo
+note.
+
+**Los proveedores no tienen logo generado, tienen monograma.**
+`src/components/provider-avatar.tsx` dibuja sus iniciales sobre un degradado
+estable derivado del nombre. Y la portada de la ficha de un proveedor es la foto
+de su propia oferta, no una imagen aparte: siempre muestra algo que esa empresa
+vende de verdad, y se mantiene sola cuando el catálogo cambia.
+
+## Lo que falta revisar, y no lo puedo revisar yo
+
+La revisión visual la hace una persona: aquí no hay navegador. Lo verificado es
+que `npm run build`, `npx tsc --noEmit` y `npx eslint .` pasan los tres en
+limpio, que las 18 ofertas tienen ruta y que ningún archivo pesa más de lo que
+debería.
+
+Tres sitios donde mirar con atención:
+
+1. **El isotipo a tamaño de favicon.** La silueta de hoja sobre círculo con
+   raíces puede leerse como una figura humana antes que como una planta. Es la
+   pieza con más probabilidad de necesitar un ajuste.
+2. **El contraste del titular sobre la portada.** El velo está calculado para
+   que el blanco pase AA sobre la parte clara de la niebla, pero calculado no es
+   lo mismo que mirado.
+3. **Las 18 fotos en la tarjeta del catálogo**, que las muestra en 4:3 completo,
+   contra la ficha, que recorta a 3:2.

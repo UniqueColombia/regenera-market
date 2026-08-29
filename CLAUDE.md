@@ -39,9 +39,9 @@ agente del otro.
 | `.claude/prospectos/` | CSV crudos del prospector. **No se versiona** (ver Límites duros) | Humanos |
 | `outputs/` | Entregables generados (el Excel de prospectos). **No se versiona** | Humanos |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
-| `public/img/` | Imágenes del sitio ya optimizadas: marca, secciones, ofertas | — |
+| `public/img/` | Imágenes del sitio ya optimizadas: marca, secciones, ofertas. `marca/` se regenera con `scripts/generar-marca.sh`, no se edita | — |
 | `tools/img-originales/` | Originales pesados de las imágenes. **No se versiona** | Humanos |
-| `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear, prospectar proveedores, optimizar imágenes | Humanos y hooks |
+| `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear, prospectar proveedores, optimizar imágenes, generar la marca | Humanos y hooks |
 | `src/` | Aplicación Next.js (App Router) | — |
 | `supabase/migrations/` | Esquema SQL con RLS | — |
 

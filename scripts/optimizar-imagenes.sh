@@ -55,7 +55,13 @@ for origen in "$ORIGENES"/*; do
     hero-*)      carpeta="secciones"; ancho=2400 ;;
     vertical-*)  carpeta="secciones"; ancho=1600 ;;
     logo-*|isotipo*|logotipo-*)
-                 carpeta="marca";     ancho=1024 ;;
+      # El logo no pasa por aquí: es vector, no fotografía. El original
+      # generado con IA se queda en tools/img-originales/ como referencia y
+      # todo lo que se publica sale de scripts/generar-marca.sh.
+      echo "  -  $base — el logo se deriva con scripts/generar-marca.sh, lo salto"
+      ignoradas=$((ignoradas + 1))
+      continue
+      ;;
     *)
       if es_slug_de_oferta "$nombre"; then
         carpeta="ofertas"; ancho=1600
