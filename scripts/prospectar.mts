@@ -91,6 +91,7 @@ const CIIU: Record<string, string> = {
   "3830": "Recuperación de materiales",
   "3900": "Actividades de saneamiento ambiental y otros servicios de gestión de desechos",
   "4321": "Instalaciones eléctricas",
+  "4520": "Mantenimiento y reparación de vehículos automotores",
   "4620": "Comercio al por mayor de materias primas agropecuarias; animales vivos",
   "4631": "Comercio al por mayor de productos alimenticios",
   "4641":
@@ -108,6 +109,7 @@ const CIIU: Record<string, string> = {
   "7310": "Publicidad",
   "7490": "Otras actividades profesionales, científicas y técnicas n.c.p.",
   "7912": "Actividades de operadores turísticos",
+  "8130": "Actividades de paisajismo y servicios de mantenimiento conexos",
   "8560": "Actividades de apoyo a la educación",
   "9499": "Actividades de otras asociaciones n.c.p.",
 };
@@ -154,14 +156,14 @@ const PERFILES: Perfil[] = [
     slug: "decoracion-sostenible",
     vertical: "hoteles",
     label: "Decoración sostenible",
-    ciiu: ["1690", "2393", "3290", "3210"],
+    ciiu: ["1690", "2393", "3290", "3210", "2229"],
     consultas: ["artesanía colombiana", "decoración fibra natural"],
   },
   {
     slug: "energia-eficiencia",
     vertical: "hoteles",
     label: "Energía y eficiencia",
-    ciiu: ["2740", "3511", "4321"],
+    ciiu: ["2740", "4321", "4663"],
     consultas: ["panel solar", "iluminación LED ahorro"],
   },
   {
@@ -182,14 +184,14 @@ const PERFILES: Perfil[] = [
     slug: "energia-solar",
     vertical: "hostales",
     label: "Energía solar",
-    ciiu: ["2740", "3511", "4321"],
+    ciiu: ["2740", "4321"],
     consultas: ["kit solar autónomo", "lámpara solar"],
   },
   {
     slug: "mobiliario-natural",
     vertical: "hostales",
     label: "Mobiliario natural",
-    ciiu: ["1630", "1690", "3110"],
+    ciiu: ["1630", "1690", "3110", "2229"],
     consultas: ["mueble madera certificada", "mobiliario guadua"],
   },
   {
@@ -224,14 +226,15 @@ const PERFILES: Perfil[] = [
     slug: "mantenimiento-verde",
     vertical: "transporte",
     label: "Mantenimiento verde",
-    ciiu: ["2029", "3811", "3830", "3900", "4663"],
+    // Sin 3811/3830/3900 a propósito: ver CIIU_CAJON y el comentario de abajo.
+    ciiu: ["2029", "4520", "8130", "4663"],
     consultas: ["lubricante biodegradable", "lavado en seco vehículos"],
   },
   {
     slug: "eficiencia-energetica",
     vertical: "transporte",
     label: "Eficiencia energética",
-    ciiu: ["2740", "3511", "4321"],
+    ciiu: ["2740", "4321"],
     consultas: ["cargador vehículo eléctrico", "eficiencia energética flota"],
   },
   {
@@ -294,7 +297,26 @@ const PERFILES: Perfil[] = [
  * específico (`puntuar`). Un cajón de sastre nunca vale lo que un CIIU que
  * describe de verdad el negocio.
  */
-const CIIU_CAJON = new Set(["1089", "2029", "2599", "3290", "4649", "7490", "9499"]);
+const CIIU_CAJON = new Set(["1089", "2029", "2599", "3290", "4520", "4649", "7490", "9499"]);
+
+/**
+ * Códigos que parecen encajar y no encajan. Se descubrieron enriqueciendo el
+ * primer lote de 162 candidatos, y se dejan escritos para que nadie los vuelva
+ * a agregar «porque suenan verdes».
+ *
+ * - **3811, 3830, 3900** (recolección de desechos, recuperación de materiales,
+ *   saneamiento). El flujo de dinero va al revés: un reciclador **le compra**
+ *   material al hotel, no le vende nada. Eran ~45 de las 162 filas del primer
+ *   lote y se descartaron casi todas. La excepción es cuando el reciclador
+ *   *transforma* el material en producto —madera plástica, por ejemplo—, y eso
+ *   ya lo recoge 2229 desde `decoracion-sostenible` y `mobiliario-natural`.
+ * - **3511** (generación de energía eléctrica). No devuelve instaladores:
+ *   devuelve las sociedades vehículo de las granjas solares de escala, que
+ *   venden al sistema interconectado. Se reconocen por el nombre numerado
+ *   («Bosques Solares de los Llanos 7»). Para paneles en un hotel el código es
+ *   4321.
+ */
+const CIIU_DESCARTADOS = ["3811", "3830", "3900", "3511"] as const;
 
 /**
  * Términos que, en la razón social o la sigla, sugieren que la empresa ya se
@@ -679,6 +701,16 @@ function puntuar(registro: RegistroRues, perfiles: Perfil[], anioActual: number)
 
   const nombre = normalizar(`${registro.razon_social ?? ""} ${registro.sigla ?? ""}`);
   const palabras = nombre.split(/[^a-z0-9]+/);
+
+  // BIC — Sociedad de Beneficio e Interés Colectivo. A diferencia de llamarse
+  // "eco", esto es una designación legal: obliga a reportar impacto social y
+  // ambiental. En el primer lote enriquecido acertó en todas las que la tenían,
+  // que es más de lo que consigue cualquier otra señal del registro. Se compara
+  // como palabra suelta: dentro de "BICICLETAS" no dice nada.
+  if (palabras.includes("bic")) {
+    puntaje += 12;
+    motivos.push("sociedad BIC");
+  }
   const verdes = SENALES_VERDES.filter((s) => palabras.some((p) => p.startsWith(s)));
   if (verdes.length > 0) {
     puntaje += Math.min(30, verdes.length * 12);
@@ -877,6 +909,22 @@ async function main(): Promise<void> {
   }
 
   const ciiu = [...new Set(perfiles.flatMap((p) => p.ciiu))];
+
+  // La lista de descartados no es un comentario: si vuelve a colarse uno, el
+  // script se detiene. `--ciiu` los deja pasar a propósito —quien los escribe a
+  // mano sabe lo que hace— pero un perfil no puede traerlos.
+  const reincidentes = perfiles
+    .filter((p) => p.slug !== "ciiu-manual")
+    .flatMap((p) => p.ciiu)
+    .filter((c) => (CIIU_DESCARTADOS as readonly string[]).includes(c));
+  if (reincidentes.length > 0) {
+    console.error(
+      `CIIU descartado en un perfil: ${[...new Set(reincidentes)].join(", ")}. ` +
+        `Lee el comentario de CIIU_DESCARTADOS antes de volver a agregarlo.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
   const camaras = separar(bandera("camara")).map((c) => c.toUpperCase());
   const desde = Number(bandera("desde") ?? anioActual - 1);
   const candidatos = Number(bandera("candidatos") ?? 40_000);

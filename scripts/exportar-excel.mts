@@ -16,6 +16,7 @@
  *   node scripts/prospectar.mts --perfil <slug>      # una o varias veces
  *   node scripts/exportar-excel.mts
  *   node scripts/exportar-excel.mts --entrada .claude/prospectos --salida outputs
+ *   node scripts/exportar-excel.mts --enriquecido .claude/prospectos/enriquecer
  */
 
 import { deflateRawSync } from "node:zlib";
@@ -413,6 +414,73 @@ function cargar(directorio: string): Prospecto[] {
   );
 }
 
+/** Columnas que llena el subagente al investigar. El script nunca las escribe. */
+const COLUMNAS_ENRIQUECIDAS = [
+  "sitio_web",
+  "instagram",
+  "correo",
+  "telefono",
+  "ciudad",
+  "departamento",
+  "encaje",
+  "notas",
+];
+
+/**
+ * Superpone el trabajo del subagente sobre los registros crudos, casando por NIT.
+ *
+ * Los CSV enriquecidos vienen con los titulos legibles del Excel ("Razon
+ * social", "Sitio web"), no con las claves internas: se generaron desde el libro
+ * para que una persona pudiera revisarlos. La traduccion se hace con `COLUMNAS`,
+ * que ya es el unico sitio donde viven las dos formas del nombre.
+ *
+ * Solo se copia lo que trae contenido. Una celda vacia en el CSV enriquecido
+ * significa "se busco y no se encontro", y no debe borrar nada; el `encaje` es lo
+ * unico que distingue "investigado sin resultado" de "sin investigar".
+ */
+function superponerEnriquecido(registros: Prospecto[], directorio: string): number {
+  let archivos: string[];
+  try {
+    archivos = readdirSync(directorio).filter((f) => f.endsWith("-enriquecido.csv"));
+  } catch {
+    return 0;
+  }
+
+  const porTitulo = new Map(COLUMNAS.map((c) => [c.titulo, c.clave]));
+  const porNit = new Map(
+    registros.filter((r) => r.nit).map((r) => [r.nit as string, r] as const),
+  );
+  let tocados = 0;
+
+  for (const archivo of archivos) {
+    const filas = leerCsv(readFileSync(join(directorio, archivo), "utf8"));
+    const cabecera = filas[0];
+    if (!cabecera) continue;
+    const iNit = cabecera.indexOf("NIT");
+    if (iNit === -1) continue;
+
+    for (const fila of filas.slice(1)) {
+      const destino = porNit.get((fila[iNit] ?? "").trim());
+      if (!destino) continue;
+
+      let cambio = false;
+      cabecera.forEach((titulo, i) => {
+        const clave = porTitulo.get(titulo);
+        const valor = (fila[i] ?? "").trim();
+        if (clave && valor && COLUMNAS_ENRIQUECIDAS.includes(clave)) {
+          destino[clave] = valor;
+          cambio = true;
+        }
+      });
+      if (cambio) tocados++;
+    }
+  }
+
+  return tocados;
+}
+
+const ORDEN_ENCAJE: Record<string, number> = { alto: 0, medio: 1, bajo: 2, descartar: 3 };
+
 // ---------------------------------------------------------------------------
 // Hojas
 // ---------------------------------------------------------------------------
@@ -706,7 +774,24 @@ function main(): void {
     return;
   }
 
+  const enriquecidos = superponerEnriquecido(
+    registros,
+    bandera("enriquecido", join(".claude", "prospectos", "enriquecer")),
+  );
+
   const hojas: Hoja[] = [hojaResumen(registros, fecha)];
+
+  // La hoja que de verdad se usa: solo lo investigado y que encajo, ordenado por
+  // encaje y luego por puntaje. Va segunda para que sea lo primero que se abre
+  // despues del resumen.
+  const contactar = registros
+    .filter((r) => r.encaje === "alto" || r.encaje === "medio")
+    .sort(
+      (a, b) =>
+        (ORDEN_ENCAJE[a.encaje ?? ""] ?? 9) - (ORDEN_ENCAJE[b.encaje ?? ""] ?? 9) ||
+        Number(b.puntaje) - Number(a.puntaje),
+    );
+  if (contactar.length > 0) hojas.push(hojaDeProspectos("Contactar", contactar));
 
   for (const v of VERTICALES) {
     const suyos = registros.filter((r) => (r.verticales ?? "").split(/\s+/).includes(v));
@@ -722,8 +807,13 @@ function main(): void {
   const salida = join(directorioSalida, `prospectos-proveedores-${fecha}.xlsx`);
   writeFileSync(salida, construirLibro(hojas));
 
-  process.stderr.write(
-    `${registros.length} prospectos únicos en ${hojas.length} hojas.\n`,
+  // console.error, no process.stderr.write: ya añade el salto de línea final.
+  console.error(
+    `${registros.length} prospectos únicos en ${hojas.length} hojas` +
+      (enriquecidos > 0
+        ? `; ${enriquecidos} enriquecidos, ${contactar.length} para contactar`
+        : "") +
+      ".",
   );
   console.log(salida);
 }
