@@ -104,7 +104,14 @@ ninguno, revisa si estás leyendo de verdad los sitios.
 ### 5. Entrega
 
 Escribe el CSV enriquecido **junto al original**, con sufijo `-enriquecido`, y
-resume en el chat:
+genera el libro de Excel:
+
+```bash
+node scripts/exportar-excel.mts
+```
+
+Sale en `outputs/`, con una hoja por vertical, una con todo, un resumen y un
+diccionario. Después resume en el chat:
 
 - Cuántos se revisaron, cuántos quedaron en `alto` y `medio`
 - Los 5 mejores, con una línea cada uno: qué venden y por qué encajan

@@ -77,6 +77,13 @@ visibles en la columna `motivos` del CSV.
 | 3+ años | 8 | Ya no es un experimento |
 | Vende en MercadoLibre | 20 | Tiene operación comercial montada y reputación pública |
 
+**El techo práctico es 87, no 100.** Sin credenciales de MercadoLibre nadie puede
+sumar los 20 puntos de presencia comercial, y las señales restantes no llegan a
+100 ni sumándolas todas. Sobre un lote de 2.826 prospectos la mediana fue 63 y
+solo cinco pasaron de 80. Por eso las bandas del Excel cortan en 72 y 63: un
+semáforo calibrado sobre el 0-100 nominal pinta de verde a cinco empresas y de
+gris a todo lo demás.
+
 **Los pesos están calibrados para separar, no para aprobar.** La primera versión
 daba 65 sobre 100 a cualquier SAS viva con el CIIU correcto, y 993 de cada 1.000
 pasaban el corte: un puntaje que aprueba a todos no ordena nada. Por eso pesa
@@ -165,10 +172,40 @@ node scripts/prospectar.mts --perfil amenities-ecologicos --limite 5
 # "sin MELI_CLIENT_ID/MELI_CLIENT_SECRET"    → no las está leyendo
 ```
 
+## Exportar a Excel
+
+`scripts/exportar-excel.mts` junta todos los CSV de `.claude/prospectos/`,
+deduplica por NIT y escribe un libro en `outputs/`.
+
+```bash
+for p in $(node scripts/prospectar.mts --listar-perfiles | awk '{print $1}'); do
+  node scripts/prospectar.mts --perfil "$p" --limite 250
+done
+node scripts/exportar-excel.mts
+```
+
+Un proveedor que aparece en varios perfiles **no es un duplicado**: sirve a
+varias verticales, y eso lo hace más interesante. Se fusionan las columnas
+`perfiles` y `verticales` y se conserva el puntaje más alto.
+
+El libro escribe el XLSX a mano —un `.xlsx` es un ZIP de XML y Node ya trae
+`zlib`—. No se metió una librería al `package.json` de la aplicación por un
+script que corre a mano: arrastraría a producción una dependencia que producción
+no usa. Si hay que tocar el formato, las trampas son dos: **el orden de los
+elementos en `worksheet` es obligatorio** (`dimension`, `sheetViews`,
+`sheetFormatPr`, `cols`, `sheetData`, `autoFilter`), y **un carácter de control
+hace que Excel rechace el libro entero** sin decir cuál.
+
+Para comprobar que un libro generado abre de verdad, sin abrir Excel:
+
+```bash
+python -c "import openpyxl; print(openpyxl.load_workbook('outputs/…xlsx').sheetnames)"
+```
+
 ## Los CSV no se versionan
 
-`.claude/prospectos/` está en `.gitignore`. Son datos de empresas y personas
-identificables, y el repositorio es **público**. Que el dato sea de acceso
+`.claude/prospectos/` y `outputs/` están en `.gitignore`. Son datos de empresas
+y personas identificables, y el repositorio es **público**. Que el dato sea de acceso
 público en el RUES no autoriza a republicarlo agregado y puntuado en GitHub.
 
 Lo que sí se versiona es la maquinaria: el script, los perfiles y esta skill.

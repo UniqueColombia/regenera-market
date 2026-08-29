@@ -109,7 +109,12 @@ subagente `prospector-proveedores` lo enriquece con contacto y criterio.
 ```bash
 node scripts/prospectar.mts --listar-perfiles
 node scripts/prospectar.mts --perfil amenities-ecologicos --camara BOGOTA
+node scripts/exportar-excel.mts       # junta los CSV en un .xlsx categorizado
 ```
+
+El Excel sale en `outputs/`: una hoja por vertical, una con todo, un resumen y
+un diccionario que explica qué mide el puntaje y qué no. Lleva filtro
+automático y la primera fila fijada.
 
 No necesita credenciales. Las listas que produce **no se versionan**: son datos
 de empresas identificables y este repositorio es público. El porqué de cada

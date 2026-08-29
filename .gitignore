@@ -46,3 +46,6 @@ next-env.d.ts
 
 # salida del prospector: datos de empresas identificables, y el repo es público
 .claude/prospectos/
+
+# entregables generados (Excel de prospectos): mismos datos, mismo motivo
+/outputs/
