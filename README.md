@@ -93,10 +93,33 @@ Proyecto colaborativo entre **Ivan Duarte** (`UniqueColombia`) y **Jesús Seiler
 | Ruta | Qué es |
 |---|---|
 | `CLAUDE.md` | Orquestador: quién trabaja aquí, dónde está cada cosa, qué skill cargar |
-| `.claude/skills/` | Habilidades del proyecto (`flujo-git`, `dominio-regenera`, `supabase-schema`, `nueva-integracion`, `registrar-hito`) |
-| `hitos/` | Trazabilidad: un archivo por hito, append-only |
+| `.claude/skills/` | Habilidades del proyecto (`flujo-git`, `dominio-regenera`, `supabase-schema`, `nueva-integracion`, `registrar-hito`, `prospeccion-proveedores`…) |
+| `.claude/agents/` | Subagentes con encargo propio (`prospector-proveedores`) |
+| `.claude/hitos/` | Trazabilidad: un archivo por hito, append-only |
 | `docs/ROADMAP.md` | Fases del producto con criterio de salida |
 | `docs/DEPLOY.md` | Stack de despliegue: GitHub + Vercel + Supabase, y por qué |
+
+### Conseguir proveedores
+
+El catálogo se llena con proveedores colombianos reales, y encontrarlos es
+trabajo aparte del producto. `scripts/prospectar.mts` construye el universo de
+candidatos desde el registro mercantil (RUES, dato abierto) y lo puntúa; el
+subagente `prospector-proveedores` lo enriquece con contacto y criterio.
+
+```bash
+node scripts/prospectar.mts --listar-perfiles
+node scripts/prospectar.mts --perfil amenities-ecologicos --camara BOGOTA
+node scripts/exportar-excel.mts       # junta los CSV en un .xlsx categorizado
+```
+
+El Excel sale en `outputs/`: una hoja por vertical, una con todo, un resumen y
+un diccionario que explica qué mide el puntaje y qué no. Lleva filtro
+automático y la primera fila fijada.
+
+No necesita credenciales. Las listas que produce **no se versionan**: son datos
+de empresas identificables y este repositorio es público. El porqué de cada
+fuente —y por qué LinkedIn no es una de ellas— está en la skill
+`prospeccion-proveedores`.
 
 Ramas: `main` es **producción** y no recibe commits directos; `staging` es
 integración; el trabajo va en `feat/<iniciales>-<slug>` y entra por PR contra
