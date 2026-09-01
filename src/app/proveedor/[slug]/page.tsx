@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Calendar, Globe, Mail, MapPin, Phone } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
+import { HeroBanner } from "@/components/hero-banner";
 import { TierBadge } from "@/components/tier-badge";
 import {
   getListingsByProvider,
@@ -27,54 +28,62 @@ export default async function ProveedorPage(
 
   const listings = await getListingsByProvider(provider.id);
 
+  // La portada del proveedor es la foto de su propia oferta, no una imagen
+  // aparte: siempre muestra algo que esa empresa vende de verdad y se mantiene
+  // sola cuando el catálogo cambia. Si todavía no tiene ninguna con foto, cae
+  // al retrato genérico de proveedores.
+  const portada =
+    listings.find((l) => l.images[0]?.startsWith("/"))?.images[0] ??
+    "/img/secciones/hero-proveedores.webp";
+
   return (
     <div>
-      <div className="bg-brand-900">
-        <div className="container-page py-14">
+      <HeroBanner
+        foto={portada}
+        distintivo={
           <TierBadge
             tier={provider.tier}
             score={provider.sustainabilityScore}
             size="md"
           />
-          <h1 className="mt-4 font-display text-4xl text-white md:text-5xl">
-            {provider.name}
-          </h1>
-          <p className="mt-2 text-lg text-brand-100">{provider.tagline}</p>
+        }
+        titulo={provider.name}
+      >
+        <p className="mt-2 text-lg text-brand-100">{provider.tagline}</p>
 
-          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand-200">
+        <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand-200">
+          <li className="flex items-center gap-1.5">
+            <MapPin className="size-4" />
+            {provider.city}, {provider.department}
+          </li>
+          {provider.foundedYear && (
             <li className="flex items-center gap-1.5">
-              <MapPin className="size-4" />
-              {provider.city}, {provider.department}
+              <Calendar className="size-4" />
+              Desde {provider.foundedYear}
             </li>
-            {provider.foundedYear && (
-              <li className="flex items-center gap-1.5">
-                <Calendar className="size-4" />
-                Desde {provider.foundedYear}
-              </li>
-            )}
+          )}
+          <li className="flex items-center gap-1.5">
+            <Mail className="size-4" />
+            <a href={`mailto:${provider.email}`} className="hover:text-white">
+              {provider.email}
+            </a>
+          </li>
+          {provider.phone && (
             <li className="flex items-center gap-1.5">
-              <Mail className="size-4" />
-              <a href={`mailto:${provider.email}`} className="hover:text-white">
-                {provider.email}
+              <Phone className="size-4" />
+              {provider.phone}
+            </li>
+          )}
+          {provider.website && (
+            <li className="flex items-center gap-1.5">
+              <Globe className="size-4" />
+              <a href={provider.website} className="hover:text-white">
+                {provider.website}
               </a>
             </li>
-            {provider.phone && (
-              <li className="flex items-center gap-1.5">
-                <Phone className="size-4" />
-                {provider.phone}
-              </li>
-            )}
-            {provider.website && (
-              <li className="flex items-center gap-1.5">
-                <Globe className="size-4" />
-                <a href={provider.website} className="hover:text-white">
-                  {provider.website}
-                </a>
-              </li>
-            )}
-          </ul>
-        </div>
-      </div>
+          )}
+        </ul>
+      </HeroBanner>
 
       <div className="container-page grid gap-10 py-12 lg:grid-cols-[1.7fr_1fr]">
         <div>

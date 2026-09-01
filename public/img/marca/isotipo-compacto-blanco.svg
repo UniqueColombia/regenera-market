@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 148" role="img" aria-label="Seregenera">
+  <!--
+    Isotipo de Seregenera para tamaños pequeños: favicon, avatar de red social,
+    cualquier sitio por debajo de 32 px.
+
+    Es la misma marca con el detalle quitado a propósito — sin nervios de hoja,
+    sin continentes, con dos pares de raíces en vez de cuatro y el trazo más
+    grueso. A 16 px la versión de detalle se empasta hasta parecer una mancha;
+    esta conserva la silueta de hoja, mundo y raíz, que es lo que se reconoce.
+
+    Comparte viewBox con isotipo.svg para que las dos se puedan intercambiar en
+    el mismo hueco sin recalcular nada. Si se cambia una, se cambia la otra:
+    son la misma marca.
+  -->
+  <g fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M50 5c5 7 55 25 0 47C-5 30 45 12 50 5Z" />
+    <circle cx="50" cy="76" r="24" />
+    <path d="M50 100v44" />
+    <path d="M50 111c-12 3-24 7-35 12m35-12c12 3 24 7 35 12" />
+    <path d="M50 123c-5 6-8 12-10 20m10-20c5 6 8 12 10 20" />
+  </g>
+</svg>
