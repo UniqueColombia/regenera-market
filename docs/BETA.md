@@ -6,7 +6,7 @@ a ser una plataforma operable en beta gratuita, y **cómo se hace cada paso**.
 Este documento es el plan de ejecución de las Fases 1 y 2 de `docs/ROADMAP.md`.
 El roadmap dice *qué* fases hay y con qué criterio se cierran; este dice *cómo*
 se ejecutan, en qué orden y quién hace cada bloque. Cuando la beta esté cerrada,
-este archivo deja de tener uso corriente y su resumen queda en `hitos/`.
+este archivo deja de tener uso corriente y su resumen queda en `.claude/hitos/`.
 
 **Alcance de "beta":** la plataforma opera con datos reales, usuarios reales y un
 panel de administración real. **No cobra dinero todavía** — los pagos siguen en

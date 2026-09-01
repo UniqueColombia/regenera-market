@@ -296,7 +296,7 @@ resolvías, `--force` le borra el trabajo y `--force-with-lease` te detiene.
 Conflicto en `package-lock.json`: no lo resuelvas a mano. `git checkout
 origin/staging -- package-lock.json && npm install`.
 
-Conflicto en un archivo de `hitos/`: no debería pasar (un hito es un archivo
+Conflicto en un archivo de `.claude/hitos/`: no debería pasar (un hito es un archivo
 nuevo). Si pasa, quedan los dos.
 
 ## Nunca

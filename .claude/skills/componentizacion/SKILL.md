@@ -30,7 +30,7 @@ resuelto. Igual con `sustainability-quiz.tsx` dentro de `/verificacion`.
 Marcar la página entera como cliente cuesta el renderizado en servidor de toda
 la ficha: el catálogo dejaría de indexarse, y el SEO fue una de las dos razones
 por las que este proyecto existe en Next.js (ver el hito
-[MVP navegable](../../../hitos/2026-08-23-mvp-navegable.md)).
+[MVP navegable](../../hitos/2026-08-23-mvp-navegable.md)).
 
 **Todo lo que marques como cliente viaja al navegador.** `sustainability-quiz.tsx`
 es cliente e importa `DIMENSIONS` y `scoreProvider`, así que la rúbrica completa

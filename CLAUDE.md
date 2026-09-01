@@ -5,7 +5,7 @@
 Este archivo es el **punto de entrada de todo agente** (Claude Code u otro) que
 trabaje en este repositorio. Describe la infraestructura: quién trabaja aquí,
 dónde vive cada cosa y qué habilidad cargar según la tarea. **No documenta el
-producto** (eso es `README.md`) **ni el historial** (eso es `hitos/`).
+producto** (eso es `README.md`) **ni el historial** (eso es `.claude/hitos/`).
 
 Regla de oro: si algo que aprendes vale para la próxima sesión, no lo escribas
 aquí. Va a una skill (si es "cómo hacer algo") o a un hito (si es "qué se hizo").
@@ -33,9 +33,12 @@ agente del otro.
 | `docs/BETA.md` | Cómo se ejecutan las Fases 1 y 2, bloque por bloque | Humanos y agentes |
 | `docs/DEPLOY.md` | Stack de despliegue, por qué se eligió y qué se descartó | Humanos y agentes |
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
-| `hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
+| `.claude/agents/` | Subagentes con encargo propio. Un archivo por agente | Claude Code |
+| `.claude/hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
+| `.claude/prospectos/` | CSV crudos del prospector. **No se versiona** (ver Límites duros) | Humanos |
+| `outputs/` | Entregables generados (el Excel de prospectos). **No se versiona** | Humanos |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
-| `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear | Humanos y hooks |
+| `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear, prospectar proveedores | Humanos y hooks |
 | `src/` | Aplicación Next.js (App Router) | — |
 | `supabase/migrations/` | Esquema SQL con RLS | — |
 
@@ -54,9 +57,27 @@ pueden pedir a mano con `/<nombre>`.
 | `nueva-integracion` | Conectas un servicio externo (pasarela, correo, WhatsApp, ERP de un cliente) |
 | `componentizacion` | Creas un archivo en `src/components/`, dudas entre Server y Client Component, o una página pasa de ~150 líneas de JSX |
 | `diseno-visual` | Escribes clases de Tailwind, eliges un color, maquetas una página o ajustas el aspecto de un componente |
+| `prospeccion-proveedores` | Tocas `scripts/prospectar.mts`, conectas una fuente de datos de empresas, o alguien propone usar LinkedIn o un scraper para conseguir proveedores |
 
 Para agregar una skill: carpeta nueva en `.claude/skills/`, un `SKILL.md` con
 frontmatter `name` + `description`, y una fila en esta tabla. Nada más.
+
+## Subagentes
+
+Un subagente es un encargo con contexto propio: se le delega una tarea larga y
+devuelve el resultado, no el camino. Viven en `.claude/agents/<nombre>.md`.
+
+La diferencia con una skill, que es la que importa al decidir dónde escribir
+algo: **una skill es conocimiento que se carga en la conversación en curso; un
+subagente es trabajo que se delega y ocurre aparte.** Si lo que tienes es "cómo
+se hace X", es una skill. Si es "andá y traeme X", es un subagente.
+
+| Subagente | Delégale… |
+|---|---|
+| `prospector-proveedores` | Encontrar candidatos a proveedor para una vertical o categoría, con el contacto verificado y el encaje ya juzgado. Parte del registro mercantil (RUES) y entrega un Excel en `outputs/` |
+
+Para agregar uno: archivo nuevo en `.claude/agents/`, frontmatter `name` +
+`description` + `tools`, y una fila en esta tabla.
 
 ## Cómo se trabaja aquí (ciclo estándar)
 
@@ -87,8 +108,17 @@ frontmatter `name` + `description`, y una fila en esta tabla. Nada más.
 - **No se hace `push --force` a `main` ni a `staging`.**
 - **No se aplican migraciones destructivas** sin que el dueño del repo lo
   autorice explícitamente en el PR.
-- **No se borra ni se reescribe un archivo de `hitos/`.** Si un hito quedó mal,
+- **No se borra ni se reescribe un archivo de `.claude/hitos/`.** Si un hito quedó mal,
   se escribe otro que lo corrija y lo referencie.
+- **No se versionan listas de prospectos.** `.claude/prospectos/` y `outputs/`
+  están en `.gitignore`: son datos de empresas y personas identificables, y el
+  repositorio es público. Que el RUES los publique no nos autoriza a
+  republicarlos agregados y puntuados en GitHub. Se versiona la maquinaria
+  (`scripts/prospectar.mts`), nunca su salida.
+- **No se automatiza LinkedIn, Instagram ni Facebook para conseguir
+  proveedores.** No es una preferencia: los términos de LinkedIn prohíben la
+  extracción automatizada aunque el dato sea público, y hay condena judicial.
+  El detalle y las alternativas están en `prospeccion-proveedores`.
 - El agente no decide por el equipo: si una tarea implica cambiar la estrategia
   de ramas, el modelo de datos compartido o el costo de un servicio externo, se
   plantea en el PR y lo aprueba un humano.
