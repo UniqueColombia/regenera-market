@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Search, ShieldCheck, Sprout, Store } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
@@ -16,10 +17,22 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-brand-900">
+      <section className="relative isolate overflow-hidden bg-brand-900">
+        {/* La foto va detrás del velo, no en lugar de él: el titular es blanco
+            y la mitad izquierda de hero-home es niebla clara. El degradado
+            hacia la derecha deja casi opaco el lado del texto y abre el lado
+            del sujeto. Ver docs/IMAGENES.md. */}
+        <Image
+          src="/img/secciones/hero-home.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600"
+          className="absolute inset-0 bg-gradient-to-r from-brand-900 via-brand-900/90 to-brand-900/55"
         />
         <div className="container-page relative py-20 md:py-28">
           <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-300">
@@ -80,16 +93,29 @@ export default async function HomePage() {
             <li key={v.id}>
               <Link
                 href={`/catalogo?vertical=${v.id}`}
-                className="group flex h-full flex-col rounded-xl bg-white p-5 ring-1 ring-hairline transition hover:ring-brand-400 hover:shadow-md"
+                className="group flex h-full flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-400 hover:shadow-md"
               >
-                <h3 className="font-display text-lg text-ink group-hover:text-brand-700">
-                  {v.label}
-                </h3>
-                <p className="mt-1.5 text-sm text-muted">{v.blurb}</p>
-                <span className="mt-4 flex items-center gap-1 text-sm font-medium text-brand-600">
-                  Ver ofertas
-                  <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
-                </span>
+                {/* alt vacío a propósito: el <h3> de debajo dice lo mismo, y un
+                    lector de pantalla que anuncie la foto solo lo repite. */}
+                <div className="relative aspect-16/9 overflow-hidden">
+                  <Image
+                    src={`/img/secciones/vertical-${v.id}.webp`}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover transition duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <h3 className="font-display text-lg text-ink group-hover:text-brand-700">
+                    {v.label}
+                  </h3>
+                  <p className="mt-1.5 text-sm text-muted">{v.blurb}</p>
+                  <span className="mt-4 flex items-center gap-1 text-sm font-medium text-brand-600">
+                    Ver ofertas
+                    <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+                  </span>
+                </div>
               </Link>
             </li>
           ))}

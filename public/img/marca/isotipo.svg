@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 148" role="img" aria-label="Seregenera">
+  <!--
+    Isotipo de Seregenera: hoja, mundo y raíz.
+
+    Todo el trazo es currentColor a propósito: recolorear el logo es una clase
+    de Tailwind (text-brand-700, text-white), no un archivo nuevo. Por eso no
+    hay ni un hex aquí dentro.
+
+    Las tres proporciones salen medidas del original generado, y las tres
+    importan: la hoja es un poco más ancha que alta y con la punta arriba (si
+    se hace simétrica se convierte en un huevo), su base entra dentro del
+    mundo, y la raíz se abre casi el doble del ancho del mundo. Estrechar la
+    raíz es lo que convierte la marca en un ojo de cerradura.
+
+    Esta es la versión de detalle, de 32 px hacia arriba. Por debajo, las raíces
+    finas y los continentes se empastan: ahí va isotipo-compacto.svg.
+  -->
+  <defs>
+    <clipPath id="seregenera-globo">
+      <circle cx="50" cy="76" r="26" />
+    </clipPath>
+  </defs>
+
+  <!-- Continentes. Van primero y recortados contra el círculo, así el trazo
+       del globo se dibuja encima y tapa cualquier borde que no cierre bien. -->
+  <g fill="currentColor" clip-path="url(#seregenera-globo)">
+    <path d="M43 61c1 3-1 5-3 6s-4 2-4 5 2 3 2 6-1 4 1 6 2 4 2 7c-6-3-10-9-11-15s4-13 13-15Z" />
+    <path d="M58 60c6 1 11 5 14 10-2 1-4 1-6 3s-1 5-3 7-4 1-5 4-1 4-3 6-2 3-3 5c-3-3-2-8-1-11s-2-6-3-9 4-11 10-15Z" />
+  </g>
+
+  <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Hoja. La punta arriba y el ensanche abajo vienen de que el segundo
+         punto de control sale más que el primero. -->
+    <path d="M50 2c6 7 62 26 0 48C-12 28 44 9 50 2Z" />
+    <path d="M50 12v34" />
+    <path d="m50 22-10-6m10 6 10-6M50 32l-12-7m12 7 12-7M50 41l-9-5m9 5 9-5" />
+
+    <!-- Mundo -->
+    <circle cx="50" cy="76" r="26" />
+
+    <!-- Raíz. Tres pares que se abren a alturas distintas más la central: con
+         menos, el dibujo se lee como un tridente, no como una raíz. -->
+    <path d="M50 102v42" />
+    <path d="M50 108c-8 3-14 6-18 11m18-11c8 3 14 6 18 11" />
+    <path d="M50 115c-13 3-27 6-41 11m41-11c13 3 27 6 41 11" />
+    <path d="M50 123c-5 6-9 12-11 20m11-20c5 6 9 12 11 20" />
+    <path d="m32 119-6 8m36-8 6 8" />
+  </g>
+</svg>

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Leaf, Menu, ShoppingBasket, User, X } from "lucide-react";
+import { ChevronDown, Menu, ShoppingBasket, User, X } from "lucide-react";
+import { Isotipo } from "./isotipo";
 import { useCartCount } from "./cart";
 import { VERTICALS } from "@/lib/taxonomy";
 
@@ -55,7 +56,9 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-hairline bg-cream/90 backdrop-blur">
       <div className="container-page flex h-16 items-center gap-4">
         <Link href="/" className="flex items-center gap-2">
-          <Leaf className="size-7 text-brand-600" />
+          {/* Compacto y no detalle: a 36 px los nervios y los continentes
+              se empastan. Ver src/components/isotipo.tsx */}
+          <Isotipo variante="compacto" className="h-9 w-auto text-brand-600" />
           <span className="leading-none">
             <span className="block font-display text-lg font-semibold text-brand-700">
               Seregenera

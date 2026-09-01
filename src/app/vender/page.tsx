@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Banknote, LineChart, Store, Users } from "lucide-react";
 import { ApplicationForm } from "./application-form";
+import { HeroBanner } from "@/components/hero-banner";
 import { COMMISSION_RATE } from "@/lib/pricing";
 
 export const metadata: Metadata = {
@@ -36,35 +37,31 @@ const BENEFITS = [
 export default function VenderPage() {
   return (
     <div>
-      <section className="bg-brand-900">
-        <div className="container-page py-16">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-300">
-            Para proveedores
-          </p>
-          <h1 className="mt-3 max-w-3xl font-display text-4xl text-white md:text-5xl">
-            Vende lo que produces a todo el turismo colombiano
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-brand-100">
-            Buscamos cooperativas, talleres, consejos comunitarios y empresas que
-            produzcan de forma regenerativa. Si tu operación deja el territorio
-            mejor de como lo encontró, este es tu canal.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href="#postular"
-              className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-800 hover:bg-brand-50"
-            >
-              Postular mi empresa
-            </a>
-            <Link
-              href="/verificacion"
-              className="rounded-full border border-brand-400 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800"
-            >
-              Calcular mi puntaje primero
-            </Link>
-          </div>
+      <HeroBanner
+        foto="/img/secciones/hero-vender.webp"
+        encabezado="Para proveedores"
+        titulo="Vende lo que produces a todo el turismo colombiano"
+      >
+        <p className="mt-4 max-w-2xl text-lg text-brand-100">
+          Buscamos cooperativas, talleres, consejos comunitarios y empresas que
+          produzcan de forma regenerativa. Si tu operación deja el territorio
+          mejor de como lo encontró, este es tu canal.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <a
+            href="#postular"
+            className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-800 hover:bg-brand-50"
+          >
+            Postular mi empresa
+          </a>
+          <Link
+            href="/verificacion"
+            className="rounded-full border border-brand-400 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800"
+          >
+            Calcular mi puntaje primero
+          </Link>
         </div>
-      </section>
+      </HeroBanner>
 
       <section className="container-page py-14">
         <h2 className="font-display text-3xl text-ink">Qué te damos</h2>

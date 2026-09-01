@@ -49,3 +49,6 @@ next-env.d.ts
 
 # entregables generados (Excel de prospectos): mismos datos, mismo motivo
 /outputs/
+
+# originales de imagen: pesan MB y no aportan al sitio, solo al reencuadre futuro
+/tools/img-originales/
