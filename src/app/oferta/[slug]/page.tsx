@@ -69,12 +69,17 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
 
       <div className="mt-5 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
         <div>
-          <div className="aspect-16/9 overflow-hidden rounded-2xl">
+          {/* 3:2 y no 16:9: las fotos vienen en 4:3, y a 16:9 el recorte se
+              come el 12 % de arriba y el 12 % de abajo. A 3:2 se queda en un
+              6 % por lado y ningún producto pierde la cabeza. */}
+          <div className="relative aspect-3/2 overflow-hidden rounded-2xl">
             <ListingMedia
               title={listing.title}
               category={listing.category}
               images={listing.images}
               iconClassName="size-20"
+              sizes="(min-width: 1024px) 60vw, 100vw"
+              priority
             />
           </div>
 

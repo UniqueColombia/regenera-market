@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
+import { HeroBanner } from "@/components/hero-banner";
+import { ProviderAvatar } from "@/components/provider-avatar";
 import { TierBadge } from "@/components/tier-badge";
 import { getApprovedProviders, getListingsByProvider } from "@/lib/repo";
 import { certLabel, TRAIT_LABEL } from "@/lib/taxonomy";
@@ -18,25 +20,29 @@ export default async function ProveedoresPage() {
   );
 
   return (
-    <div className="container-page py-10">
-      <header className="max-w-2xl">
-        <h1 className="font-display text-4xl text-ink">Proveedores aliados</h1>
-        <p className="mt-3 text-muted">
+    <div>
+      <HeroBanner
+        foto="/img/secciones/hero-proveedores.webp"
+        encabezado="Quiénes producen"
+        titulo="Proveedores aliados"
+      >
+        <p className="mt-4 max-w-2xl text-lg text-brand-100">
           Cooperativas campesinas, consejos comunitarios, empresas B y talleres
           familiares. Todos pasaron por la misma evaluación de sostenibilidad, y
           el nivel que ves es el que les dio su puntaje.
         </p>
-      </header>
+      </HeroBanner>
 
-      <ul className="mt-10 grid gap-5 md:grid-cols-2">
+      <ul className="container-page mt-10 grid gap-5 pb-10 md:grid-cols-2">
         {providers.map((p, i) => (
           <li key={p.id}>
             <Link
               href={`/proveedor/${p.slug}`}
               className="group flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-md"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex items-start gap-3">
+                <ProviderAvatar name={p.name} logoUrl={p.logoUrl} />
+                <div className="min-w-0 flex-1">
                   <h2 className="font-display text-xl text-ink group-hover:text-brand-700">
                     {p.name}
                   </h2>

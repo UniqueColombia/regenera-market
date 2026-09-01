@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClipboardCheck, Eye, ShieldCheck, Users } from "lucide-react";
 import { SustainabilityQuiz } from "@/components/sustainability-quiz";
 import { TierBadge } from "@/components/tier-badge";
+import { HeroBanner } from "@/components/hero-banner";
 import { DIMENSIONS } from "@/lib/sustainability";
 import { TIERS } from "@/lib/taxonomy";
 
@@ -37,21 +38,17 @@ const STEPS = [
 export default function VerificacionPage() {
   return (
     <div>
-      <section className="bg-brand-900">
-        <div className="container-page py-16">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-300">
-            Metodología
-          </p>
-          <h1 className="mt-3 max-w-3xl font-display text-4xl text-white md:text-5xl">
-            Cómo sabemos que un proveedor es realmente regenerativo
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-brand-100">
-            El mercado está lleno de sellos verdes que nadie audita. Aquí cada
-            punto del puntaje sale de una respuesta concreta con evidencia
-            detrás, y cualquiera puede ver de dónde salió.
-          </p>
-        </div>
-      </section>
+      <HeroBanner
+        foto="/img/secciones/hero-verificacion.webp"
+        encabezado="Metodología"
+        titulo="Cómo sabemos que un proveedor es realmente regenerativo"
+      >
+        <p className="mt-4 max-w-2xl text-lg text-brand-100">
+          El mercado está lleno de sellos verdes que nadie audita. Aquí cada
+          punto del puntaje sale de una respuesta concreta con evidencia
+          detrás, y cualquiera puede ver de dónde salió.
+        </p>
+      </HeroBanner>
 
       <section className="container-page py-14">
         <h2 className="font-display text-3xl text-ink">El proceso</h2>
