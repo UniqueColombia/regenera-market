@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Leaf, Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
+import { Isotipo } from "./isotipo";
 import { VERTICALS } from "@/lib/taxonomy";
 
 export function SiteFooter() {
@@ -8,7 +9,7 @@ export function SiteFooter() {
       <div className="container-page grid gap-10 py-14 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2">
-            <Leaf className="size-7 text-brand-300" />
+            <Isotipo className="h-10 w-auto text-brand-300" />
             <span className="font-display text-lg font-semibold text-white">
               Seregenera
             </span>

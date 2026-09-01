@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 64" role="img" aria-label="Seregenera">
+  <!--
+    Logotipo horizontal: isotipo + palabra. Para documentos, firmas y cualquier
+    sitio fuera de la aplicación.
+
+    Usa la geometría de isotipo-compacto.svg, no la de detalle: un logotipo con
+    palabra se mira casi siempre pequeño, y ahí los nervios de la hoja y los
+    continentes solo ensucian.
+
+    Las rutas están copiadas de isotipo-compacto.svg. Si tocas una, toca la
+    otra — son cinco líneas de un símbolo que cambia una vez cada tres años, y
+    un generador que las mantuviera en sincronía sería más frágil que la copia.
+
+    La palabra va como texto, no como curvas: aquí no hay forma de convertir
+    Fraunces a trazados (no está instalada, se sirve desde Google Fonts). Dentro
+    del sitio se ve en Fraunces porque la fuente ya está cargada; fuera cae a
+    Georgia, que es el respaldo declarado en globals.css. Si hace falta una
+    versión que no dependa de ninguna fuente, hay que sacar las curvas en un
+    editor vectorial.
+  -->
+  <g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"
+     transform="translate(2 2) scale(0.4)">
+    <path d="M50 5c5 7 55 25 0 47C-5 30 45 12 50 5Z" />
+    <circle cx="50" cy="76" r="24" />
+    <path d="M50 100v44" />
+    <path d="M50 111c-12 3-24 7-35 12m35-12c12 3 24 7 35 12" />
+    <path d="M50 123c-5 6-8 12-10 20m10-20c5 6 8 12 10 20" />
+  </g>
+
+  <text x="54" y="44" fill="currentColor"
+        font-family="Fraunces, Georgia, 'Times New Roman', serif"
+        font-size="33" font-weight="600" letter-spacing="-0.5">Seregenera</text>
+</svg>
