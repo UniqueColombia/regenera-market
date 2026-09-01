@@ -76,7 +76,7 @@ El repositorio se llama `regenera-market` y así se queda; **todo lo que ve una
 persona —usuario, proveedor o administrador— dice Seregenera**. Si encuentras
 "Regenera Market" en un texto visible, es un error: corrígelo. En comentarios de
 código y nombres internos no importa. Ver el hito
-[marca Seregenera](../../../hitos/2026-08-23-marca-seregenera.md).
+[marca Seregenera](../../hitos/2026-08-23-marca-seregenera.md).
 
 ## Accesibilidad — no negociable
 

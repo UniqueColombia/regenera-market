@@ -5,7 +5,7 @@ servicios. Cada fase tiene **criterio de salida verificable**: mientras no se
 cumpla, la fase no está cerrada, aunque el código exista.
 
 Este documento se actualiza cuando cambia el plan, no cuando avanza una tarea
-(para eso están `hitos/` y los PRs). Una fase que se cierra deja su hito.
+(para eso están `.claude/hitos/` y los PRs). Una fase que se cierra deja su hito.
 
 Versionado: cada fase cerrada sube `MINOR` en el tag de `main` (`v0.2.0`,
 `v0.3.0`, …). `v1.0.0` cuando la Fase 4 esté cerrada.
@@ -14,7 +14,7 @@ Versionado: cada fase cerrada sube `MINOR` en el tag de `main` (`v0.2.0`,
 
 ## Fase 0 — Prototipo navegable ✅
 
-**Estado:** cerrada (2026-08-23) · `hitos/2026-08-23-mvp-navegable.md`
+**Estado:** cerrada (2026-08-23) · `.claude/hitos/2026-08-23-mvp-navegable.md`
 
 Marketplace completo y navegable sobre datos semilla en memoria, sin
 credenciales. Esquema Postgres con RLS escrito. Pagos en modo manual.
