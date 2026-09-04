@@ -40,6 +40,7 @@ export default function VerificacionPage() {
     <div>
       <HeroBanner
         foto="/img/secciones/hero-verificacion.webp"
+        encuadreMovil="object-[80%_50%]"
         encabezado="Metodología"
         titulo="Cómo sabemos que un proveedor es realmente regenerativo"
       >

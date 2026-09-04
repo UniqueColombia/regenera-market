@@ -38,7 +38,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   return (
     <div className="container-page py-10">
       <header>
-        <h1 className="font-display text-4xl text-ink">
+        <h1 className="font-display text-3xl text-ink sm:text-4xl">
           Catálogo regenerativo
         </h1>
         <p className="mt-2 max-w-2xl text-muted">
@@ -66,8 +66,8 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
           )}
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Buscar" htmlFor="q">
+        <div className="mt-4 grid gap-4 min-[420px]:grid-cols-2 lg:grid-cols-4">
+          <Field label="Buscar" htmlFor="q" className="min-[420px]:col-span-2 lg:col-span-1">
             <input
               id="q"
               name="q"
@@ -217,14 +217,16 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
 function Field({
   label,
   htmlFor,
+  className = "",
   children,
 }: {
   label: string;
   htmlFor: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div>
+    <div className={className}>
       <label
         htmlFor={htmlFor}
         className="mb-1 block text-xs font-medium text-muted"

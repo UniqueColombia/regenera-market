@@ -310,6 +310,33 @@ con el degradado verde que ya existe. Por eso sus prompts piden cielo o follaje
 en la mitad izquierda: es donde caen el titular y el buscador. Una foto con el
 detalle importante a la izquierda queda tapada.
 
+### Y en el teléfono se recorta al revés
+
+Todo lo anterior vale para una pantalla ancha. En una de 375 px el bloque es más
+alto que ancho, así que `object-cover` **descarta cerca del 70 % del ancho de la
+foto** y se queda con una franja vertical. Con el anclaje por defecto esa franja
+es el centro — justo el aire que el prompt pidió dejar vacío.
+
+Por eso cada hero declara dónde anclar el recorte mientras la columna es
+estrecha, y **ese número sale de mirar la foto**: es la posición horizontal del
+sujeto, en porcentaje.
+
+| Foto | Sujeto | Anclaje móvil | Dónde se declara |
+|---|---|---|---|
+| `hero-home` | rancho y pareja tejiendo, a la derecha | `object-[78%_50%]` | `src/app/page.tsx` |
+| `hero-verificacion` | agrónomo agachado, a la derecha | `object-[80%_50%]` | `src/app/verificacion/page.tsx` |
+| `hero-vender` | las dos personas empacando | `object-[62%_50%]` | `src/app/vender/page.tsx` |
+| `hero-proveedores` | flat-lay parejo, sin sujeto único | centro (por defecto) | — |
+
+**Si regeneras una de estas cuatro fotos, revisa el anclaje.** Un encuadre nuevo
+con el mismo porcentaje viejo deja el hero enseñando fondo en todos los
+teléfonos, y en el escritorio no se nota. Para comprobarlo sin abrir el móvil:
+**tapa mentalmente todo menos una banda vertical del 27 % centrada en ese
+porcentaje. Lo que queda tiene que seguir siendo una foto.**
+
+El prop se llama `encuadreMovil` y lo recibe `src/components/hero-banner.tsx`;
+la portada lo escribe directo porque no usa ese componente.
+
 ---
 
 ### S1 · `hero-home` — Portada
