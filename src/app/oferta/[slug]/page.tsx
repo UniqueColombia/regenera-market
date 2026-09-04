@@ -98,7 +98,7 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
             )}
           </div>
 
-          <h1 className="mt-3 font-display text-4xl leading-tight text-ink">
+          <h1 className="mt-3 font-display text-3xl leading-tight text-ink sm:text-4xl">
             {listing.title}
           </h1>
           <p className="mt-3 text-lg text-muted">{listing.summary}</p>
