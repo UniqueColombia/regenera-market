@@ -51,7 +51,7 @@ export default async function ProveedorPage(
       >
         <p className="mt-2 text-lg text-brand-100">{provider.tagline}</p>
 
-        <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand-200">
+        <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand-200 [&_a]:break-all">
           <li className="flex items-center gap-1.5">
             <MapPin className="size-4" />
             {provider.city}, {provider.department}
