@@ -109,7 +109,7 @@ export function AddToCart({ listing }: { listing: Listing }) {
         </fieldset>
       )}
 
-      <div className="mt-5 flex items-center gap-3">
+      <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-3">
         <span className="text-sm font-medium text-ink">
           {isExperience ? "Personas" : "Cantidad"}
         </span>

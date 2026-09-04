@@ -36,6 +36,28 @@
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  /* Aparición de los desplegables del encabezado. Corta a propósito: un menú de
+     navegación que tarda en llegar se siente lento, no elegante.
+
+     Anima `transform` y no `translate`, y eso es lo que la hace servir también
+     para el panel de categorías, que va centrado con `-translate-x-1/2`.
+     Tailwind 4 no compila esa clase a `transform`: emite la propiedad
+     `translate` aparte. Al vivir en propiedades distintas se componen — el
+     panel queda centrado y además entra desde arriba. Si este keyframe se
+     reescribe con `translate`, pisará el centrado y el menú saldrá corrido. */
+  --animate-desplegar: desplegar 160ms ease-out;
+
+  @keyframes desplegar {
+    from {
+      opacity: 0;
+      transform: translateY(-0.25rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 :root {

@@ -21,25 +21,33 @@ export default async function HomePage() {
         {/* La foto va detrás del velo, no en lugar de él: el titular es blanco
             y la mitad izquierda de hero-home es niebla clara. El degradado
             hacia la derecha deja casi opaco el lado del texto y abre el lado
-            del sujeto. Ver docs/IMAGENES.md. */}
+            del sujeto. Ver docs/IMAGENES.md.
+
+            En un teléfono nada de eso se sostiene: el bloque es más alto que
+            ancho, así que object-cover recorta cerca del 70 % del ancho de la
+            foto y con el centro por defecto se queda enseñando niebla — el
+            rancho y la pareja, que están a la derecha, salen del cuadro. El
+            recorte se ancla al 78 % para que se vean, y el velo pasa a
+            vertical porque ahí el texto ocupa las dos columnas y uno
+            horizontal dejaría el final de cada renglón sobre foto clara. */}
         <Image
           src="/img/secciones/hero-home.webp"
           alt=""
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="object-cover object-[78%_50%] md:object-center"
         />
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-r from-brand-900 via-brand-900/90 to-brand-900/55"
+          className="absolute inset-0 bg-gradient-to-b from-brand-900/95 via-brand-900/88 to-brand-900/80 md:bg-gradient-to-r md:from-brand-900 md:via-brand-900/90 md:to-brand-900/55"
         />
-        <div className="container-page relative py-20 md:py-28">
+        <div className="container-page relative py-14 md:py-28">
           <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-300">
             <Sprout className="size-4" />
             Marketplace regenerativo
           </p>
-          <h1 className="mt-4 max-w-3xl font-display text-4xl leading-[1.1] text-white md:text-6xl">
+          <h1 className="mt-4 max-w-3xl font-display text-3xl leading-[1.1] text-white sm:text-4xl md:text-6xl">
             Soluciones que transforman el turismo colombiano
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-brand-100">
@@ -63,14 +71,14 @@ export default async function HomePage() {
             />
             <button
               type="submit"
-              className="flex items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
+              className="flex shrink-0 items-center gap-2 rounded-full bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 sm:px-5"
             >
               <Search className="size-4" />
               Buscar
             </button>
           </form>
 
-          <dl className="mt-12 flex flex-wrap gap-x-12 gap-y-6">
+          <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-6 sm:flex sm:flex-wrap sm:gap-x-12 md:mt-12">
             <Stat value={`${stats.providers}`} label="Proveedores verificados" />
             <Stat value={`${stats.listings}`} label="Ofertas publicadas" />
             <Stat value={`${stats.departments}`} label="Departamentos" />
