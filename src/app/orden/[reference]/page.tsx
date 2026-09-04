@@ -25,7 +25,7 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
 
   return (
     <div className="container-page max-w-3xl py-12">
-      <div className="rounded-2xl bg-white p-8 ring-1 ring-hairline">
+      <div className="rounded-2xl bg-white p-6 ring-1 ring-hairline sm:p-8">
         <CheckCircle2 className="size-10 text-brand-600" />
         <h1 className="mt-4 font-display text-3xl text-ink">
           Recibimos tu pedido
@@ -55,7 +55,7 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
         <ul className="mt-4 divide-y divide-hairline">
           {order.items.map((item, i) => (
             <li key={i} className="flex justify-between gap-4 py-3">
-              <div>
+              <div className="min-w-0">
                 <p className="font-medium text-ink">{item.titleSnapshot}</p>
                 <p className="text-sm text-muted">
                   {item.qty} × {money(item.unitPriceCop)}
@@ -108,7 +108,7 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
         )}
 
         <p className="mt-8 text-sm text-muted">
-          Te escribimos a <strong className="text-ink">{order.buyerEmail}</strong>{" "}
+          Te escribimos a <strong className="break-all text-ink">{order.buyerEmail}</strong>{" "}
           en cuanto confirmemos el pago.
         </p>
 

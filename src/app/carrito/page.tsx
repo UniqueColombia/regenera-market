@@ -87,7 +87,7 @@ export default function CarritoPage() {
   return (
     <div className="container-page py-10">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-4xl text-ink">Tu cesta</h1>
+        <h1 className="font-display text-3xl text-ink sm:text-4xl">Tu cesta</h1>
         <button
           type="button"
           onClick={clearCart}
@@ -118,7 +118,7 @@ export default function CarritoPage() {
                 key={`${l.listingId}-${l.date ?? ""}`}
                 className="flex gap-4 rounded-xl bg-white p-4 ring-1 ring-hairline"
               >
-                <div className="size-24 shrink-0 overflow-hidden rounded-lg">
+                <div className="size-20 shrink-0 overflow-hidden rounded-lg sm:size-24">
                   <ListingMedia
                     title={l.title}
                     category={l.category}
@@ -150,7 +150,7 @@ export default function CarritoPage() {
                     </p>
                   )}
 
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
                     <QtyInput
                       qty={l.qty}
                       listingId={l.listingId}
@@ -168,9 +168,16 @@ export default function CarritoPage() {
                       Quitar
                     </button>
                   </div>
+
+                  {/* En un teléfono la columna del subtotal se comía un tercio
+                      de la fila y dejaba el campo de cantidad sin sitio: por
+                      debajo de sm baja aquí, y arriba vuelve a su columna. */}
+                  <p className="mt-2 font-display text-lg text-ink sm:hidden">
+                    {money(l.subtotalCop)}
+                  </p>
                 </div>
 
-                <p className="shrink-0 font-display text-lg text-ink">
+                <p className="hidden shrink-0 font-display text-lg text-ink sm:block">
                   {money(l.subtotalCop)}
                 </p>
               </li>

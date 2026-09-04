@@ -39,6 +39,7 @@ export default function VenderPage() {
     <div>
       <HeroBanner
         foto="/img/secciones/hero-vender.webp"
+        encuadreMovil="object-[62%_50%]"
         encabezado="Para proveedores"
         titulo="Vende lo que produces a todo el turismo colombiano"
       >
