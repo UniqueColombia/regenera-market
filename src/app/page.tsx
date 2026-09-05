@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Search, ShieldCheck, Sprout, Store } from "lucide-react";
+import { HeroBanner } from "@/components/hero-banner";
 import { ListingCard } from "@/components/listing-card";
 import { TierBadge } from "@/components/tier-badge";
 import { getFeaturedListings, getMarketplaceStats, getProviderById } from "@/lib/repo";
@@ -17,75 +18,58 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="relative isolate overflow-hidden bg-brand-900">
-        {/* La foto va detrás del velo, no en lugar de él: el titular es blanco
-            y la mitad izquierda de hero-home es niebla clara. El degradado
-            hacia la derecha deja casi opaco el lado del texto y abre el lado
-            del sujeto. Ver docs/IMAGENES.md.
-
-            En un teléfono nada de eso se sostiene: el bloque es más alto que
-            ancho, así que object-cover recorta cerca del 70 % del ancho de la
-            foto y con el centro por defecto se queda enseñando niebla — el
-            rancho y la pareja, que están a la derecha, salen del cuadro. El
-            recorte se ancla al 78 % para que se vean, y el velo pasa a
-            vertical porque ahí el texto ocupa las dos columnas y uno
-            horizontal dejaría el final de cada renglón sobre foto clara. */}
-        <Image
-          src="/img/secciones/hero-home.webp"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-[78%_50%] md:object-center"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-b from-brand-900/95 via-brand-900/88 to-brand-900/80 md:bg-gradient-to-r md:from-brand-900 md:via-brand-900/90 md:to-brand-900/55"
-        />
-        <div className="container-page relative py-14 md:py-28">
-          <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-300">
+      {/* El recorte se ancla al 78 % del ancho porque en un teléfono el bloque
+          es más alto que ancho y object-cover descarta cerca del 70 %: con el
+          centro por defecto, el rancho y la pareja —que están a la derecha— se
+          salen del cuadro y solo queda niebla. El velo y su cambio de eje viven
+          en HeroBanner. Ver docs/IMAGENES.md. */}
+      <HeroBanner
+        foto="/img/secciones/hero-home.webp"
+        encuadreMovil="object-[78%_50%]"
+        tamano="portada"
+        encabezado={
+          <>
             <Sprout className="size-4" />
             Marketplace regenerativo
-          </p>
-          <h1 className="mt-4 max-w-3xl font-display text-3xl leading-[1.1] text-white sm:text-4xl md:text-6xl">
-            Soluciones que transforman el turismo colombiano
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-brand-100">
-            Compra productos, experiencias y servicios a proveedores colombianos
-            verificados uno por uno. Cada compra deja valor en el territorio
-            donde se produjo.
-          </p>
+          </>
+        }
+        titulo="Soluciones que transforman el turismo colombiano"
+      >
+        <p className="mt-5 max-w-2xl text-lg text-brand-100">
+          Compra productos, experiencias y servicios a proveedores colombianos
+          verificados uno por uno. Cada compra deja valor en el territorio donde
+          se produjo.
+        </p>
 
-          <form
-            action="/catalogo"
-            className="mt-8 flex max-w-xl gap-2 rounded-full bg-white p-1.5 shadow-lg"
+        <form
+          action="/catalogo"
+          className="mt-8 flex max-w-xl gap-2 rounded-full bg-white p-1.5 shadow-lg"
+        >
+          <label htmlFor="hero-search" className="sr-only">
+            Buscar en el catálogo
+          </label>
+          <input
+            id="hero-search"
+            name="q"
+            placeholder="Amenities, compostaje, guadua, Amazonas…"
+            className="flex-1 rounded-full bg-transparent px-4 text-sm text-ink outline-none placeholder:text-muted"
+          />
+          <button
+            type="submit"
+            className="flex shrink-0 items-center gap-2 rounded-full bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 sm:px-5"
           >
-            <label htmlFor="hero-search" className="sr-only">
-              Buscar en el catálogo
-            </label>
-            <input
-              id="hero-search"
-              name="q"
-              placeholder="Amenities, compostaje, guadua, Amazonas…"
-              className="flex-1 rounded-full bg-transparent px-4 text-sm text-ink outline-none placeholder:text-muted"
-            />
-            <button
-              type="submit"
-              className="flex shrink-0 items-center gap-2 rounded-full bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 sm:px-5"
-            >
-              <Search className="size-4" />
-              Buscar
-            </button>
-          </form>
+            <Search className="size-4" />
+            Buscar
+          </button>
+        </form>
 
-          <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-6 sm:flex sm:flex-wrap sm:gap-x-12 md:mt-12">
-            <Stat value={`${stats.providers}`} label="Proveedores verificados" />
-            <Stat value={`${stats.listings}`} label="Ofertas publicadas" />
-            <Stat value={`${stats.departments}`} label="Departamentos" />
-            <Stat value={`${stats.verifiedShare}%`} label="Con nivel asignado" />
-          </dl>
-        </div>
-      </section>
+        <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-6 sm:flex sm:flex-wrap sm:gap-x-12 md:mt-12">
+          <Stat value={`${stats.providers}`} label="Proveedores verificados" />
+          <Stat value={`${stats.listings}`} label="Ofertas publicadas" />
+          <Stat value={`${stats.departments}`} label="Departamentos" />
+          <Stat value={`${stats.verifiedShare}%`} label="Con nivel asignado" />
+        </dl>
+      </HeroBanner>
 
       <section className="container-page py-16">
         <h2 className="font-display text-3xl text-ink">

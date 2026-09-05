@@ -19,9 +19,30 @@ import Image from "next/image";
  * `alt=""` a propósito: la foto ilustra lo que el `<h1>` ya dice. Un lector de
  * pantalla que la anuncie solo repite el titular.
  */
+/**
+ * Cuánto pesa la franja. `portada` es la de la raíz del sitio: más alta y con el
+ * titular un paso más grande, porque no compite con nada arriba. `seccion` es la
+ * de las páginas interiores, que abren una lista justo debajo.
+ *
+ * Son dos tamaños y no un `className` libre a propósito: el velo solo funciona
+ * si el alto y el cuerpo del titular guardan la proporción con la que se
+ * calibró. Un tercer tamaño se agrega aquí, no en la página que lo pide.
+ */
+const TAMANOS = {
+  seccion: {
+    relleno: "py-12 md:py-16",
+    titular: "text-3xl sm:text-4xl md:text-5xl",
+  },
+  portada: {
+    relleno: "py-14 md:py-28",
+    titular: "text-3xl leading-[1.1] sm:text-4xl md:text-6xl",
+  },
+} as const;
+
 export function HeroBanner({
   foto,
   encuadreMovil = "object-center",
+  tamano = "seccion",
   encabezado,
   distintivo,
   titulo,
@@ -37,6 +58,7 @@ export function HeroBanner({
    * partir de `md`, donde el bloque vuelve a ser apaisado, manda el centro.
    */
   encuadreMovil?: string;
+  tamano?: keyof typeof TAMANOS;
   /** Antetítulo en versalitas: "Metodología", "Para proveedores". */
   encabezado?: React.ReactNode;
   /** Alternativa al antetítulo cuando lo que va encima no es texto, como el
@@ -60,14 +82,16 @@ export function HeroBanner({
         className="absolute inset-0 bg-gradient-to-b from-brand-900/95 via-brand-900/88 to-brand-900/80 md:bg-gradient-to-r md:from-brand-900 md:via-brand-900/90 md:to-brand-900/60"
       />
 
-      <div className="container-page relative py-12 md:py-16">
+      <div className={`container-page relative ${TAMANOS[tamano].relleno}`}>
         {encabezado && (
           <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-300">
             {encabezado}
           </p>
         )}
         {distintivo}
-        <h1 className="mt-3 max-w-3xl font-display text-3xl text-white sm:text-4xl md:text-5xl">
+        <h1
+          className={`mt-3 max-w-3xl font-display text-white ${TAMANOS[tamano].titular}`}
+        >
           {titulo}
         </h1>
         {children}
