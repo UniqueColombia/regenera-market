@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { Loader2, ShoppingBasket, Trash2 } from "lucide-react";
+import { useEffect, useId, useMemo, useState, useTransition } from "react";
+import {
+  ArrowLeft,
+  Loader2,
+  Minus,
+  Plus,
+  ShoppingBasket,
+  Trash2,
+} from "lucide-react";
 import { checkout, priceCart } from "./actions";
 import type { PricedCartDTO } from "./types";
 import {
@@ -83,22 +90,40 @@ export default function CarritoPage() {
 
   const purchasable = priced.lines.filter((l) => !l.quoteOnly);
   const quotable = priced.lines.filter((l) => l.quoteOnly);
+  const units = priced.lines.reduce((n, l) => n + l.qty, 0);
 
   return (
     <div className="container-page py-10">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl text-ink sm:text-4xl">Tu cesta</h1>
+      <Link
+        href="/catalogo"
+        className="inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-brand-700"
+      >
+        <ArrowLeft className="size-4" />
+        Seguir explorando
+      </Link>
+
+      <div className="mt-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div>
+          <h1 className="font-display text-3xl text-ink sm:text-4xl">
+            Tu cesta
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            {units} {units === 1 ? "unidad" : "unidades"} ·{" "}
+            {priced.providerCount}{" "}
+            {priced.providerCount === 1 ? "proveedor" : "proveedores"}
+          </p>
+        </div>
         <button
           type="button"
           onClick={clearCart}
-          className="text-sm text-muted underline hover:text-brand-700"
+          className="rounded-full px-3 py-1.5 text-sm text-muted transition hover:bg-sand hover:text-brand-700"
         >
-          Vaciar
+          Vaciar cesta
         </button>
       </div>
 
       {priced.providerCount > 1 && (
-        <p className="mt-3 rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-800 ring-1 ring-brand-100">
+        <p className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800 ring-1 ring-brand-100">
           Tu pedido reúne {priced.providerCount} proveedores. Pagas una sola vez
           y nosotros repartimos: cada uno despacha su parte y coordinamos las
           entregas contigo.
@@ -116,14 +141,20 @@ export default function CarritoPage() {
             {purchasable.map((l) => (
               <li
                 key={`${l.listingId}-${l.date ?? ""}`}
-                className="flex gap-4 rounded-xl bg-white p-4 ring-1 ring-hairline"
+                className="flex gap-4 rounded-xl bg-white p-4 ring-1 ring-hairline transition hover:ring-brand-300"
               >
-                <div className="size-20 shrink-0 overflow-hidden rounded-lg sm:size-24">
+                {/* `relative` no es decorativo: ListingMedia dibuja la foto con
+                    `<Image fill>`, que se posiciona en absoluto contra el
+                    ancestro posicionado más cercano. Sin él la miniatura se
+                    escapa del cuadro y se estira a pantalla completa por
+                    encima del formulario — irrecuperable en un teléfono. */}
+                <div className="relative size-20 shrink-0 overflow-hidden rounded-lg sm:size-24">
                   <ListingMedia
                     title={l.title}
                     category={l.category}
                     images={l.images}
                     iconClassName="size-7"
+                    sizes="96px"
                   />
                 </div>
 
@@ -197,7 +228,7 @@ export default function CarritoPage() {
                 {quotable.map((l) => (
                   <li
                     key={l.listingId}
-                    className="flex items-center justify-between gap-4 rounded-xl bg-clay-100 p-4"
+                    className="flex items-center justify-between gap-4 rounded-xl bg-clay-100 p-4 ring-1 ring-clay-300/60"
                   >
                     <div>
                       <h3 className="font-medium text-ink">{l.title}</h3>
@@ -208,7 +239,7 @@ export default function CarritoPage() {
                     <button
                       type="button"
                       onClick={() => removeLine(l.listingId, l.date)}
-                      className="text-sm text-muted hover:text-red-700"
+                      className="shrink-0 rounded-full px-3 py-1.5 text-sm text-muted transition hover:bg-white hover:text-red-700"
                     >
                       Quitar
                     </button>
@@ -234,6 +265,11 @@ export default function CarritoPage() {
  * la última tecla. Si se escribiera directo al carrito, cada pulsación
  * dispararía la revalorización en el servidor y el input se repintaría a mitad
  * de "60", perdiendo el cero.
+ *
+ * Los botones −/+ sí escriben directo: son un salto de una unidad, no hay nada
+ * a medio teclear que se pueda perder. El texto se realinea solo por la
+ * sincronización de abajo. Existen porque en un teléfono acertarle a la flechita
+ * nativa de un `input[type=number]` es una lotería.
  */
 function QtyInput({
   qty,
@@ -244,6 +280,7 @@ function QtyInput({
   listingId: string;
   date?: string;
 }) {
+  const inputId = useId();
   const [text, setText] = useState(String(qty));
   const [syncedFrom, setSyncedFrom] = useState(qty);
 
@@ -262,23 +299,45 @@ function QtyInput({
   }, [text, qty, listingId, date]);
 
   return (
-    <label className="flex items-center gap-2 text-sm text-muted">
-      Cantidad
-      <input
-        type="number"
-        min={1}
-        inputMode="numeric"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={() => {
-          // Al salir del campo se normaliza: un valor vacío o inválido vuelve
-          // a la cantidad vigente en vez de quedar en un estado imposible.
-          const parsed = Number(text);
-          if (!Number.isInteger(parsed) || parsed < 1) setText(String(qty));
-        }}
-        className="w-20 rounded-lg border border-hairline px-2 py-1 text-sm tabular-nums"
-      />
-    </label>
+    <div className="flex items-center gap-2 text-sm text-muted">
+      <label htmlFor={inputId}>Cantidad</label>
+      <div className="flex items-center rounded-full bg-cream ring-1 ring-hairline">
+        <button
+          type="button"
+          onClick={() => updateQty(listingId, qty - 1, date)}
+          disabled={qty <= 1}
+          aria-label="Quitar una unidad"
+          className="grid size-8 place-items-center rounded-full text-ink transition hover:bg-sand disabled:text-hairline disabled:hover:bg-transparent"
+        >
+          <Minus className="size-4" />
+        </button>
+        <input
+          id={inputId}
+          type="number"
+          min={1}
+          inputMode="numeric"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={() => {
+            // Al salir del campo se normaliza: un valor vacío o inválido vuelve
+            // a la cantidad vigente en vez de quedar en un estado imposible.
+            const parsed = Number(text);
+            if (!Number.isInteger(parsed) || parsed < 1) setText(String(qty));
+          }}
+          // Se le quitan las flechitas nativas: ya hay dos botones que hacen lo
+          // mismo con un blanco de toque decente.
+          className="w-10 bg-transparent text-center text-sm tabular-nums text-ink [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <button
+          type="button"
+          onClick={() => updateQty(listingId, qty + 1, date)}
+          aria-label="Agregar una unidad"
+          className="grid size-8 place-items-center rounded-full text-ink transition hover:bg-sand"
+        >
+          <Plus className="size-4" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -311,80 +370,93 @@ function CheckoutPanel({ priced }: { priced: PricedCartDTO }) {
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-xl bg-white p-6 ring-1 ring-hairline"
+      className="overflow-hidden rounded-xl bg-white ring-1 ring-hairline"
     >
-      <h2 className="font-display text-xl text-ink">Finalizar</h2>
+      {/* El resumen va sobre crema y el formulario sobre blanco: el corte
+          separa "lo que pagas" de "quién eres" sin necesitar otra tarjeta. */}
+      <div className="bg-cream p-6">
+        <h2 className="font-display text-xl text-ink">Finalizar</h2>
 
-      <dl className="mt-4 space-y-2 text-sm">
-        <div className="flex justify-between">
-          <dt className="text-muted">Subtotal</dt>
-          <dd className="tabular-nums">{money(priced.subtotalCop)}</dd>
-        </div>
-        <div className="flex justify-between border-t border-hairline pt-2 font-semibold">
-          <dt>Total a pagar</dt>
-          <dd className="font-display text-lg tabular-nums">
-            {money(priced.totalCop)}
-          </dd>
-        </div>
-      </dl>
+        <dl className="mt-4 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <dt className="text-muted">Subtotal</dt>
+            <dd className="tabular-nums">{money(priced.subtotalCop)}</dd>
+          </div>
+          <div className="flex items-baseline justify-between border-t border-hairline pt-3">
+            <dt className="font-semibold">Total a pagar</dt>
+            <dd className="font-display text-2xl tabular-nums text-brand-800">
+              {money(priced.totalCop)}
+            </dd>
+          </div>
+        </dl>
 
-      {hasImpact && (
-        <div className="mt-4 rounded-lg bg-brand-50 p-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-brand-700">
-            Impacto de esta compra
-          </p>
-          <ImpactChips impact={priced.impact} className="mt-2" />
-        </div>
-      )}
+        {hasImpact && (
+          <div className="mt-4 rounded-xl bg-brand-50 p-3 ring-1 ring-brand-100">
+            <p className="text-xs font-medium uppercase tracking-wide text-brand-700">
+              Impacto de esta compra
+            </p>
+            <ImpactChips impact={priced.impact} className="mt-2" />
+          </div>
+        )}
+      </div>
 
-      <fieldset className="mt-6 space-y-3" disabled={pending}>
-        <legend className="sr-only">Datos de contacto</legend>
-        <TextField
-          name="name"
-          label="Nombre completo"
-          error={errors.name}
-          required
-        />
-        <TextField
-          name="email"
-          label="Correo"
-          type="email"
-          error={errors.email}
-          required
-        />
-        <TextField name="phone" label="Teléfono" error={errors.phone} required />
-        <TextField name="company" label="Empresa (opcional)" />
-        <div>
-          <label
-            htmlFor="notes"
-            className="mb-1 block text-xs font-medium text-muted"
-          >
-            Notas para el proveedor (opcional)
-          </label>
-          <textarea
-            id="notes"
-            name="notes"
-            rows={3}
-            className="w-full rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-brand-500"
+      <div className="p-6">
+        <fieldset className="space-y-3" disabled={pending}>
+          <legend className="sr-only">Datos de contacto</legend>
+          <TextField
+            name="name"
+            label="Nombre completo"
+            error={errors.name}
+            required
           />
-        </div>
-      </fieldset>
+          <TextField
+            name="email"
+            label="Correo"
+            type="email"
+            error={errors.email}
+            required
+          />
+          <TextField
+            name="phone"
+            label="Teléfono"
+            error={errors.phone}
+            required
+          />
+          <TextField name="company" label="Empresa (opcional)" />
+          <div>
+            <label
+              htmlFor="notes"
+              className="mb-1 block text-xs font-medium text-muted"
+            >
+              Notas para el proveedor (opcional)
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows={3}
+              className="w-full rounded-lg border border-hairline px-3 py-2 text-sm outline-none transition focus:border-brand-500"
+            />
+          </div>
+        </fieldset>
 
-      {errors.form && <p className="mt-3 text-sm text-red-700">{errors.form}</p>}
+        {errors.form && (
+          <p className="mt-3 text-sm text-red-700">{errors.form}</p>
+        )}
 
-      <button
-        type="submit"
-        disabled={pending || !hasPurchasable}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:bg-muted"
-      >
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Confirmar pedido
-      </button>
+        <button
+          type="submit"
+          disabled={pending || !hasPurchasable}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:bg-muted"
+        >
+          {pending && <Loader2 className="size-4 animate-spin" />}
+          Confirmar pedido
+        </button>
 
-      <p className="mt-3 text-xs text-muted">
-        El pago aún se coordina por transferencia: al confirmar te mostramos las
-        instrucciones y la referencia de tu orden.
-      </p>
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          El pago aún se coordina por transferencia: al confirmar te mostramos
+          las instrucciones y la referencia de tu orden.
+        </p>
+      </div>
     </form>
   );
 }
@@ -413,7 +485,7 @@ function TextField({
         type={type}
         required={required}
         aria-invalid={error ? true : undefined}
-        className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand-500 ${
+        className={`w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-500 ${
           error ? "border-red-500" : "border-hairline"
         }`}
       />
