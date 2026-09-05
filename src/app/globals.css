@@ -27,12 +27,25 @@
   --color-clay-300: #ddb894;
   --color-clay-500: #b5824f;
   --color-clay-600: #9a6c3f;
+  /* Paso agregado por contraste, no por gusto: clay-600 sobre clay-100 da 3.92:1
+     y las píldoras de rasgo van en 12 px, que exige 4.5:1. Este da 5.74:1. Es
+     también el fondo del botón de terracota — blanco sobre clay-500 daba 3.35:1
+     y no pasaba AA. */
+  --color-clay-700: #7a542e;
 
   --color-cream: #faf8f4;
   --color-sand: #f0ebe2;
   --color-ink: #17241d;
-  --color-muted: #5f6f66;
+  /* Oscurecido desde #5f6f66: sobre `sand` daba 4.48:1 y se quedaba a un pelo
+     de AA en las notas de fondo apoyado. Ahora 5.20:1, y sube en todos los
+     demás fondos sin cambiar el tono. */
+  --color-muted: #55655c;
   --color-hairline: #e3ded3;
+  /* Borde de campo. `hairline` es 1.34:1 sobre blanco: sirve para separar
+     superficies, pero un input es un componente de interfaz y su borde es lo
+     único que dice dónde empieza el campo — WCAG 1.4.11 pide 3:1. Este da
+     3.18:1. No lo uses para separar tarjetas; para eso está `hairline`. */
+  --color-control: #9c8f78;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
@@ -77,6 +90,34 @@ body {
   outline: 2px solid var(--color-brand-600);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/**
+ * Respuesta al toque.
+ *
+ * Tailwind 4 compila TODOS los `hover:` dentro de `@media (hover: hover)`. En un
+ * teléfono eso significa que ni el logo, ni un botón, ni una tarjeta dan la más
+ * mínima señal al tocarlos: la página simplemente cambia un rato después. En
+ * escritorio el sitio conversa; en móvil se siente muerto.
+ *
+ * `:hover` no se puede "arreglar" en táctil — si se forzara, quedaría pegado
+ * después del toque, que es peor. Lo único que existe ahí es `:active`, y es lo
+ * que se usa: se apaga levemente lo que se está tocando, que es la convención
+ * que ya trae cualquier app nativa.
+ *
+ * Va aquí y no clase por clase a propósito: son más de cuarenta elementos
+ * interactivos en el sitio y el próximo que se agregue lo hereda sin que nadie
+ * se acuerde. Los componentes que quieren algo más expresivo que esto (crecer,
+ * teñirse) agregan además su propio `active:`.
+ */
+@media (hover: none) {
+  a:active,
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  summary:active {
+    opacity: 0.68;
+    transition: opacity 80ms ease-out;
+  }
 }
 
 @utility container-page {
