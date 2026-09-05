@@ -101,7 +101,7 @@ export default async function HomePage() {
             <li key={v.id}>
               <Link
                 href={`/catalogo?vertical=${v.id}`}
-                className="group flex h-full flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-400 hover:shadow-md"
+                className="group flex h-full flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-400 hover:shadow-md active:ring-brand-400 active:shadow-md"
               >
                 {/* alt vacío a propósito: el <h3> de debajo dice lo mismo, y un
                     lector de pantalla que anuncie la foto solo lo repite. */}
@@ -111,17 +111,17 @@ export default async function HomePage() {
                     alt=""
                     fill
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover transition duration-500 group-hover:scale-105"
+                    className="object-cover transition duration-500 group-hover:scale-105 group-active:scale-105"
                   />
                 </div>
                 <div className="flex flex-1 flex-col p-5">
-                  <h3 className="font-display text-lg text-ink group-hover:text-brand-700">
+                  <h3 className="font-display text-lg text-ink transition-colors group-hover:text-brand-700 group-active:text-brand-700">
                     {v.label}
                   </h3>
                   <p className="mt-1.5 text-sm text-muted">{v.blurb}</p>
                   <span className="mt-4 flex items-center gap-1 text-sm font-medium text-brand-600">
                     Ver ofertas
-                    <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+                    <ArrowRight className="size-4 transition group-hover:translate-x-0.5 group-active:translate-x-0.5" />
                   </span>
                 </div>
               </Link>
@@ -231,7 +231,7 @@ export default async function HomePage() {
             </p>
             <Link
               href="/catalogo"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-clay-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-clay-600"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-clay-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-clay-700"
             >
               Explorar el catálogo
               <ArrowRight className="size-4" />
