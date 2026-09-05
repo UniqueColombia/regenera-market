@@ -73,7 +73,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
               name="q"
               defaultValue={filters.q ?? ""}
               placeholder="Nombre, material, lugar…"
-              className="w-full rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-brand-500"
+              className="w-full rounded-lg border border-control px-3 py-2 text-sm outline-none focus:border-brand-500"
             />
           </Field>
 
@@ -242,7 +242,7 @@ function Select(props: React.ComponentProps<"select">) {
   return (
     <select
       {...props}
-      className="w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"
+      className="w-full rounded-lg border border-control bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"
     />
   );
 }

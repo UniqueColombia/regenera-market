@@ -38,12 +38,12 @@ export default async function ProveedoresPage() {
           <li key={p.id}>
             <Link
               href={`/proveedor/${p.slug}`}
-              className="group flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-md"
+              className="group flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-md active:ring-brand-300 active:shadow-md"
             >
               <div className="flex items-start gap-3">
                 <ProviderAvatar name={p.name} logoUrl={p.logoUrl} />
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-display text-xl text-ink group-hover:text-brand-700">
+                  <h2 className="font-display text-xl text-ink transition-colors group-hover:text-brand-700 group-active:text-brand-700">
                     {p.name}
                   </h2>
                   <p className="mt-0.5 text-sm text-muted">{p.tagline}</p>
@@ -60,7 +60,7 @@ export default async function ProveedoresPage() {
                   {p.traits.map((t) => (
                     <li
                       key={t}
-                      className="rounded-full bg-clay-100 px-2 py-0.5 text-xs text-clay-600"
+                      className="rounded-full bg-clay-100 px-2 py-0.5 text-xs text-clay-700"
                     >
                       {TRAIT_LABEL[t]}
                     </li>
