@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Minus, Plus, ShoppingBasket } from "lucide-react";
 import { addLine } from "./cart";
 import { money, shortDate } from "@/lib/format";
@@ -41,10 +41,19 @@ export function AddToCart({ listing }: { listing: Listing }) {
   const minQty = isExperience ? listing.experience!.minPeople : 1;
   const canAdd = qty >= minQty && qty <= maxQty && (!isExperience || !!slot);
 
+  // El aviso "Agregado a la cesta" se apaga solo. El temporizador vive en un
+  // efecto y no dentro de handleAdd porque "Comprar ahora" agrega y navega en el
+  // mismo gesto: el componente se desmonta antes de que expire, y un setTimeout
+  // suelto seguiría vivo apuntando a un estado que ya no existe.
+  useEffect(() => {
+    if (!added) return;
+    const timer = setTimeout(() => setAdded(false), 2200);
+    return () => clearTimeout(timer);
+  }, [added]);
+
   function handleAdd() {
     addLine({ listingId: listing.id, qty, date: isExperience ? date : undefined });
     setAdded(true);
-    setTimeout(() => setAdded(false), 2200);
   }
 
   return (
@@ -93,7 +102,7 @@ export function AddToCart({ listing }: { listing: Listing }) {
                   className={`rounded-lg border px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
                     selected
                       ? "border-brand-600 bg-brand-50 text-brand-800"
-                      : "border-hairline hover:border-brand-400"
+                      : "border-control hover:border-brand-400 active:border-brand-400"
                   }`}
                 >
                   <span className="block font-medium first-letter:uppercase">
@@ -113,12 +122,15 @@ export function AddToCart({ listing }: { listing: Listing }) {
         <span className="text-sm font-medium text-ink">
           {isExperience ? "Personas" : "Cantidad"}
         </span>
-        <div className="flex items-center rounded-lg border border-hairline">
+        {/* size-10 y no p-2: con el ícono de 16 px, el blanco de toque quedaba
+            en 32 px y este es el control que más se usa desde un teléfono. 40 px
+            es el mínimo con el que se acierta sin mirar. */}
+        <div className="flex items-center rounded-lg border border-control">
           <button
             type="button"
             onClick={() => setQty((q) => Math.max(minQty, q - 1))}
             disabled={qty <= minQty}
-            className="p-2 disabled:opacity-30"
+            className="grid size-10 place-items-center rounded-l-lg transition hover:bg-sand disabled:opacity-30 disabled:hover:bg-transparent"
             aria-label="Disminuir"
           >
             <Minus className="size-4" />
@@ -130,7 +142,7 @@ export function AddToCart({ listing }: { listing: Listing }) {
             type="button"
             onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
             disabled={qty >= maxQty}
-            className="p-2 disabled:opacity-30"
+            className="grid size-10 place-items-center rounded-r-lg transition hover:bg-sand disabled:opacity-30 disabled:hover:bg-transparent"
             aria-label="Aumentar"
           >
             <Plus className="size-4" />
@@ -208,7 +220,7 @@ export function RequestQuote({ listing }: { listing: Listing }) {
           addLine({ listingId: listing.id, qty: 1 });
           router.push("/carrito");
         }}
-        className="mt-5 w-full rounded-full bg-clay-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-clay-600"
+        className="mt-5 w-full rounded-full bg-clay-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-clay-700"
       >
         Solicitar cotización
       </button>

@@ -14,7 +14,17 @@ const fraunces = Fraunces({
   axes: ["SOFT", "WONK", "opsz"],
 });
 
+/**
+ * Sin `metadataBase`, Next resuelve `opengraph-image.jpg` y `twitter-image.jpg`
+ * contra `http://localhost:3000` y lo avisa en cada build. Consecuencia real:
+ * el enlace compartido en WhatsApp o LinkedIn sale sin imagen, porque apunta a
+ * la máquina de quien compiló. Se toma de `NEXT_PUBLIC_SITE_URL`, que es la
+ * variable que `docs/DEPLOY.md` ya reserva por entorno.
+ */
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Seregenera | Productos y servicios regenerativos para el turismo colombiano",
     template: "%s | Seregenera",

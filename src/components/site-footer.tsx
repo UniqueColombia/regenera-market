@@ -29,7 +29,7 @@ export function SiteFooter() {
               <li key={v.id}>
                 <Link
                   href={`/catalogo?vertical=${v.id}`}
-                  className="text-brand-200 hover:text-white"
+                  className="text-brand-200 transition-colors hover:text-white active:text-white"
                 >
                   {v.label}
                 </Link>
@@ -44,22 +44,22 @@ export function SiteFooter() {
           </h2>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
-              <Link href="/verificacion" className="text-brand-200 hover:text-white">
+              <Link href="/verificacion" className="text-brand-200 transition-colors hover:text-white active:text-white">
                 Cómo verificamos
               </Link>
             </li>
             <li>
-              <Link href="/proveedores" className="text-brand-200 hover:text-white">
+              <Link href="/proveedores" className="text-brand-200 transition-colors hover:text-white active:text-white">
                 Proveedores aliados
               </Link>
             </li>
             <li>
-              <Link href="/vender" className="text-brand-200 hover:text-white">
+              <Link href="/vender" className="text-brand-200 transition-colors hover:text-white active:text-white">
                 Vende en Seregenera
               </Link>
             </li>
             <li>
-              <Link href="/catalogo" className="text-brand-200 hover:text-white">
+              <Link href="/catalogo" className="text-brand-200 transition-colors hover:text-white active:text-white">
                 Catálogo completo
               </Link>
             </li>
@@ -75,14 +75,14 @@ export function SiteFooter() {
               <Mail className="size-4 shrink-0" />
               <a
                 href="mailto:dimensionnaturalsas@gmail.com"
-                className="hover:text-white"
+                className="transition-colors hover:text-white active:text-white"
               >
                 dimensionnaturalsas@gmail.com
               </a>
             </li>
             <li className="flex items-center gap-2">
               <Phone className="size-4 shrink-0" />
-              <a href="tel:+573126844848" className="hover:text-white">
+              <a href="tel:+573126844848" className="transition-colors hover:text-white active:text-white">
                 +57 312 684 4848
               </a>
             </li>
