@@ -46,7 +46,7 @@ export function SustainabilityQuiz() {
                     {q.text}
                     {q.requiresEvidence && (
                       <span
-                        className="ml-2 inline-flex items-center gap-1 rounded bg-clay-100 px-1.5 py-0.5 text-[11px] font-normal text-clay-600"
+                        className="ml-2 inline-flex items-center gap-1 rounded bg-clay-100 px-1.5 py-0.5 text-[11px] font-normal text-clay-700"
                         title="En la evaluación oficial esta respuesta exige documento de respaldo"
                       >
                         <FileCheck2 className="size-3" />
@@ -68,7 +68,7 @@ export function SustainabilityQuiz() {
                           className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
                             selected
                               ? "border-brand-600 bg-brand-600 text-white"
-                              : "border-hairline bg-white text-ink hover:border-brand-400"
+                              : "border-control bg-white text-ink hover:border-brand-400 active:border-brand-400"
                           }`}
                         >
                           {opt.label}
@@ -113,7 +113,7 @@ export function SustainabilityQuiz() {
                   className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
                     selected
                       ? "border-brand-600 bg-brand-600 text-white"
-                      : "border-hairline bg-white text-ink hover:border-brand-400"
+                      : "border-control bg-white text-ink hover:border-brand-400 active:border-brand-400"
                   }`}
                 >
                   {cert.label}

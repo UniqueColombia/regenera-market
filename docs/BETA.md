@@ -350,13 +350,20 @@ create trigger on_auth_user_created
 `security definer` es obligatorio: el trigger corre antes de que exista sesión,
 así que no puede depender de RLS.
 
-**2. El middleware de sesión.** `middleware.ts` en la raíz, con
-`createServerClient` de `@supabase/ssr`. Refresca el token en cada request y
-reescribe las cookies. Sin él la sesión expira sola y el usuario se ve
-deslogueado a mitad de una compra.
+**2. El proxy de sesión.** `src/proxy.ts`, con `createServerClient` de
+`@supabase/ssr`. Refresca el token en cada request y reescribe las cookies. Sin
+él la sesión expira sola y el usuario se ve deslogueado a mitad de una compra.
 
-El `matcher` **excluye** `_next/static`, `_next/image` y el favicon; si no, se
-paga una llamada a Supabase por cada icono.
+**No se llama `middleware.ts`.** Next 16 deprecó esa convención y la renombró a
+`proxy`; el archivo viejo todavía funciona pero avisa en cada build. Está en
+`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/middleware.md`.
+Cualquier tutorial de Supabase que cree `middleware.ts` está escrito para Next 15.
+
+El `matcher` **excluye** `_next/static`, `_next/image`, el favicon y los
+archivos de `public/img/`; si no, se paga una llamada a Supabase por cada icono.
+
+Hecho el 2026-09-05 junto con los tres clientes, `src/lib/auth.ts` y la
+migración `0002_auth.sql`, para no dejar a nadie esperando el Bloque 0.
 
 **3. Las rutas de auth.**
 

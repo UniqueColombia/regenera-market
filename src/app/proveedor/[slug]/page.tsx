@@ -97,7 +97,7 @@ export default async function ProveedorPage(
               {provider.traits.map((t) => (
                 <li
                   key={t}
-                  className="rounded-full bg-clay-100 px-3 py-1 text-sm text-clay-600"
+                  className="rounded-full bg-clay-100 px-3 py-1 text-sm text-clay-700"
                 >
                   {TRAIT_LABEL[t]}
                 </li>

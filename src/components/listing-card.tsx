@@ -16,15 +16,22 @@ export function ListingCard({
 }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/5">
+      {/* El grupo con nombre `/foto` cuelga del propio enlace, no del <article>:
+          `:active` en táctil es fiable sobre el elemento que se toca, y aquí lo
+          que se toca es el ancla. Colgarlo del artículo dependería de que el
+          navegador propague `:active` a los ancestros, cosa que iOS no
+          garantiza. `group-hover` sigue saliendo del artículo porque en
+          escritorio sí se quiere que la foto crezca al pasar por la tarjeta
+          entera. */}
       <Link
         href={`/oferta/${listing.slug}`}
-        className="relative block aspect-4/3 overflow-hidden"
+        className="group/foto relative block aspect-4/3 overflow-hidden"
       >
         <ListingMedia
           title={listing.title}
           category={listing.category}
           images={listing.images}
-          className="transition duration-500 group-hover:scale-105"
+          className="transition duration-500 group-hover:scale-105 group-active/foto:scale-105"
         />
         <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2 py-0.5 text-xs font-medium text-ink shadow-sm">
           {KIND_LABEL[listing.kind]}
@@ -42,7 +49,7 @@ export function ListingCard({
         <h3 className="font-display text-lg leading-snug text-ink">
           <Link
             href={`/oferta/${listing.slug}`}
-            className="hover:text-brand-700"
+            className="transition-colors hover:text-brand-700 active:text-brand-700"
           >
             {listing.title}
           </Link>

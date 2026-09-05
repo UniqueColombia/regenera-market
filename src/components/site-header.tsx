@@ -32,6 +32,18 @@ export function SiteHeader() {
   const setOpenCategories = (open: boolean) =>
     setCategoriesOpenedAt(open ? pathname : null);
 
+  // El menú de móvil cerraba solo con su propio botón. Escape es la salida que
+  // espera cualquiera que lo abra con teclado, y el de categorías ya la tenía:
+  // que uno sí y el otro no es la inconsistencia, no la tecla.
+  useEffect(() => {
+    if (!openMenu) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpenedAt(null);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [openMenu]);
+
   useEffect(() => {
     if (!openCategories) return;
     // Se usa el setter de estado directo, no el envoltorio: este cierra siempre,
@@ -58,12 +70,16 @@ export function SiteHeader() {
         <Link href="/" className="group flex items-center gap-2">
           {/* Compacto y no detalle: a 36 px los nervios y los continentes
               se empastan. Ver src/components/isotipo.tsx */}
+          {/* `group-active:` duplica lo que hace `group-hover:` porque en un
+              teléfono el hover no existe: Tailwind 4 lo encierra en
+              `@media (hover: hover)`. Sin esta línea el logo es lo único del
+              encabezado que no reacciona al tocarlo. */}
           <Isotipo
             variante="compacto"
-            className="h-9 w-auto text-brand-600 transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none"
+            className="h-9 w-auto text-brand-600 transition-transform duration-300 group-hover:scale-110 group-active:scale-110 motion-reduce:transition-none"
           />
           <span className="leading-none">
-            <span className="block font-display text-lg font-semibold text-brand-700 transition-colors group-hover:text-brand-500">
+            <span className="block font-display text-lg font-semibold text-brand-700 transition-colors group-hover:text-brand-500 group-active:text-brand-500">
               Seregenera
             </span>
             <span className="block text-[11px] text-muted">
@@ -138,8 +154,9 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           <Link
             href="/vender"
+            // Sin `title`: el <span class="sr-only"> ya nombra el enlace, y
+            // tener los dos hace que algunos lectores lo anuncien dos veces.
             className="hidden rounded-full px-3 py-2 text-sm text-muted transition-colors hover:bg-sand hover:text-brand-700 lg:block"
-            title="Portal de proveedores"
           >
             <User className="size-5" />
             <span className="sr-only">Portal de proveedores</span>
@@ -261,8 +278,10 @@ function CartButton() {
     >
       <ShoppingBasket className="size-5" />
       {count > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 grid size-5 place-items-center rounded-full bg-brand-600 text-[11px] font-semibold text-white tabular-nums">
-          {count}
+        // A tres cifras el número se sale del círculo y se come el ícono. Una
+        // cesta de 100 unidades es raro pero no imposible en compra mayorista.
+        <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-600 px-1 text-[11px] font-semibold text-white tabular-nums">
+          {count > 99 ? "99+" : count}
         </span>
       )}
     </Link>

@@ -301,7 +301,7 @@ function QtyInput({
   return (
     <div className="flex items-center gap-2 text-sm text-muted">
       <label htmlFor={inputId}>Cantidad</label>
-      <div className="flex items-center rounded-full bg-cream ring-1 ring-hairline">
+      <div className="flex items-center rounded-full bg-cream ring-1 ring-control">
         <button
           type="button"
           onClick={() => updateQty(listingId, qty - 1, date)}
@@ -434,7 +434,7 @@ function CheckoutPanel({ priced }: { priced: PricedCartDTO }) {
               id="notes"
               name="notes"
               rows={3}
-              className="w-full rounded-lg border border-hairline px-3 py-2 text-sm outline-none transition focus:border-brand-500"
+              className="w-full rounded-lg border border-control px-3 py-2 text-sm outline-none transition focus:border-brand-500"
             />
           </div>
         </fieldset>

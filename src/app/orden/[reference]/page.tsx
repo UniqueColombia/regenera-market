@@ -38,13 +38,13 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
 
         <div className="mt-6 rounded-xl bg-clay-100 p-5">
           <h2 className="flex items-center gap-2 font-display text-lg text-ink">
-            <Info className="size-4 text-clay-600" />
+            <Info className="size-4 text-clay-700" />
             Cómo completar el pago
           </h2>
           <ol className="mt-3 space-y-2 text-sm text-ink">
             {intent.instructions?.map((step, i) => (
               <li key={i} className="flex gap-2">
-                <span className="font-semibold text-clay-600">{i + 1}.</span>
+                <span className="font-semibold text-clay-700">{i + 1}.</span>
                 {step}
               </li>
             ))}
