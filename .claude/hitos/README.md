@@ -20,3 +20,4 @@ referencie al anterior.
 | 2026-08-29 | [Los prospectos salen en Excel, y el puntaje aprende a separar](2026-08-29-excel-de-prospectos.md) | Jesús Seiler | — (habilita la 4) |
 | 2026-08-29 | [El primer lote enriquecido corrige tres perfiles mal cableados](2026-08-29-primer-lote-enriquecido.md) | Jesús Seiler | — (habilita la 4) |
 | 2026-08-29 | [El sitio tiene identidad visual: logo, favicon y 27 fotografías](2026-08-29-identidad-visual.md) | Jesús Seiler | 0 — Prototipo |
+| 2026-09-05 | [El sitio responde al toque, la paleta pasa AA, y el andamiaje de Supabase queda puesto](2026-09-05-tactil-contraste-y-andamiaje-supabase.md) | Jesús Seiler | 0 — Prototipo (cierre) |
