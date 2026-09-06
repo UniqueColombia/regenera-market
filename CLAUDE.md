@@ -11,6 +11,22 @@ Regla de oro: si algo que aprendes vale para la próxima sesión, no lo escribas
 aquí. Va a una skill (si es "cómo hacer algo") o a un hito (si es "qué se hizo").
 Este archivo solo crece cuando cambia la *infraestructura*.
 
+## Si te preguntan «¿en qué vamos?»
+
+**Lee `docs/ESTADO.md` antes de responder.** Es el único archivo del repositorio
+que dice qué está a medias *ahora mismo*, qué falta, quién de los dos puede
+hacer cada cosa y con qué comando se comprueba. No contestes de memoria ni
+reconstruyas el estado leyendo commits: eso ya está resuelto ahí.
+
+Aplica igual a «¿qué falta?», «¿qué sigue?», «¿cómo va el proyecto?» y a
+cualquier sesión que arranque después de un `git pull` sin más contexto.
+
+Es también el único documento que **caduca**. Trae al principio un par de
+comandos para comprobar si se quedó viejo; si hay hitos posteriores a su fecha
+de corte que él no menciona, gana el hito. **Quien termina un bloque de
+`docs/BETA.md` actualiza `docs/ESTADO.md` en el mismo PR** — si no, el siguiente
+que llegue trabajará sobre una foto vieja.
+
 ## Quiénes
 
 | Persona | GitHub | Rol | Iniciales de rama |
@@ -29,6 +45,7 @@ agente del otro.
 | `CLAUDE.md` | Este orquestador | Todo agente, siempre |
 | `AGENTS.md` | Bloque que regenera `next dev`. No editar a mano | Agentes |
 | `README.md` | Qué es el producto, cómo correrlo, decisiones de diseño | Humanos y agentes |
+| `docs/ESTADO.md` | **Dónde estamos hoy**: qué falta, quién puede hacerlo, cómo se comprueba. Caduca — se actualiza al cerrar un bloque | Todo el que llega sin contexto |
 | `docs/ROADMAP.md` | Camino del producto por fases, con criterio de salida | Humanos y agentes |
 | `docs/BETA.md` | Cómo se ejecutan las Fases 1 y 2, bloque por bloque | Humanos y agentes |
 | `docs/DEPLOY.md` | Stack de despliegue, por qué se eligió y qué se descartó | Humanos y agentes |
