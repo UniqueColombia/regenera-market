@@ -11,6 +11,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // Los scripts de `scripts/*.mts` se ejecutan con `node` pelado, que resuelve
+    // módulos ESM y exige la extensión en las rutas relativas. Sin esto, o el
+    // script no arranca o `tsc` lo rechaza: no hay forma de contentar a los dos.
+    // Es seguro porque `noEmit` está activo — nada de esto se compila a JS.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
