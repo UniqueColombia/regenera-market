@@ -4,9 +4,9 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-05
-- **Producción:** `v0.2.1` en `main`
-- **Fase del roadmap:** 0 cerrada. En curso: **Bloque 0** de `docs/BETA.md`.
+- **Corte:** 2026-09-05 (segunda actualización del día)
+- **Producción:** `v0.2.3` en `main`
+- **Fase del roadmap:** 0 cerrada. **Bloque 0 cerrado.** En curso: **Bloque 1**.
 
 > **Antes de creerle a este archivo, comprueba que no está viejo.** Es el único
 > documento del repositorio que caduca.
@@ -25,8 +25,9 @@ qué hacer, empieza aquí y no en el ROADMAP.
 ## En una frase
 
 El sitio está desplegado y navegable, con el catálogo todavía **en memoria**
-(`src/data/`). La base de datos ya existe pero **el esquema no está aplicado**.
-El código que conecta con ella está escrito y a la espera.
+(`src/data/`). La base de datos existe, **el esquema está aplicado y sembrado**:
+13 proveedores, 18 ofertas, 37 políticas RLS activas. Lo que falta es que
+`src/lib/repo.ts` deje de leer de memoria y consulte Postgres.
 
 ---
 
@@ -39,8 +40,10 @@ El código que conecta con ella está escrito y a la espera.
 | Interacción táctil y contraste AA | ✅ `v0.2.1` |
 | Prospector de proveedores (RUES → Excel) | ✅ |
 | Clientes de Supabase, `src/proxy.ts`, `src/lib/auth.ts` | ✅ escritos, **inertes** |
-| `0001_init.sql` (14 tablas, 37 políticas) y `0002_auth.sql` | ✅ escritos, **sin aplicar** |
-| Proyecto de Supabase creado | ✅ ref `mgsrzlqellphmfbhpdoj`, región `us-east-2` |
+| `0001_init.sql` (14 tablas, 37 políticas) y `0002_auth.sql` | ✅ **aplicados** el 2026-09-05 |
+| Proyecto de Supabase | ✅ ref `mgsrzlqellphmfbhpdoj`, región `us-east-2` |
+| `scripts/seed.mts` — catálogo sembrado | ✅ idempotente, comprobado dos corridas |
+| `src/lib/repo.ts` consultando Postgres | ❌ **es lo que falta** |
 
 «Inerte» quiere decir que sin `NEXT_PUBLIC_SUPABASE_URL` el proxy deja pasar la
 petición sin hacer nada y ningún cliente se construye. **La propiedad de
@@ -114,36 +117,26 @@ Redespliega y repite el `curl`. Si deja de decir `localhost`, quedó.
 (`.github/workflows/ci.yml`). Si el proyecto en Vercel usa otra, el CI pasa en
 verde y producción falla.
 
+### ✅ Hecho el 2026-09-05: el esquema está aplicado
+
+`0001_init.sql` y `0002_auth.sql` corrieron contra el proyecto sin errores, y se
+comprobó de vuelta: **14 tablas de 14**, los 6 tipos enum, **37 políticas RLS de
+37**, **cero tablas sin RLS activo**, el trigger `on_auth_user_created` creado y
+`handle_new_user` con `security definer`.
+
+Además se comprobó que RLS **niega**, que es como se valida una política: con la
+clave anon, un `insert` en `providers` devuelve `42501` y `user_roles` no
+devuelve ni una fila sin sesión.
+
+**`0001_init.sql` y `0002_auth.sql` son ya inmutables.** Todo cambio posterior es
+`0003_`. Ver la skill `supabase-schema`.
+
+El catálogo está sembrado con `node --env-file=.env.local scripts/seed.mts`.
+
 ### 🟡 El siguiente paso real — cualquiera
 
-**6. Aplicar el esquema.** Es lo único que separa al proyecto del Bloque 1.
-
-SQL Editor del proyecto → pegar **entero** `supabase/migrations/0001_init.sql` →
-ejecutar. Después, **en otra ejecución**, `supabase/migrations/0002_auth.sql`.
-Ese orden importa: el segundo referencia tablas que crea el primero.
-
-Debe correr sin un solo error. **Si algo falla, no lo parchees en el panel:** se
-corrige en el archivo, se descarta el proyecto y se reaplica limpio. Una base
-cuyo estado no está en el repositorio es una base que nadie puede reconstruir.
-
-Criterio de salida — deben aparecer **14 tablas**:
-
-```sql
-select table_name from information_schema.tables
- where table_schema = 'public' order by 1;
--- certifications, listing_availability, listings, order_items, orders,
--- profiles, provider_certifications, provider_members, providers,
--- quotation_items, quotations, reviews, sustainability_assessments, user_roles
-```
-
-Y el trigger que agrega `0002`:
-
-```sql
-select tgname from pg_trigger where tgname = 'on_auth_user_created';
-```
-
-**Desde que `0001` corra bien, ese archivo es inmutable.** Todo cambio posterior
-es `0003_`. Ver la skill `supabase-schema`.
+**6. `src/lib/repo.ts` contra Postgres.** Es el Bloque 1 y lo único que falta
+para que cambiar un dato deje de disparar un deploy. Ver «Y después».
 
 **7. URLs de redirección.** Authentication → URL Configuration: agregar
 `http://localhost:3000` y la URL de la preview de `staging`. Si falta, el enlace
@@ -160,11 +153,48 @@ rellenar. En Vercel, las mismas tres en el entorno Preview.
 
 ## Y después
 
-Con el esquema aplicado y las claves puestas arranca el **Bloque 1** de
-`docs/BETA.md`: `scripts/seed.ts` y reemplazar `src/lib/repo.ts` función por
-función, en el orden que ese documento fija. Es el bloque que resuelve que
-cambiar un dato dispare un deploy — con los datos en Postgres, editar un
-proveedor pasa a ser un `UPDATE` y Vercel ni se entera.
+Queda la segunda mitad del **Bloque 1**: que `src/lib/repo.ts` consulte Postgres.
+Es lo que resuelve que cambiar un dato dispare un deploy — con los datos en la
+base, editar un proveedor pasa a ser un `UPDATE` y Vercel ni se entera.
+
+**Tres cosas que se descubrieron al preparar ese paso y que `docs/BETA.md` no
+anticipa. Leelas antes de empezar.**
+
+**1. No se puede migrar «una funcion a la vez».** `BETA.md` lo recomienda y aqui
+no funciona: en `src/data/` los identificadores de proveedor son cadenas como
+`p-aromas-paramo` y en la base son `uuid`. `ListingCard` llama a
+`getProviderById(listing.providerId)`. En cuanto una de las dos fuentes cambie y
+la otra no, ese `get` no encuentra nada y las tarjetas se quedan sin proveedor.
+**El espacio de identificadores es todo o nada:** o `repo.ts` entero lee de
+Postgres, o entero de memoria.
+
+Efecto secundario asumido: los carritos guardados en el navegador de alguien
+tienen identificadores viejos y se vaciaran solos. Ya hay maquinaria para eso
+(`droppedIds` en `src/app/carrito/actions.ts`), asi que no rompe nada.
+
+**2. `getListingsByIds` valoriza ofertas no aprobadas.** Lee de `listingById`,
+que es *todo* el catalogo, y no de `PUBLIC`. Es la funcion que usa el carrito
+para poner precios: hoy una oferta en `draft` o `suspended` que alguien tenga en
+la cesta se sigue pudiendo comprar. Contradice el invariante 17 de
+`dominio-regenera` («solo se muestra lo aprobado»). Al migrar debe filtrar como
+las demas, y la oferta suspendida caera sola de la cesta.
+
+**3. `PUBLIC` solo mira el estado de la oferta, no el del proveedor.** Hoy no se
+nota porque el unico proveedor en `pending_review` no tiene ofertas, pero en
+cuanto entre onboarding real seria una oferta visible de un proveedor sin
+aprobar. La consulta en Postgres tiene que exigir las dos condiciones.
+
+**Y la decision que hay que tomar: la busqueda sin tildes.** Hoy `normalize()`
+quita diacriticos en JavaScript para que «Amazonia» se encuentre escribiendo
+«amazonia». Postgres no lo hace solo. Filtrarlo en JavaScript esta descartado
+—funciona con 18 ofertas y muere con 1.500, y la skill `supabase-schema` lo
+prohibe— asi que hace falta un `0003_`: extension `unaccent` mas una columna
+generada e indexada. Ojo con la trampa conocida: `unaccent` es `stable` y una
+columna generada exige `immutable`, asi que necesita una funcion envoltorio.
+
+El nombre del proveedor, que hoy tambien entra en la busqueda, no cabe en una
+columna generada de `listings` porque vive en otra tabla: se resuelve con una
+segunda consulta indexada.
 
 Dependencias entre bloques: `0 → 1 → 2 → (3 ∥ 4) → 5`. El 3 (panel de
 administración) y el 4 (panel de proveedor) son el mismo patrón sobre dos roles y
