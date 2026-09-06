@@ -7,7 +7,7 @@ import { TierBadge } from "@/components/tier-badge";
 import { requireAdmin } from "@/lib/auth";
 import { getProvidersForReview } from "@/lib/repo";
 import { longDate } from "@/lib/format";
-import type { Provider, ReviewStatus } from "@/lib/types";
+import type { ReviewStatus } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Administración",
@@ -47,6 +47,16 @@ const COLOR: Record<ReviewStatus, string> = {
   suspended: "bg-clay-100 text-clay-700 ring-clay-300/60",
   rejected: "bg-red-50 text-red-700 ring-red-200",
 };
+
+/**
+ * Nunca se prerenderiza en el build.
+ *
+ * No es una optimización renunciada: es el objetivo del Bloque 1. Una página que
+ * se congela en compilación vuelve a exigir un deploy para que se vea un dato
+ * nuevo, que es exactamente lo que se quitó de en medio. Además, sin esto el
+ * build de un clon sin credenciales intenta renderizarla y revienta.
+ */
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   await requireAdmin();
@@ -153,7 +163,3 @@ export default async function AdminPage() {
     </div>
   );
 }
-
-// Se exporta el tipo para que quede claro que la página no inventa formas
-// propias: trabaja con el `Provider` del dominio.
-export type { Provider };

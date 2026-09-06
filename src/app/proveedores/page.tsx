@@ -13,6 +13,16 @@ export const metadata: Metadata = {
     "Las empresas, cooperativas y comunidades colombianas que producen lo que se vende en Seregenera, con su nivel de verificación de sostenibilidad.",
 };
 
+/**
+ * Nunca se prerenderiza en el build.
+ *
+ * No es una optimización renunciada: es el objetivo del Bloque 1. Una página que
+ * se congela en compilación vuelve a exigir un deploy para que se vea un dato
+ * nuevo, que es exactamente lo que se quitó de en medio. Además, sin esto el
+ * build de un clon sin credenciales intenta renderizarla y revienta.
+ */
+export const dynamic = "force-dynamic";
+
 export default async function ProveedoresPage() {
   const providers = await getApprovedProviders();
   const counts = await Promise.all(

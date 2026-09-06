@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { isSupabaseConfigured } from "./supabase/config";
 import { createClient } from "./supabase/server";
 import type { Role } from "./types";
 
@@ -17,8 +18,21 @@ import type { Role } from "./types";
  * copiada en once sitios es una comprobación que falta en el doceavo.
  */
 
-/** El usuario de la sesión, o null. No redirige — para cuando "sin sesión" es un caso válido. */
+/**
+ * El usuario de la sesión, o null. No redirige — para cuando "sin sesión" es un
+ * caso válido.
+ *
+ * **Sin Supabase configurado devuelve null en vez de lanzar, y la distinción
+ * importa.** "No hay sesión" es un estado legítimo del sitio; "no hay catálogo"
+ * no lo es. Por eso la sesión degrada a anónimo y `src/lib/repo.ts` sí revienta.
+ *
+ * Lo descubrió el CI, no el razonamiento: `/_not-found` se prerenderiza en el
+ * build, y al hacerlo renderiza el layout, que pide la sesión. Sin esta rama, un
+ * clon sin credenciales no compila — y compilar sin credenciales es una
+ * propiedad que el job `verificar` protege a propósito.
+ */
 export const getUser = cache(async (): Promise<User | null> => {
+  if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
   // getUser() y no getSession(): el segundo se cree la cookie sin preguntar,
   // y una cookie la escribe cualquiera. Este valida el token contra Supabase.

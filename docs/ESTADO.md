@@ -33,9 +33,11 @@ Falla de forma ruidosa y con un mensaje que dice qué hacer, que es lo que se
 quería — un sitio que sirviera datos de demostración en silencio sería peor.
 
 **Ningún merge a `main` debe ocurrir antes de que estas cuatro variables estén en
-el entorno Production de Vercel.** El build del CI sí pasa sin ellas —todas las
-páginas son dinámicas, así que nada se renderiza en compilación—, o sea que el
-verde del CI **no** te protege de esto.
+el entorno Production de Vercel.** El build sí compila sin ellas: las páginas que
+leen datos están marcadas `force-dynamic` y `getUser()` devuelve anónimo cuando
+no hay Supabase configurado, para que un clon recién bajado compile. **O sea que
+el verde del CI no te protege de esto:** lo que falla sin las variables es el
+runtime, no la compilación.
 
 ### Los comandos, para hacerlo de una
 

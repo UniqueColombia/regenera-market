@@ -78,8 +78,8 @@ y el usuario se encuentra fuera sin haber tocado nada.
 ## Qué quedó pendiente
 
 - **Las cuatro variables de entorno en Vercel.** Desde este PR la aplicación no
-  arranca sin credenciales, y **el verde del CI no protege de eso**: todas las
-  páginas son dinámicas, así que el build no toca la base. Ver `docs/ESTADO.md`.
+  sirve una página sin credenciales, y **el verde del CI no protege de eso**: lo
+  que falla es el runtime, no la compilación. Ver `docs/ESTADO.md`.
 - **El correo.** Sin SMTP propio, el enviador gratuito de Supabase aguanta unos
   pocos correos por hora y su documentación lo declara solo para pruebas. El
   registro funciona; lo que no aguanta es gente real.
@@ -118,7 +118,14 @@ y el usuario se encuentra fuera sin haber tocado nada.
 
 ## Verificación
 
-`npm run build`, `npx tsc --noEmit` y `npx eslint .` en limpio, en ese orden.
+`npm run build`, `npx tsc --noEmit` y `npx eslint .` en limpio, en ese orden, y
+el build corrido **dos veces: con credenciales y sin ellas**. Lo segundo no fue
+previsión sino corrección — el primer intento de CI falló porque `/_not-found` se
+prerenderiza, y al hacerlo renderiza el layout, que pide la sesión. Se arregló
+distinguiendo los dos casos: la sesión degrada a anónimo cuando no hay Supabase
+configurado (no tener sesión es un estado legítimo) y las páginas que leen datos
+se marcan `force-dynamic` (una página de catálogo congelada en el build vuelve a
+exigir un deploy para mostrar un dato nuevo, que es lo que se quitó de en medio).
 `grep -rn "@/data/" src/lib/repo.ts` no devuelve nada — criterio de salida del
 Bloque 1.
 

@@ -7,6 +7,16 @@ import { TierBadge } from "@/components/tier-badge";
 import { getFeaturedListings, getMarketplaceStats, getProviderById } from "@/lib/repo";
 import { TIERS, VERTICALS } from "@/lib/taxonomy";
 
+/**
+ * Nunca se prerenderiza en el build.
+ *
+ * No es una optimización renunciada: es el objetivo del Bloque 1. Una página que
+ * se congela en compilación vuelve a exigir un deploy para que se vea un dato
+ * nuevo, que es exactamente lo que se quitó de en medio. Además, sin esto el
+ * build de un clon sin credenciales intenta renderizarla y revienta.
+ */
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [featured, stats] = await Promise.all([
     getFeaturedListings(6),
