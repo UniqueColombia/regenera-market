@@ -7,6 +7,10 @@ Hoteles, glampings, restaurantes, transportadores y operadores compran a
 proveedores colombianos verificados uno por uno; la plataforma retiene comisión
 sobre cada venta.
 
+> **¿Acabas de hacer `git pull` y quieres saber en qué vamos?**
+> → **[`docs/ESTADO.md`](docs/ESTADO.md)**: qué está a medias, qué falta, quién
+> puede hacer cada cosa y con qué comando se comprueba.
+
 ## Arranque
 
 ```bash
