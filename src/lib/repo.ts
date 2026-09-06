@@ -424,6 +424,28 @@ export async function getApprovedProviders(): Promise<Provider[]> {
 }
 
 /**
+ * Todos los proveedores, en cualquier estado. Para el panel de administración.
+ *
+ * **No lleva comprobación de rol y no es un descuido.** La política
+ * `providers_public_read` de `0001_init.sql` ya decide qué filas devuelve: a un
+ * visitante solo las aprobadas, a un admin todas. Si esta función filtrara
+ * además por rol en JavaScript, habría dos reglas que mantener de acuerdo y la
+ * de abajo sería la única que de verdad protege.
+ *
+ * Orden: primero lo que espera decisión, y dentro de eso lo más antiguo — quien
+ * lleva más tiempo esperando se atiende antes.
+ */
+export async function getProvidersForReview(): Promise<Provider[]> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("providers")
+    .select(COLUMNAS_PROVIDER)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`getProvidersForReview: ${error.message}`);
+  return (data as unknown as FilaProvider[]).map(aProvider);
+}
+
+/**
  * Cifras del home. Salen del catálogo real, no están escritas a mano.
  *
  * Se piden solo las columnas que se cuentan, no las filas enteras: son cuatro

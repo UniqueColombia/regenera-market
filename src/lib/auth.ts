@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "./supabase/server";
@@ -14,12 +15,10 @@ import type { Role } from "./types";
  *
  * Están aquí y no repetidos a mano en cada página porque una comprobación
  * copiada en once sitios es una comprobación que falta en el doceavo.
- *
- * Inerte hasta el Bloque 2 de `docs/BETA.md`: `/entrar` todavía no existe.
  */
 
 /** El usuario de la sesión, o null. No redirige — para cuando "sin sesión" es un caso válido. */
-export async function getUser(): Promise<User | null> {
+export const getUser = cache(async (): Promise<User | null> => {
   const supabase = await createClient();
   // getUser() y no getSession(): el segundo se cree la cookie sin preguntar,
   // y una cookie la escribe cualquiera. Este valida el token contra Supabase.
@@ -27,7 +26,44 @@ export async function getUser(): Promise<User | null> {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
+});
+
+export interface Sesion {
+  id: string;
+  nombre: string;
+  email: string;
+  esAdmin: boolean;
+  esProveedor: boolean;
 }
+
+/**
+ * Lo que el encabezado necesita saber de quien está mirando.
+ *
+ * Lo llama `src/app/layout.tsx`, o sea que corre en cada página: de ahí el
+ * `cache()`, que lo deja en una sola consulta por render aunque también lo pida
+ * otra parte del árbol.
+ *
+ * El nombre sale de `raw_user_meta_data` y no de `profiles` para no pagar una
+ * segunda consulta en cada página. **Consecuencia:** si mañana existe una
+ * pantalla donde el usuario edite su nombre, tendrá que escribirlo en los dos
+ * sitios o el encabezado seguirá con el viejo.
+ */
+export const getSesion = cache(async (): Promise<Sesion | null> => {
+  const user = await getUser();
+  if (!user) return null;
+
+  const roles = await getRoles(user.id);
+  const meta = user.user_metadata as { full_name?: string } | null;
+  const email = user.email ?? "";
+
+  return {
+    id: user.id,
+    nombre: meta?.full_name?.trim() || email.split("@")[0] || "Tu cuenta",
+    email,
+    esAdmin: roles.includes("admin"),
+    esProveedor: roles.includes("provider"),
+  };
+});
 
 /** Exige sesión. Si no la hay, manda a entrar y vuelve a donde estaba. */
 export async function requireUser(destino?: string): Promise<User> {
@@ -47,7 +83,7 @@ export async function requireUser(destino?: string): Promise<User> {
  * asigna. Es la invariante 12 de la skill `dominio-regenera`, y la razón por la
  * que la tabla existe separada.
  */
-export async function getRoles(userId: string): Promise<Role[]> {
+export const getRoles = cache(async (userId: string): Promise<Role[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("user_roles")
@@ -59,7 +95,7 @@ export async function getRoles(userId: string): Promise<Role[]> {
   // ninguno". Al revés sería abrir la puerta cuando la base falla.
   if (error || !data) return [];
   return data.map((fila) => fila.role as Role);
-}
+});
 
 export async function hasRole(userId: string, role: Role): Promise<boolean> {
   return (await getRoles(userId)).includes(role);
