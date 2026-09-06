@@ -4,9 +4,10 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-05 (segunda actualización del día)
-- **Producción:** `v0.2.3` en `main`
-- **Fase del roadmap:** 0 cerrada. **Bloque 0 cerrado.** En curso: **Bloque 1**.
+- **Corte:** 2026-09-05
+- **Producción:** `v0.2.4` en `main`
+- **Fase del roadmap:** 0 cerrada. **Bloques 0, 1, 2 y 3 de `docs/BETA.md`
+  implementados**, a la espera de las variables de entorno en Vercel.
 
 > **Antes de creerle a este archivo, comprueba que no está viejo.** Es el único
 > documento del repositorio que caduca.
@@ -22,12 +23,73 @@ qué hacer, empieza aquí y no en el ROADMAP.
 
 ---
 
+## 🔴 Lo primero: producción se cae sin las variables de Supabase
+
+Desde que `src/lib/repo.ts` consulta Postgres, **la aplicación ya no funciona sin
+credenciales.** Es un cambio irreversible de propiedad: antes el catálogo vivía
+en `src/data/` y el sitio se levantaba con `.env.local` vacío; ahora no.
+
+Falla de forma ruidosa y con un mensaje que dice qué hacer, que es lo que se
+quería — un sitio que sirviera datos de demostración en silencio sería peor.
+
+**Ningún merge a `main` debe ocurrir antes de que estas cuatro variables estén en
+el entorno Production de Vercel.** El build del CI sí pasa sin ellas —todas las
+páginas son dinámicas, así que nada se renderiza en compilación—, o sea que el
+verde del CI **no** te protege de esto.
+
+### Los comandos, para hacerlo de una
+
+Con el CLI de Vercel, desde la raíz del repositorio:
+
+```bash
+vercel login                    # con la cuenta que tenga acceso al proyecto
+vercel link                     # elegir uniquecolombias-projects/regenera-market
+```
+
+Los valores salen del panel de Supabase (Settings → API) y del propio Vercel.
+`vercel env add` lee el valor de la entrada estándar, así que se puede encadenar:
+
+```bash
+# --- Production ---
+echo "https://<dominio-de-produccion>"          | vercel env add NEXT_PUBLIC_SITE_URL production
+echo "https://mgsrzlqellphmfbhpdoj.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL production
+echo "<clave anon / publishable>"               | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
+echo "<clave service_role / secret>"            | vercel env add SUPABASE_SERVICE_ROLE_KEY production
+
+# --- Preview (la URL es la de la preview estable de staging) ---
+echo "https://<preview-de-staging>"             | vercel env add NEXT_PUBLIC_SITE_URL preview
+echo "https://mgsrzlqellphmfbhpdoj.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL preview
+echo "<clave anon / publishable>"               | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview
+echo "<clave service_role / secret>"            | vercel env add SUPABASE_SERVICE_ROLE_KEY preview
+
+vercel --prod                   # redesplegar para que las tome
+```
+
+> `SUPABASE_SERVICE_ROLE_KEY` **jamás** lleva prefijo `NEXT_PUBLIC_`. El job
+> `secretos` del CI falla si aparece en el código, y hace bien: esa clave en el
+> bundle del navegador es acceso total a la base saltándose RLS.
+
+Se comprueba así, y las tres líneas tienen que dar lo esperado:
+
+```bash
+vercel env ls                                            # las cuatro, en los dos entornos
+curl -s <url-de-produccion> | grep -o '<meta property="og:image"[^>]*>'
+#   si dice localhost:3000, falta NEXT_PUBLIC_SITE_URL
+curl -s -o /dev/null -w "%{http_code}\n" <url-de-produccion>/catalogo
+#   200 = la base responde; 500 = faltan las claves de Supabase
+```
+
+**De paso, mira Settings → Node.js Version.** El CI usa 22
+(`.github/workflows/ci.yml`); si no coinciden, el CI pasa en verde y producción
+falla.
+
+---
+
 ## En una frase
 
-El sitio está desplegado y navegable, con el catálogo todavía **en memoria**
-(`src/data/`). La base de datos existe, **el esquema está aplicado y sembrado**:
-13 proveedores, 18 ofertas, 37 políticas RLS activas. Lo que falta es que
-`src/lib/repo.ts` deje de leer de memoria y consulte Postgres.
+El catálogo se sirve de Postgres, hay registro y acceso por código de seis
+dígitos, y existe un panel de administración para aprobar proveedores. Falta
+configurar Vercel, el correo, y que alguien sea admin.
 
 ---
 
@@ -35,191 +97,118 @@ El sitio está desplegado y navegable, con el catálogo todavía **en memoria**
 
 | | Estado |
 |---|---|
-| Sitio navegable: catálogo, carrito, checkout manual | ✅ en producción |
-| Identidad visual, marca, 28 imágenes | ✅ |
-| Interacción táctil y contraste AA | ✅ `v0.2.1` |
+| Sitio navegable, identidad visual, interacción táctil, contraste AA | ✅ en producción |
 | Prospector de proveedores (RUES → Excel) | ✅ |
-| Clientes de Supabase, `src/proxy.ts`, `src/lib/auth.ts` | ✅ escritos, **inertes** |
-| `0001_init.sql` (14 tablas, 37 políticas) y `0002_auth.sql` | ✅ **aplicados** el 2026-09-05 |
 | Proyecto de Supabase | ✅ ref `mgsrzlqellphmfbhpdoj`, región `us-east-2` |
-| `scripts/seed.mts` — catálogo sembrado | ✅ idempotente, comprobado dos corridas |
-| `src/lib/repo.ts` consultando Postgres | ❌ **es lo que falta** |
-
-«Inerte» quiere decir que sin `NEXT_PUBLIC_SUPABASE_URL` el proxy deja pasar la
-petición sin hacer nada y ningún cliente se construye. **La propiedad de
-`docs/DEPLOY.md` sigue viva: `npm run dev` con `.env.local` vacío levanta una
-app navegable.** No la rompas.
+| `0001_init.sql`, `0002_auth.sql`, `0003_busqueda.sql` | ✅ **aplicadas**, inmutables |
+| `scripts/seed.mts` — catálogo sembrado | ✅ idempotente |
+| `src/lib/repo.ts` contra Postgres | ✅ **Bloque 1 cerrado** |
+| Registro y acceso por código (`/entrar`, `/registro`) | ✅ **Bloque 2**, falta el correo |
+| Panel de administración (`/admin`) | ✅ **Bloque 3**, falta que alguien sea admin |
+| Panel de proveedor | ❌ **Bloque 4, sin empezar** |
 
 ---
 
 ## Lo que falta, y quién puede hacerlo
 
-Ordenado por lo que bloquea a más cosas.
-
 ### 🔴 Solo Ivan (`UniqueColombia`)
 
-**1. Integración de Supabase con GitHub / Vercel.** Jesús es colaborador con
-permiso `write`, no `admin`: al seleccionar el repositorio desde Supabase,
-`regenera-market` no le aparece en la lista. Requiere admin sobre el repositorio.
+**1. SMTP de Google Workspace.** Authentication → SMTP Settings, con contraseña
+de aplicación de una cuenta `@uniquecolombia` (exige verificación en dos pasos
+activa). Remitente tipo `no-responder@uniquecolombia.com`, nombre visible
+«Seregenera».
 
-> **Esto NO bloquea el Bloque 0.** Esa integración sirve para *branching* de base
-> por PR, que además es función de plan pago. El esquema se aplica sin ella.
-> Hazla cuando quieras, no cuando puedas.
+**Sin esto el registro no sirve para gente real.** El enviador gratuito de
+Supabase está limitado a unos pocos correos por hora y su propia documentación lo
+declara solo para pruebas: el segundo que se registre no recibe el código. El
+límite exacto lo dice el panel (*Authentication → Rate Limits*).
 
-**2. SMTP de Google Workspace.** Authentication → SMTP Settings, con una
-contraseña de aplicación de una cuenta `@uniquecolombia` (exige verificación en
-dos pasos activa en esa cuenta). Remitente tipo `no-responder@uniquecolombia.com`
-con nombre visible «Seregenera».
+Prueba de que quedó: Authentication → Users → *Invite user* a un correo real.
 
-Por qué solo Ivan: la cuenta de Workspace es suya. Por qué importa: el enviador
-gratuito de Supabase está limitado a unos pocos correos por hora y su propia
-documentación lo declara **solo para pruebas** — el segundo usuario que se
-registre no recibe el código. El límite exacto lo dice el panel
-(*Authentication → Rate Limits*), no este archivo.
-
-Prueba de que quedó: Authentication → Users → *Invite user* a un correo real. Si
-llega, resuelto. **Bloquea el Bloque 2 para gente real, no el desarrollo.**
+**2. Integración de Supabase con GitHub.** Jesús es colaborador con permiso
+`write`, no `admin`, así que al seleccionar el repositorio no le aparece
+`regenera-market`. **No bloquea nada:** sirve para branching de base por PR, que
+además es de plan pago.
 
 **3. `bash scripts/politica-de-ramas.sh`.** Requiere admin. Comprobado el
-2026-09-05: `seiler18` tiene `admin: false` y la protección sigue sin aplicarse.
+2026-09-05: `admin: false` para `seiler18` y la protección sigue sin aplicarse.
+Lo único que impone es que no se pueda borrar `main`.
 
 ```bash
 gh api repos/UniqueColombia/regenera-market/branches/main/protection >/dev/null 2>&1 \
   && echo "aplicada" || echo "SIN aplicar"
 ```
 
-No bloquea nada. Lo único que impone es que no se pueda borrar `main`.
+### 🟠 Cualquiera con acceso a Vercel
 
-### 🟠 Roto ahora mismo — cualquiera con acceso a Vercel
+**4. Las cuatro variables de entorno.** Ver el bloque rojo de arriba. Es lo que
+bloquea el merge a `main`.
 
-**4. Falta `NEXT_PUBLIC_SITE_URL` en el entorno Production.** Se comprueba en un
-comando:
+### 🟡 Cualquiera, una sola vez
 
-```bash
-curl -s <url-de-produccion> | grep -o '<meta property="og:image"[^>]*>'
+**5. Darse de alta como administradores.** Nadie es admin todavía, y **eso es
+correcto por diseño**: la política `user_roles_admin_write` solo deja escribir
+roles a quien ya es admin, y no hay ninguno. El arranque es manual.
+
+Primero los dos se registran **por la aplicación**, en `/registro`, para que
+exista la fila en `auth.users`. Después, una vez, desde el SQL Editor:
+
+```sql
+insert into user_roles (user_id, role)
+select id, 'admin' from auth.users
+ where email in ('<correo de Ivan>', '<correo de Jesús>')
+on conflict do nothing;
 ```
 
-El 2026-09-05 respondía `content="http://localhost:3000/opengraph-image.jpg…"`.
-Efecto real: cualquier enlace de Seregenera compartido en WhatsApp o LinkedIn
-**sale sin imagen**. El código ya está arreglado — `src/app/layout.tsx` lee la
-variable; lo que falta es ponerla.
+Los correos **no se escriben en este archivo**: el repositorio es público.
 
-En Vercel → Settings → Environment Variables:
+Comprobación: entrar en `/admin`. Si redirige a la portada, el rol no quedó.
 
-| Variable | Valor | Entorno |
-|---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | la URL de producción | Production |
-| `NEXT_PUBLIC_SITE_URL` | la URL de la preview estable de `staging` | Preview |
-
-Redespliega y repite el `curl`. Si deja de decir `localhost`, quedó.
-
-**5. Igualar la versión de Node.** El CI usa `node-version: 22`
-(`.github/workflows/ci.yml`). Si el proyecto en Vercel usa otra, el CI pasa en
-verde y producción falla.
-
-### ✅ Hecho el 2026-09-05: el esquema está aplicado
-
-`0001_init.sql` y `0002_auth.sql` corrieron contra el proyecto sin errores, y se
-comprobó de vuelta: **14 tablas de 14**, los 6 tipos enum, **37 políticas RLS de
-37**, **cero tablas sin RLS activo**, el trigger `on_auth_user_created` creado y
-`handle_new_user` con `security definer`.
-
-Además se comprobó que RLS **niega**, que es como se valida una política: con la
-clave anon, un `insert` en `providers` devuelve `42501` y `user_roles` no
-devuelve ni una fila sin sesión.
-
-**`0001_init.sql` y `0002_auth.sql` son ya inmutables.** Todo cambio posterior es
-`0003_`. Ver la skill `supabase-schema`.
-
-El catálogo está sembrado con `node --env-file=.env.local scripts/seed.mts`.
-
-### 🟡 El siguiente paso real — cualquiera
-
-**6. `src/lib/repo.ts` contra Postgres.** Es el Bloque 1 y lo único que falta
-para que cambiar un dato deje de disparar un deploy. Ver «Y después».
-
-**7. URLs de redirección.** Authentication → URL Configuration: agregar
-`http://localhost:3000` y la URL de la preview de `staging`. Si falta, el enlace
-del correo devuelve al usuario a un sitio equivocado y el registro parece roto.
-
-**8. Las claves.** Settings → API. En local, `cp .env.example .env.local` y
-rellenar. En Vercel, las mismas tres en el entorno Preview.
-
-> `SUPABASE_SERVICE_ROLE_KEY` **jamás** lleva prefijo `NEXT_PUBLIC_`. El job
-> `secretos` del CI falla si aparece, y hace bien: esa clave en el bundle del
-> navegador es acceso total a la base saltándose RLS.
+**6. Rotar la contraseña de la base.** Settings → Database → *Reset database
+password*. La que se usó para aplicar las migraciones pasó por un chat.
 
 ---
 
-## Y después
+## Y después: el Bloque 4
 
-Queda la segunda mitad del **Bloque 1**: que `src/lib/repo.ts` consulte Postgres.
-Es lo que resuelve que cambiar un dato dispare un deploy — con los datos en la
-base, editar un proveedor pasa a ser un `UPDATE` y Vercel ni se entera.
+El panel de proveedor. Es el mismo patrón que `/admin` aplicado al otro rol, y
+`docs/BETA.md` lo detalla.
 
-**Tres cosas que se descubrieron al preparar ese paso y que `docs/BETA.md` no
-anticipa. Leelas antes de empezar.**
-
-**1. No se puede migrar «una funcion a la vez».** `BETA.md` lo recomienda y aqui
-no funciona: en `src/data/` los identificadores de proveedor son cadenas como
-`p-aromas-paramo` y en la base son `uuid`. `ListingCard` llama a
-`getProviderById(listing.providerId)`. En cuanto una de las dos fuentes cambie y
-la otra no, ese `get` no encuentra nada y las tarjetas se quedan sin proveedor.
-**El espacio de identificadores es todo o nada:** o `repo.ts` entero lee de
-Postgres, o entero de memoria.
-
-Efecto secundario asumido: los carritos guardados en el navegador de alguien
-tienen identificadores viejos y se vaciaran solos. Ya hay maquinaria para eso
-(`droppedIds` en `src/app/carrito/actions.ts`), asi que no rompe nada.
-
-**2. `getListingsByIds` valoriza ofertas no aprobadas.** Lee de `listingById`,
-que es *todo* el catalogo, y no de `PUBLIC`. Es la funcion que usa el carrito
-para poner precios: hoy una oferta en `draft` o `suspended` que alguien tenga en
-la cesta se sigue pudiendo comprar. Contradice el invariante 17 de
-`dominio-regenera` («solo se muestra lo aprobado»). Al migrar debe filtrar como
-las demas, y la oferta suspendida caera sola de la cesta.
-
-**3. `PUBLIC` solo mira el estado de la oferta, no el del proveedor.** Hoy no se
-nota porque el unico proveedor en `pending_review` no tiene ofertas, pero en
-cuanto entre onboarding real seria una oferta visible de un proveedor sin
-aprobar. La consulta en Postgres tiene que exigir las dos condiciones.
-
-**Y la decision que hay que tomar: la busqueda sin tildes.** Hoy `normalize()`
-quita diacriticos en JavaScript para que «Amazonia» se encuentre escribiendo
-«amazonia». Postgres no lo hace solo. Filtrarlo en JavaScript esta descartado
-—funciona con 18 ofertas y muere con 1.500, y la skill `supabase-schema` lo
-prohibe— asi que hace falta un `0003_`: extension `unaccent` mas una columna
-generada e indexada. Ojo con la trampa conocida: `unaccent` es `stable` y una
-columna generada exige `immutable`, asi que necesita una funcion envoltorio.
-
-El nombre del proveedor, que hoy tambien entra en la busqueda, no cabe en una
-columna generada de `listings` porque vive en otra tabla: se resuelve con una
-segunda consulta indexada.
-
-Dependencias entre bloques: `0 → 1 → 2 → (3 ∥ 4) → 5`. El 3 (panel de
-administración) y el 4 (panel de proveedor) son el mismo patrón sobre dos roles y
-se pueden repartir entre los dos en paralelo.
+**Tiene un cabo suelto que hay que resolver ahí:** hoy nadie se convierte en
+`provider`. Aprobar un proveedor desde `/admin` cambia su `status`, pero no crea
+la fila en `provider_members` que enlaza a una persona con una empresa, ni le da
+el rol. Los 13 proveedores sembrados no tienen dueño humano. El Bloque 4 tiene
+que decidir cómo se hace ese enlace: probablemente la postulación de `/vender`
+deba guardar quién postuló, y la aprobación crear `provider_members` y el rol.
 
 ---
 
 ## Trampas vigentes
 
 - **`middleware.ts` no existe aquí, es `src/proxy.ts`.** Next 16 deprecó esa
-  convención y la renombró. Cualquier tutorial de Supabase que encuentres crea
-  `middleware.ts` porque está escrito para Next 15.
-- **El plan gratuito de Supabase pausa los proyectos inactivos.** Si el proyecto
-  se detiene tres semanas y luego se le pasa la URL a un hotel, se encuentra una
-  página muerta. Si va a haber una pausa larga, avisarlo.
-- **Vercel Hobby es para proyectos no comerciales.** Mientras la beta sea
-  gratuita y no se cobre comisión, pasa. El día que entre dinero real son 20
-  USD/mes de Vercel Pro. No es urgente; es previsible.
-- **Nadie es admin en la aplicación todavía, y es correcto por diseño.** La
-  política `user_roles_admin_write` solo deja escribir roles a quien ya es admin,
-  y no hay ninguno. El arranque es manual, una sola vez, desde el SQL Editor, y
-  va en el Bloque 2 — después de que los dos se registren por la aplicación.
+  convención. Cualquier tutorial de Supabase que encuentres crea `middleware.ts`
+  porque está escrito para Next 15.
+- **`0001`, `0002` y `0003` son inmutables.** Ya corrieron contra la base. Todo
+  cambio posterior es `0004_`.
+- **`unaccent` es `stable` y una columna generada exige `immutable`.** Por eso
+  existe `public.sin_tildes()` en `0003`, con el diccionario fijado por
+  `::regdictionary`. Si tocas la búsqueda, esa es la trampa.
+- **`public.sin_tildes()` y `normalize()` de `repo.ts` tienen que hacer lo
+  mismo.** Una alimenta la columna indexada y la otra normaliza lo que escribe el
+  usuario; si divergen, la búsqueda deja de encontrar cosas que sí están.
+- **Las escrituras de administración van con el cliente de sesión, no con la
+  clave de servicio.** Si se cambian a `admin.ts`, el permiso pasa a concederlo el
+  código en vez de RLS, y cualquier fallo en `requireAdmin` se vuelve escritura
+  libre.
+- **RLS no da error cuando niega: devuelve cero filas.** Toda escritura tiene que
+  comprobar el resultado, o un intento denegado se ve como éxito.
+- **El plan gratuito de Supabase pausa los proyectos inactivos.** Si se detiene
+  tres semanas y luego se le pasa la URL a un hotel, se encuentra una página
+  muerta.
+- **Vercel Hobby es para proyectos no comerciales.** El día que entre dinero real
+  son 20 USD/mes de Pro.
 - **`hairline` y `control` no son intercambiables.** El primero separa
   superficies; el segundo dibuja el borde de un control, donde WCAG pide 3:1.
-  Ver la skill `diseno-visual`.
 
 ---
 
@@ -231,4 +220,12 @@ git tag --points-at origin/main          # vacío = release sin etiquetar
 gh pr list                               # qué hay abierto
 ls .claude/hitos/                        # la historia; lo último al final
 grep -rn "@/data/" src/lib/repo.ts       # vacío = el Bloque 1 terminó
+```
+
+Y contra la aplicación corriendo:
+
+```bash
+npm run build && npm run start
+curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/catalogo   # 200 = la base responde
+curl -s -o /dev/null -w "%{redirect_url}\n" localhost:3000/admin   # /entrar = el guardia funciona
 ```
