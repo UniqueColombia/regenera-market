@@ -4,10 +4,15 @@
 // el seed del catálogo, la confirmación de un pago, asignar un rol.
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { requireSupabaseConfig } from "./config";
 
 /**
  * Cliente con la clave de servicio.
+ *
+ * Lee las dos variables a mano en vez de reutilizar `./config`, y es a
+ * propósito: `scripts/seed.mts` lo importa y se ejecuta con `node` pelado, que
+ * resuelve módulos ESM y exige la extensión en las rutas relativas. Con un
+ * `import "./config"` el script no arranca. Son dos líneas duplicadas a cambio
+ * de que el único cliente que se salta RLS siga estando escrito una sola vez.
  *
  * La guarda de abajo no es paranoia decorativa: `SUPABASE_SERVICE_ROLE_KEY` no
  * lleva prefijo `NEXT_PUBLIC_`, así que en el navegador vale `undefined` y este
@@ -26,7 +31,14 @@ export function createAdminClient() {
     );
   }
 
-  const { url } = requireSupabaseConfig();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) {
+    throw new Error(
+      "Falta NEXT_PUBLIC_SUPABASE_URL. Copia .env.example a .env.local y " +
+        "llénala. Ver docs/BETA.md, Bloque 0.",
+    );
+  }
+
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceRoleKey) {
     throw new Error(
