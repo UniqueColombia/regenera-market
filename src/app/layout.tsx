@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { getSesion } from "@/lib/auth";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -45,14 +46,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+/**
+ * La sesión se lee aquí y baja al encabezado como prop.
+ *
+ * Leer la cookie en el layout vuelve dinámicas todas las páginas, incluidas las
+ * que antes se prerenderizaban. Es el precio de que el encabezado no parpadee
+ * entre "Entrar" y tu nombre en cada carga, y la mayoría ya eran dinámicas desde
+ * que el catálogo salió de la base.
+ */
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const sesion = await getSesion();
+
   return (
     <html
       lang="es-CO"
       className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <SiteHeader />
+        <SiteHeader sesion={sesion} />
         <main className="flex-1">{children}</main>
         <SiteFooter />
       </body>
