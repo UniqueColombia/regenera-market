@@ -21,3 +21,4 @@ referencie al anterior.
 | 2026-08-29 | [El primer lote enriquecido corrige tres perfiles mal cableados](2026-08-29-primer-lote-enriquecido.md) | Jesús Seiler | — (habilita la 4) |
 | 2026-08-29 | [El sitio tiene identidad visual: logo, favicon y 27 fotografías](2026-08-29-identidad-visual.md) | Jesús Seiler | 0 — Prototipo |
 | 2026-09-05 | [El sitio responde al toque, la paleta pasa AA, y el andamiaje de Supabase queda puesto](2026-09-05-tactil-contraste-y-andamiaje-supabase.md) | Jesús Seiler | 0 — Prototipo (cierre) |
+| 2026-09-05 | [El catálogo sale de Postgres, hay identidad y hay panel de administración](2026-09-05-catalogo-en-postgres-identidad-y-admin.md) | Jesús Seiler | 1 y 2 — Bloques 1, 2 y 3 |

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Menu, ShoppingBasket, User, X } from "lucide-react";
+import { ChevronDown, LogOut, Menu, ShieldCheck, ShoppingBasket, Store, User, X } from "lucide-react";
+import { cerrarSesion } from "@/app/salir/actions";
+import type { Sesion } from "@/lib/auth";
 import { Isotipo } from "./isotipo";
 import { useCartCount } from "./cart";
 import { VERTICALS } from "@/lib/taxonomy";
@@ -14,7 +16,7 @@ const NAV = [
   { href: "/verificacion", label: "Verificación" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
   const pathname = usePathname();
   const categoriesRef = useRef<HTMLDivElement>(null);
 
@@ -152,15 +154,16 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 md:ml-0">
-          <Link
-            href="/vender"
-            // Sin `title`: el <span class="sr-only"> ya nombra el enlace, y
-            // tener los dos hace que algunos lectores lo anuncien dos veces.
-            className="hidden rounded-full px-3 py-2 text-sm text-muted transition-colors hover:bg-sand hover:text-brand-700 lg:block"
-          >
-            <User className="size-5" />
-            <span className="sr-only">Portal de proveedores</span>
-          </Link>
+          {sesion ? (
+            <MenuUsuario sesion={sesion} />
+          ) : (
+            <Link
+              href="/entrar"
+              className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-sand hover:text-brand-700 sm:block"
+            >
+              Entrar
+            </Link>
+          )}
           <CartButton />
           <button
             type="button"
@@ -199,6 +202,34 @@ export function SiteHeader() {
                 Portal de proveedores
               </FilaMovil>
             </li>
+            {sesion?.esAdmin && (
+              <li>
+                <FilaMovil href="/admin" activo={pathname.startsWith("/admin")}>
+                  Administración
+                </FilaMovil>
+              </li>
+            )}
+            {sesion ? (
+              <li>
+                {/* Formulario y no enlace: cerrar sesión con un GET lo puede
+                    disparar un prefetch o la imagen de un tercero. */}
+                <form action={cerrarSesion}>
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-3 py-3 text-left text-sm text-muted transition-colors hover:text-brand-700 active:text-brand-700"
+                  >
+                    <span aria-hidden className="h-4 w-0.5" />
+                    Salir ({sesion.nombre})
+                  </button>
+                </form>
+              </li>
+            ) : (
+              <li>
+                <FilaMovil href="/entrar" activo={pathname === "/entrar"}>
+                  Entrar o crear cuenta
+                </FilaMovil>
+              </li>
+            )}
           </ul>
         </nav>
       )}
@@ -265,6 +296,91 @@ function FilaMovil({
       />
       {children}
     </Link>
+  );
+}
+
+/**
+ * Menú de la cuenta.
+ *
+ * Repite el patrón del desplegable de categorías —`aria-expanded`, cierre con
+ * Escape y con clic afuera— porque es el que el resto del encabezado ya usa y
+ * porque un menú que solo cierra volviendo a pulsar su botón atrapa a quien
+ * navega con teclado.
+ */
+function MenuUsuario({ sesion }: { sesion: Sesion }) {
+  const pathname = usePathname();
+  const ref = useRef<HTMLDivElement>(null);
+  const [abiertoEn, setAbiertoEn] = useState<string | null>(null);
+  const abierto = abiertoEn === pathname;
+
+  useEffect(() => {
+    if (!abierto) return;
+    function onPointerDown(e: PointerEvent) {
+      if (!ref.current?.contains(e.target as Node)) setAbiertoEn(null);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setAbiertoEn(null);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [abierto]);
+
+  return (
+    <div ref={ref} className="relative hidden sm:block">
+      <button
+        type="button"
+        onClick={() => setAbiertoEn(abierto ? null : pathname)}
+        aria-expanded={abierto}
+        className="flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-sand hover:text-brand-700 active:bg-sand"
+      >
+        <User className="size-5" />
+        <span className="max-w-28 truncate">{sesion.nombre}</span>
+        <ChevronDown
+          className={`size-4 transition ${abierto ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {abierto && (
+        <div className="absolute right-0 top-full mt-2 w-60 animate-desplegar rounded-xl bg-white p-2 shadow-xl ring-1 ring-hairline motion-reduce:animate-none">
+          <p className="truncate px-3 py-2 text-xs text-muted">{sesion.email}</p>
+
+          {sesion.esAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-sand hover:text-brand-700 active:bg-sand"
+            >
+              <ShieldCheck className="size-4" />
+              Administración
+            </Link>
+          )}
+
+          <Link
+            href="/vender"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-sand hover:text-brand-700 active:bg-sand"
+          >
+            <Store className="size-4" />
+            {sesion.esProveedor ? "Mi empresa" : "Vender en Seregenera"}
+          </Link>
+
+          {/* Formulario y no enlace: cerrar sesión con un GET lo puede disparar
+              un prefetch o la imagen de un tercero, y el usuario se encuentra
+              fuera sin haber tocado nada. */}
+          <form action={cerrarSesion} className="mt-1 border-t border-hairline pt-1">
+            <button
+              type="submit"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-muted transition-colors hover:bg-sand hover:text-red-700 active:bg-sand"
+            >
+              <LogOut className="size-4" />
+              Salir
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
   );
 }
 
