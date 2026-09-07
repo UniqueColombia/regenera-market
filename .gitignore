@@ -52,3 +52,26 @@ next-env.d.ts
 
 # originales de imagen: pesan MB y no aportan al sitio, solo al reencuadre futuro
 /tools/img-originales/
+
+### Impeccable y Playwright CLI ###
+#
+# Las skills SÍ se versionan (.claude/skills/, .claude/agents/): son parte del
+# proyecto y así viajan al otro PC con un git pull, sin reinstalar nada.
+# Aquí solo va lo que es propio de esta máquina o se regenera.
+
+# (los hooks de Impeccable van en settings.local.json, ya ignorado arriba)
+
+# Motor de Impeccable: 14 MB de binario por plataforma. El lanzador lo vuelve a
+# descargar solo, con verificación sha256, la primera vez que se usa.
+.claude/skills/*/scripts/bin/
+
+# Impeccable: config.json, design.json y surfaces/ SÍ se versionan (son el
+# criterio de diseño del proyecto). Esto es preferencia local o regenerable.
+.impeccable/config.local.json
+.impeccable/cache/
+.impeccable/sessions/
+.impeccable/screenshots/
+.impeccable/live/state.json
+
+# Salida de Playwright CLI: PUEDE CONTENER CREDENCIALES Y COOKIES de sesión.
+.playwright-cli/
