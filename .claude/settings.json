@@ -61,6 +61,6 @@
     }
   },
   "enabledPlugins": {
-    "context7": true
+    "context7@claude-plugins-official": true
   }
 }
