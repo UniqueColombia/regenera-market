@@ -75,3 +75,8 @@ next-env.d.ts
 
 # Salida de Playwright CLI: PUEDE CONTENER CREDENCIALES Y COOKIES de sesión.
 .playwright-cli/
+
+# Vínculo local con el proyecto de Vercel, que `vercel link` crea. Lleva los
+# identificadores de la organización y del proyecto: es de la máquina, no del
+# repositorio. (`.env*` ya está arriba; `vercel link` lo agrega otra vez.)
+.vercel
