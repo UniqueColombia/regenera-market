@@ -55,11 +55,14 @@ corriendo la app entre cada una, no en un PR gigante.
 **Objetivo:** que proveedores y administración operen sin que nosotros toquemos
 la base a mano.
 
-- Auth de Supabase (email + magic link) y middleware de sesión
-- Panel de proveedor: gestionar ofertas, ver sus órdenes, responder cotizaciones
-- Panel de administración: aprobar proveedores, revisar evidencia de la
-  evaluación, verificar certificaciones, confirmar pagos manuales
-- Probar cada política RLS **con el rol equivocado**
+- ✅ Auth de Supabase (código de seis dígitos) y sesión en `src/proxy.ts` —
+  funcionando de punta a punta desde el 2026-09-11
+- ⏳ Panel de administración. **Hoy solo aprueba proveedores**; faltan
+  postulaciones, el CRUD de ofertas, evaluaciones y órdenes. `docs/ESTADO.md`
+  lista las cuatro pantallas y las cuatro reglas que no se renegocian
+- ❌ Panel de proveedor: gestionar ofertas, ver sus órdenes, responder
+  cotizaciones
+- ❌ Probar cada política RLS **con el rol equivocado**
 
 **Skills:** `supabase-schema`, `dominio-regenera`
 
@@ -135,6 +138,36 @@ Aquí es donde se decide, con datos en la mano y no antes:
 **Skills:** `nueva-integracion`, `supabase-schema`
 
 **Criterio de salida:** se define al entrar en la fase. Hoy sería adivinar.
+
+---
+
+## Mudanza a servidor propio — transversal, sin fecha
+
+**No es una fase: es un cambio de suelo que puede ocurrir entre dos cualesquiera
+de ellas.** Arranca cuando Ivan compre el VPS de Hostinger. El destino es que lo
+que hoy corre en Vercel y Supabase corra en una máquina nuestra, con el mismo
+comportamiento y con código nuestro.
+
+Se anota aquí y no en «Fuera de alcance» porque **está decidido**; lo que no hay
+es fecha. El desglose de qué se reemplaza, qué cuesta cada pieza y las cinco
+decisiones que hay que tomar **antes** de empezar están en `docs/ESTADO.md`.
+
+Las dos que condicionan el resto del roadmap:
+
+- **RLS.** Toda la seguridad de datos del proyecto vive hoy en políticas dentro
+  de Postgres, y las Fases 3 y 5 se apoyan en eso (`dominio-regenera`, y el
+  aislamiento por cliente de la Fase 5 dice explícitamente «se garantiza con RLS,
+  no con un `where`»). Postgres propio conserva RLS, pero hay que emitir y
+  propagar la identidad que hoy pone `auth.uid()`. Si en la mudanza la
+  autorización se pasa al código de la aplicación, **la Fase 5 hay que
+  replantearla entera**.
+- **La autenticación.** Supabase hoy da emisión y verificación de códigos,
+  expiración, límite de intentos, refresco de sesión y cookies. Reescribirlo es
+  donde los fallos no se ven hasta que alguien entra en la cuenta de otro.
+
+**Criterio de salida:** el sitio sirve desde el VPS con TLS propio, el catálogo
+sale de un Postgres nuestro, alguien se registra y entra, **y se ha restaurado
+una copia de seguridad de prueba**. Sin esa última, la mudanza no está hecha.
 
 ---
 
