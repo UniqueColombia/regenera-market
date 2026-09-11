@@ -23,15 +23,37 @@ const CorreoSchema = z.object({
   name: z.string().trim().min(3, "Escribe tu nombre completo").optional(),
 });
 
+/**
+ * Cuántos dígitos se aceptan.
+ *
+ * **La longitud real no la decide este archivo, la decide el panel de
+ * Supabase** — Authentication → Sign In / Providers → Email → *Email OTP
+ * Length*, configurable entre 6 y 10. Aquí se acepta el rango entero a
+ * propósito: clavar el número que hoy está puesto en el panel convierte
+ * cualquier cambio de ese ajuste en un bloqueo total del acceso, con un mensaje
+ * que además miente («son seis dígitos» mientras el correo trae ocho). Pasó.
+ *
+ * El texto de la pantalla sí dice «seis», porque ayuda y porque el panel está
+ * en 6; si alguien lo cambia, la frase queda desactualizada pero nadie se queda
+ * fuera. Una pista puede envejecer mal; una puerta no.
+ */
+const MIN_DIGITOS = 6;
+const MAX_DIGITOS = 10;
+
 const CodigoSchema = z.object({
   email: z.email("Revisa el correo"),
-  // Supabase emite seis dígitos. Se limpian espacios porque al pegar desde el
-  // correo suelen venir agrupados.
+  // Se limpian espacios porque al pegar desde el correo suelen venir agrupados.
   token: z
     .string()
     .trim()
     .transform((s) => s.replace(/\s+/g, ""))
-    .pipe(z.string().regex(/^\d{6}$/, "El código son seis dígitos")),
+    .pipe(
+      z
+        .string()
+        .regex(/^\d+$/, "El código son solo números")
+        .min(MIN_DIGITOS, "Falta código: cópialo completo del correo")
+        .max(MAX_DIGITOS, "Sobran dígitos: cópialo tal cual viene en el correo"),
+    ),
 });
 
 export type Resultado =

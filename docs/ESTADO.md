@@ -315,6 +315,13 @@ deba guardar quién postuló, y la aprobación crear `provider_members` y el rol
   son 20 USD/mes de Pro.
 - **`hairline` y `control` no son intercambiables.** El primero separa
   superficies; el segundo dibuja el borde de un control, donde WCAG pide 3:1.
+- **La longitud del código de acceso vive en el panel, no en el código.**
+  Authentication → Sign In / Providers → Email → *Email OTP Length*, entre 6 y
+  10. Está en **6**, que es lo que dice la pantalla de `/entrar`. La validación
+  acepta el rango entero a propósito: si alguien sube ese ajuste y el código
+  exigiera seis exactos, **nadie podría entrar** y el mensaje de error diría que
+  el código está mal cuando el correcto es el que tiene delante. Ya pasó con el
+  panel en 8.
 
 ---
 
