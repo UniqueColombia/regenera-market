@@ -16,7 +16,22 @@ import type { CartLine } from "@/lib/types";
  * comprar a un precio que ya no existe.
  */
 
-const STORAGE_KEY = "seregenera.cart.v1";
+/**
+ * La versión del nombre **no es decorativa**: sube cuando lo guardado deja de
+ * poder resolverse.
+ *
+ * `v1` guardó identificadores de `src/data/` —cadenas como
+ * "l-amenities-organicos"— y al pasar el catálogo a Postgres pasaron a ser uuid
+ * generados por la base. Ninguna línea de un carrito `v1` existe ya en el
+ * catálogo: no es que esté desactualizada, es que no se puede traducir. Subir la
+ * clave a `v2` los descarta todos de una, sin consultar al servidor y para todo
+ * el que tuviera uno abierto.
+ *
+ * No se migran: el carrito guarda ids, y el puente id-viejo → uuid solo existe
+ * dentro de `scripts/seed.mts`. Reconstruirlo en el navegador para rescatar
+ * cestas de una beta sin compradores cuesta más de lo que salva.
+ */
+const STORAGE_KEY = "seregenera.cart.v2";
 
 /** Referencia estable para el caso vacío: useSyncExternalStore compara por identidad. */
 const EMPTY: CartLine[] = [];
