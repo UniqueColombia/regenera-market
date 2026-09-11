@@ -51,10 +51,9 @@ export async function priceCart(lines: CartLine[]): Promise<PricedCartDTO> {
     commissionTotalCop: totals.commissionTotalCop,
     impact: totals.impact,
     providerCount: totals.providerCount,
-    /** Identificadores que ya no existen, para que el cliente los descarte */
-    droppedIds: lines
-      .map((l) => l.listingId)
-      .filter((id) => !byId.has(id)),
+    dropped: lines
+      .filter((l) => !byId.has(l.listingId))
+      .map((l) => ({ listingId: l.listingId, date: l.date })),
   };
 }
 
