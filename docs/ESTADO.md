@@ -212,6 +212,17 @@ deba guardar quién postuló, y la aprobación crear `provider_members` y el rol
 
 ## Trampas vigentes
 
+- **Las plantillas de correo de Supabase no mandan el código si no se lo pides.**
+  Las de fábrica solo traen `{{ .ConfirmationURL }}`: llega un enlace y la
+  aplicación pide seis dígitos. El que los renderiza es `{{ .Token }}`, y hay que
+  ponerlo en **dos** plantillas — *Magic Link* para quien ya tiene cuenta y
+  *Confirm signup* para quien se registra por primera vez; `signInWithOtp` usa una
+  u otra según exista el usuario, y arreglar solo una deja la mitad rota.
+- **`{{ .ConfirmationURL }}` no pasa por `/auth/callback`.** Apunta al
+  `/auth/v1/verify` de Supabase, que devuelve al *Site URL* con el token en el
+  fragmento `#`, y un fragmento no llega al servidor. El enlace del correo tiene
+  que ser
+  `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email`.
 - **`middleware.ts` no existe aquí, es `src/proxy.ts`.** Next 16 deprecó esa
   convención. Cualquier tutorial de Supabase que encuentres crea `middleware.ts`
   porque está escrito para Next 15.
