@@ -4,10 +4,11 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-05
-- **Producción:** `v0.2.4` en `main`
+- **Corte:** 2026-09-07
+- **Producción:** `v0.3.0` en `main` → **https://regenera-market.vercel.app**
 - **Fase del roadmap:** 0 cerrada. **Bloques 0, 1, 2 y 3 de `docs/BETA.md`
-  implementados**, a la espera de las variables de entorno en Vercel.
+  implementados y en producción.** Falta el correo para que el registro sirva
+  para gente real.
 
 > **Antes de creerle a este archivo, comprueba que no está viejo.** Es el único
 > documento del repositorio que caduca.
@@ -23,7 +24,11 @@ qué hacer, empieza aquí y no en el ROADMAP.
 
 ---
 
-## 🔴 Lo primero: producción se cae sin las variables de Supabase
+## ✅ Producción está configurada — y por qué eso hay que cuidarlo
+
+**Resuelto el 2026-09-07** con el release `v0.3.0`. Las cuatro variables están en
+el entorno **Production** de Vercel y el sitio sirve el catálogo desde Postgres.
+Ver [el hito](../.claude/hitos/2026-09-07-release-v0-3-0-en-produccion.md).
 
 Desde que `src/lib/repo.ts` consulta Postgres, **la aplicación ya no funciona sin
 credenciales.** Es un cambio irreversible de propiedad: antes el catálogo vivía
@@ -32,66 +37,78 @@ en `src/data/` y el sitio se levantaba con `.env.local` vacío; ahora no.
 Falla de forma ruidosa y con un mensaje que dice qué hacer, que es lo que se
 quería — un sitio que sirviera datos de demostración en silencio sería peor.
 
-**Ningún merge a `main` debe ocurrir antes de que estas cuatro variables estén en
-el entorno Production de Vercel.** El build sí compila sin ellas: las páginas que
-leen datos están marcadas `force-dynamic` y `getUser()` devuelve anónimo cuando
-no hay Supabase configurado, para que un clon recién bajado compile. **O sea que
-el verde del CI no te protege de esto:** lo que falla sin las variables es el
-runtime, no la compilación.
+**El verde del CI no protege de esto.** El build compila sin las variables: las
+páginas que leen datos están marcadas `force-dynamic` y `getUser()` devuelve
+anónimo cuando no hay Supabase configurado, para que un clon recién bajado
+compile. Lo que falla sin ellas es el runtime. Corolario: **borrar o renombrar
+cualquiera de las cuatro tumba el sitio en el siguiente despliegue y ningún check
+te avisa.**
 
-### Los comandos, para hacerlo de una
+| Variable | Production | Preview |
+|---|---|---|
+| `NEXT_PUBLIC_SITE_URL` | ✅ el dominio real | — (se queda en Production) |
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | ❌ **falta** |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | ❌ **falta** |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | ❌ **falta** |
 
-Con el CLI de Vercel, desde la raíz del repositorio:
-
-```bash
-vercel login                    # con la cuenta que tenga acceso al proyecto
-vercel link                     # elegir uniquecolombias-projects/regenera-market
-```
-
-Los valores salen del panel de Supabase (Settings → API) y del propio Vercel.
-`vercel env add` lee el valor de la entrada estándar, así que se puede encadenar:
-
-```bash
-# --- Production ---
-echo "https://<dominio-de-produccion>"          | vercel env add NEXT_PUBLIC_SITE_URL production
-echo "https://mgsrzlqellphmfbhpdoj.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL production
-echo "<clave anon / publishable>"               | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
-echo "<clave service_role / secret>"            | vercel env add SUPABASE_SERVICE_ROLE_KEY production
-
-# --- Preview (la URL es la de la preview estable de staging) ---
-echo "https://<preview-de-staging>"             | vercel env add NEXT_PUBLIC_SITE_URL preview
-echo "https://mgsrzlqellphmfbhpdoj.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL preview
-echo "<clave anon / publishable>"               | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview
-echo "<clave service_role / secret>"            | vercel env add SUPABASE_SERVICE_ROLE_KEY preview
-
-vercel --prod                   # redesplegar para que las tome
-```
+`NEXT_PUBLIC_SITE_URL` es **por entorno**: en Production el dominio real, en
+`.env.local` `http://localhost:3000`. Copiar el de local a Vercel deja el
+`og:image` apuntando a localhost.
 
 > `SUPABASE_SERVICE_ROLE_KEY` **jamás** lleva prefijo `NEXT_PUBLIC_`. El job
 > `secretos` del CI falla si aparece en el código, y hace bien: esa clave en el
 > bundle del navegador es acceso total a la base saltándose RLS.
 
-Se comprueba así, y las tres líneas tienen que dar lo esperado:
+### Cárgalas por el panel, no por el CLI
+
+`https://vercel.com/uniquecolombias-projects/regenera-market/settings/environment-variables`
+
+Se intentó con `vercel env add` y hay dos trampas que cuestan una hora:
+
+1. **Guarda las comillas literalmente.** Un `NEXT_PUBLIC_SUPABASE_URL="https://…"`
+   copiado de `.env.local` queda almacenado *con* las comillas, y ninguna
+   petición a Supabase funciona. El CLI lo avisa con
+   `! Value includes surrounding quotes`, en medio de mucho ruido.
+2. **`vercel env add <nombre> preview` abre un prompt interactivo** (`? Git
+   branch?`) que no se puede contestar si el valor llega por tubería. Los `add`
+   de Preview se quedan colgados sin guardar nada.
+
+Además, `vercel env add` **falla en silencio si la variable ya existe**: hay que
+`vercel env rm <nombre> <entorno> --yes` antes de reintentar. Si el `created` del
+`env ls` no cambia, no se guardó nada.
+
+Y **al agregar una variable, los despliegues existentes no la toman**: hace falta
+un build nuevo.
+
+### Aparte del CLI y de las variables
+
+- **Supabase → Authentication → URL Configuration.** ✅ hecho. El dominio de
+  producción en *Site URL*, y `…/auth/callback` + `…/**` en *Redirect URLs*. Es
+  independiente de `NEXT_PUBLIC_SITE_URL`: si ahí solo estuviera `localhost`, el
+  código de seis dígitos falla en producción sin dejar claro por qué.
+- **Vercel → Settings → Node.js Version.** El CI usa 22
+  (`.github/workflows/ci.yml`); si no coinciden, el CI pasa en verde y producción
+  falla.
+
+### Cómo se comprueba que producción está viva
 
 ```bash
-vercel env ls                                            # las cuatro, en los dos entornos
-curl -s <url-de-produccion> | grep -o '<meta property="og:image"[^>]*>'
-#   si dice localhost:3000, falta NEXT_PUBLIC_SITE_URL
-curl -s -o /dev/null -w "%{http_code}\n" <url-de-produccion>/catalogo
+curl -s -o /dev/null -w "%{http_code}\n" https://regenera-market.vercel.app/catalogo
 #   200 = la base responde; 500 = faltan las claves de Supabase
+curl -s https://regenera-market.vercel.app | grep -o '<meta property="og:image"[^>]*>'
+#   si dice localhost:3000, falta NEXT_PUBLIC_SITE_URL
+curl -s https://regenera-market.vercel.app/catalogo | grep -o 'href="/oferta/[a-z0-9-]*"' | sort -u | wc -l
+#   18 = el catálogo sale de Postgres (repo.ts ya no importa src/data/)
 ```
-
-**De paso, mira Settings → Node.js Version.** El CI usa 22
-(`.github/workflows/ci.yml`); si no coinciden, el CI pasa en verde y producción
-falla.
 
 ---
 
 ## En una frase
 
-El catálogo se sirve de Postgres, hay registro y acceso por código de seis
-dígitos, y existe un panel de administración para aprobar proveedores. Falta
-configurar Vercel, el correo, y que alguien sea admin.
+El catálogo se sirve de Postgres **en producción**, hay registro y acceso por
+código de seis dígitos, y existe un panel de administración para aprobar
+proveedores. Falta el correo —sin él el registro no sirve para gente real— y que
+alguien sea admin.
 
 ---
 
@@ -107,6 +124,8 @@ configurar Vercel, el correo, y que alguien sea admin.
 | `src/lib/repo.ts` contra Postgres | ✅ **Bloque 1 cerrado** |
 | Registro y acceso por código (`/entrar`, `/registro`) | ✅ **Bloque 2**, falta el correo |
 | Panel de administración (`/admin`) | ✅ **Bloque 3**, falta que alguien sea admin |
+| Vercel Production configurado y verificado | ✅ `v0.3.0`, **https://regenera-market.vercel.app** |
+| Vercel Preview | ❌ faltan las tres de Supabase |
 | Panel de proveedor | ❌ **Bloque 4, sin empezar** |
 
 ---
@@ -143,8 +162,14 @@ gh api repos/UniqueColombia/regenera-market/branches/main/protection >/dev/null 
 
 ### 🟠 Cualquiera con acceso a Vercel
 
-**4. Las cuatro variables de entorno.** Ver el bloque rojo de arriba. Es lo que
-bloquea el merge a `main`.
+**4. Las tres variables de Supabase en el entorno *Preview*.** Las de Production
+ya están (release `v0.3.0`). **No bloquea producción:** lo que hace es que los
+despliegues de preview de cada PR compilen verde y luego fallen en runtime, o
+sea que las previews no sirven para revisar nada que toque datos.
+
+Se hace en el panel, editando cada una de las tres y marcando *Preview* además de
+Production. `NEXT_PUBLIC_SITE_URL` se queda solo en Production. Ver arriba por
+qué el CLI no sirve para esto.
 
 ### 🟡 Cualquiera, una sola vez
 

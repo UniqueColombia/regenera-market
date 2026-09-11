@@ -22,3 +22,4 @@ referencie al anterior.
 | 2026-08-29 | [El sitio tiene identidad visual: logo, favicon y 27 fotografías](2026-08-29-identidad-visual.md) | Jesús Seiler | 0 — Prototipo |
 | 2026-09-05 | [El sitio responde al toque, la paleta pasa AA, y el andamiaje de Supabase queda puesto](2026-09-05-tactil-contraste-y-andamiaje-supabase.md) | Jesús Seiler | 0 — Prototipo (cierre) |
 | 2026-09-05 | [El catálogo sale de Postgres, hay identidad y hay panel de administración](2026-09-05-catalogo-en-postgres-identidad-y-admin.md) | Jesús Seiler | 1 y 2 — Bloques 1, 2 y 3 |
+| 2026-09-07 | [El release `v0.3.0` está en producción: Vercel configurado y verificado](2026-09-07-release-v0-3-0-en-produccion.md) | Ivan Duarte | 1 y 2 — cierre de los Bloques 1, 2 y 3 |
