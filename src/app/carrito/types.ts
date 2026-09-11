@@ -30,5 +30,11 @@ export interface PricedCartDTO {
   commissionTotalCop: number;
   impact: ImpactMetrics;
   providerCount: number;
-  droppedIds: string[];
+  /**
+   * Líneas que el catálogo ya no puede valorizar, para que el cliente las
+   * descarte. Llevan la **identidad completa** y no solo el identificador: una
+   * experiencia en dos fechas son dos líneas distintas, y quitar por id a secas
+   * no empareja con ninguna de las dos.
+   */
+  dropped: Array<{ listingId: string; date?: string }>;
 }

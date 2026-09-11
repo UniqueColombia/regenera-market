@@ -4,11 +4,11 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-07
-- **Producción:** `v0.3.0` en `main` → **https://regenera-market.vercel.app**
-- **Fase del roadmap:** 0 cerrada. **Bloques 0, 1, 2 y 3 de `docs/BETA.md`
-  implementados y en producción.** Falta el correo para que el registro sirva
-  para gente real.
+- **Corte:** 2026-09-11
+- **Producción:** `v0.3.2` en `main` → **https://regenera-market.vercel.app**
+- **Fase del roadmap:** 0 cerrada. Bloques 0, 1 y 2 de `docs/BETA.md` cerrados y
+  en producción. **El Bloque 3 está empezado, no cerrado** — ver abajo.
+  **El registro funciona de punta a punta desde el 2026-09-11.**
 
 > **Antes de creerle a este archivo, comprueba que no está viejo.** Es el único
 > documento del repositorio que caduca.
@@ -107,8 +107,10 @@ curl -s https://regenera-market.vercel.app/catalogo | grep -o 'href="/oferta/[a-
 
 El catálogo se sirve de Postgres **en producción**, hay registro y acceso por
 código de seis dígitos, y existe un panel de administración para aprobar
-proveedores. Falta el correo —sin él el registro no sirve para gente real— y que
-alguien sea admin.
+proveedores. **El registro funciona de verdad**: llega el código, entra, y el
+enlace del correo también. Lo que falta para la beta ya no es el acceso — es que
+alguien sea admin y que el panel de administración haga algo más que aprobar
+proveedores.
 
 ---
 
@@ -122,29 +124,87 @@ alguien sea admin.
 | `0001_init.sql`, `0002_auth.sql`, `0003_busqueda.sql` | ✅ **aplicadas**, inmutables |
 | `scripts/seed.mts` — catálogo sembrado | ✅ idempotente |
 | `src/lib/repo.ts` contra Postgres | ✅ **Bloque 1 cerrado** |
-| Registro y acceso por código (`/entrar`, `/registro`) | ✅ **Bloque 2**, falta el correo |
-| Panel de administración (`/admin`) | ✅ **Bloque 3**, falta que alguien sea admin |
-| Vercel Production configurado y verificado | ✅ `v0.3.0`, **https://regenera-market.vercel.app** |
+| Registro y acceso por código (`/entrar`, `/registro`) | ✅ **Bloque 2 cerrado**, probado de punta a punta |
+| SMTP propio y plantillas con `{{ .Token }}` | ✅ Gmail personal de Jesús, provisional |
+| Aprobar proveedores desde `/admin` | ✅ lo único que hace el panel hoy |
+| Vercel Production configurado y verificado | ✅ `v0.3.2`, **https://regenera-market.vercel.app** |
+| Las otras cuatro pantallas de `/admin` | ❌ **el Bloque 3 no está cerrado** |
+| Que alguien sea admin | ❌ nadie lo es todavía |
 | Vercel Preview | ❌ faltan las tres de Supabase |
 | Panel de proveedor | ❌ **Bloque 4, sin empezar** |
+| Servidor propio (VPS) en vez de Vercel + Supabase | ❌ decidido, sin fecha |
 
 ---
 
 ## Lo que falta, y quién puede hacerlo
 
-### 🔴 Solo Ivan (`UniqueColombia`)
+### ✅ Resuelto el 2026-09-11: el correo de acceso
 
-**1. SMTP de Google Workspace.** Authentication → SMTP Settings, con contraseña
-de aplicación de una cuenta `@uniquecolombia` (exige verificación en dos pasos
-activa). Remitente tipo `no-responder@uniquecolombia.com`, nombre visible
-«Seregenera».
+**El registro funciona de punta a punta.** Se deja escrito aquí porque costó tres
+hallazgos encadenados y porque la configuración vive en el panel, donde el
+repositorio no la ve.
 
-**Sin esto el registro no sirve para gente real.** El enviador gratuito de
-Supabase está limitado a unos pocos correos por hora y su propia documentación lo
-declara solo para pruebas: el segundo que se registre no recibe el código. El
-límite exacto lo dice el panel (*Authentication → Rate Limits*).
+Lo que hubo que hacer, en este orden — **y el orden importa, no es opcional**:
 
-Prueba de que quedó: Authentication → Users → *Invite user* a un correo real.
+1. **Un SMTP propio.** No es un muro de plan, no hace falta Pro: desde el 3 de
+   junio de 2026 los proyectos gratuitos que usan el enviador por defecto de
+   Supabase tienen las plantillas **bloqueadas**, y configurar un SMTP propio las
+   desbloquea. De paso quita el límite de 2 correos/hora del enviador por
+   defecto. Hoy está el Gmail personal de Jesús, provisional.
+2. **`{{ .Token }}` en las dos plantillas**, *Confirm signup* y *Magic Link*.
+3. **`Email OTP Length` en 6** (Authentication → Sign In / Providers → Email).
+   Estaba en **8**, y la aplicación pedía seis.
+
+**Se descartó el _Send Email hook_.** No desbloquea las plantillas: las
+*reemplaza*, obligando a escribir el correo en código. Y una función de Postgres
+no puede mandar un correo —Postgres no habla SMTP—, así que el ejemplo oficial
+solo encola en una tabla y todavía hacen falta `pg_cron`, un proceso que la vacíe
+y un proveedor externo. Se acaba necesitando el proveedor igual, más código
+propio que mantener.
+
+#### Cómo quedó configurado, para poder reproducirlo
+
+**Authentication → Emails → Templates**, las dos plantillas con el mismo cuerpo.
+`signInWithOtp` elige una u otra según el usuario exista, así que poner
+`{{ .Token }}` en una sola deja la mitad de los casos rota según a quién le
+toque. El enlace de cortesía apunta a
+`{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email`, **nunca** a
+`{{ .ConfirmationURL }}` — ver «Trampas vigentes».
+
+Las plantillas van sin imágenes a propósito: Gmail bloquea las remotas hasta que
+el destinatario las pide y no admite SVG, que es el único formato en que existe
+el isotipo. La marca la llevan Georgia y el verde `#1b5b3d`, así que llegan
+iguales siempre.
+
+**Authentication → SMTP Settings.** El remitente tiene que ser la misma cuenta
+que autentica: Gmail reescribe o rechaza un `From` que no sea suyo ni un alias
+verificado.
+
+**Las plantillas sobreviven al cambio de SMTP.** Son configuración aparte, así
+que cambiar las credenciales al Workspace de Ivan no toca ni una línea de ellas.
+
+Nada de esto está en el repositorio: aquí no hay `supabase/config.toml`, así que
+ni se versiona ni el CI lo detecta. **Si alguien recrea el proyecto de Supabase,
+esta sección es lo único que queda.**
+
+Prueba de que sigue bien: registrarse en `/registro` con un correo real y
+comprobar que el mensaje trae los seis dígitos **y** el enlace, y que los dos
+entran.
+
+### 🟠 Solo Ivan (`UniqueColombia`)
+
+**1. SMTP de Google Workspace — el remitente definitivo.** Authentication → SMTP
+Settings: `smtp.gmail.com`, puerto 587, con contraseña de aplicación de una
+cuenta `@uniquecolombia` (exige verificación en dos pasos activa). Remitente tipo
+`no-responder@uniquecolombia.com`, nombre visible «Seregenera».
+
+**Ya no bloquea la beta.** El acceso funciona hoy con el Gmail personal de
+Jesús; esto solo cambia quién aparece como remitente y sube el techo de envío a
+~2.000 al día. Pero **hay que hacerlo antes de abrir a gente real**: un correo de
+acceso que llega desde un Gmail personal no se sostiene frente a un hotel, y el
+techo de una cuenta personal es de ~500 al día.
+
+Prueba de que quedó: registrarse con un correo limpio y mirar el remitente.
 
 **2. Integración de Supabase con GitHub.** Jesús es colaborador con permiso
 `write`, no `admin`, así que al seleccionar el repositorio no le aparece
@@ -163,7 +223,7 @@ gh api repos/UniqueColombia/regenera-market/branches/main/protection >/dev/null 
 ### 🟠 Cualquiera con acceso a Vercel
 
 **4. Las tres variables de Supabase en el entorno *Preview*.** Las de Production
-ya están (release `v0.3.0`). **No bloquea producción:** lo que hace es que los
+ya están (desde el release `v0.3.0`). **No bloquea producción:** lo que hace es que los
 despliegues de preview de cada PR compilen verde y luego fallen en runtime, o
 sea que las previews no sirven para revisar nada que toque datos.
 
@@ -196,17 +256,119 @@ password*. La que se usó para aplicar las migraciones pasó por un chat.
 
 ---
 
-## Y después: el Bloque 4
+## Lo que sigue, por orden
 
-El panel de proveedor. Es el mismo patrón que `/admin` aplicado al otro rol, y
-`docs/BETA.md` lo detalla.
+### 1. Terminar el Bloque 3 — qué puede hacer un administrador
 
-**Tiene un cabo suelto que hay que resolver ahí:** hoy nadie se convierte en
-`provider`. Aprobar un proveedor desde `/admin` cambia su `status`, pero no crea
-la fila en `provider_members` que enlaza a una persona con una empresa, ni le da
-el rol. Los 13 proveedores sembrados no tienen dueño humano. El Bloque 4 tiene
-que decidir cómo se hace ese enlace: probablemente la postulación de `/vender`
-deba guardar quién postuló, y la aprobación crear `provider_members` y el rol.
+**`ESTADO.md` decía que el Bloque 3 estaba cerrado y no lo está.** Hoy `/admin`
+es **una** pantalla que hace **una** cosa: aprobar, rechazar o suspender
+proveedores (`src/app/admin/page.tsx` + `decidirProveedor` en `actions.ts`).
+`docs/BETA.md` especifica cinco pantallas, y faltan cuatro:
+
+| Ruta | Qué resuelve | Estado |
+|---|---|---|
+| `/admin` (proveedores) | Aprobar, rechazar, suspender | ✅ existe |
+| `/admin/postulaciones` | Lo que llega de `/vender`, aprobar o rechazar | ❌ |
+| `/admin/ofertas` | **El CRUD que falta**: crear y editar ofertas | ❌ |
+| `/admin/evaluaciones` | Revisar la evidencia y decidir | ❌ |
+| `/admin/ordenes` | Ver órdenes y confirmar el pago manual | ❌ |
+
+Sin `/admin/ofertas` **el catálogo solo cambia corriendo `scripts/seed.mts`**, o
+sea editando código y desplegando. Es la pantalla que convierte esto en algo
+operable, y por eso es la primera.
+
+**Antes de escribir nada, cuatro cosas que `docs/BETA.md` ya dejó decididas y que
+no se renegocian:**
+
+- **`src/app/admin/layout.tsx` llama a `requireAdmin()` una vez.** Ninguna página
+  de dentro repite la comprobación. Hoy la hace `page.tsx`; al haber más de una
+  pantalla eso deja de servir.
+- **Cada acción usa el cliente `server.ts`, nunca `admin.ts`.** Que alguien sea
+  admin se lo dice RLS a la base por `is_admin()`. Usar la clave de servicio
+  desactiva la única barrera real y convierte un bug de ruta en acceso total.
+- **Ni `sustainability_score` ni `tier` pueden ser campos editables.** Los
+  escribe el trigger `sync_provider_score()` cuando una evaluación pasa a
+  `approved`. Un formulario que los toque vacía de significado el nivel y borra
+  la auditoría del puntaje.
+- **Aprobar un proveedor no es cambiar `providers.status` y ya.** Hay que crear
+  la fila de `provider_members` que enlaza a la persona con la empresa, o
+  `manages_provider()` da falso y el Bloque 4 nace muerto sin que el síntoma
+  apunte a la causa. Hoy no se crea: los 13 proveedores sembrados no tienen dueño
+  humano.
+
+**Requisito previo, y es de una sola vez:** nadie es admin todavía (punto 5). Sin
+eso no se puede ni ver la pantalla que ya existe.
+
+**Criterio de salida:** se crea una experiencia desde `/admin/ofertas`, aparece
+en el catálogo sin desplegar, y se retira volviéndola borrador. Se aprueba una
+postulación y esa persona entra a su panel. Se confirma el pago de una orden.
+Nadie escribió SQL en todo el recorrido.
+
+Cargar `dominio-regenera` y `supabase-schema` antes de empezar.
+
+### 2. El Bloque 4 — panel de proveedor
+
+Mismo patrón que `/admin` aplicado al otro rol. Depende del cabo suelto de arriba
+(`provider_members`): mientras nadie se convierta en `provider`, no hay a quién
+enseñarle ese panel.
+
+### 3. Mudarse a servidor propio, y dejar de depender de Supabase
+
+**Decidido, sin fecha: arranca cuando Ivan compre el VPS de Hostinger.** El
+destino es que todo lo que hoy vive en Vercel y Supabase corra en una máquina
+nuestra, **con el mismo comportamiento y con código nuestro**.
+
+Esto no es un cambio de despliegue, es **cambiar de dueño a media docena de cosas
+que hoy no escribimos nosotros**. Lo que hay que sustituir, y lo que cuesta cada
+una:
+
+| Hoy lo da | Hay que reemplazarlo por | Dificultad real |
+|---|---|---|
+| Vercel (build, CDN, TLS, despliegue por push) | Node en el VPS, Nginx o Caddy delante, TLS con Let's Encrypt, despliegue por CI | Media. Es trabajo conocido |
+| Postgres gestionado de Supabase | Postgres en el VPS | Media — **lo caro no es instalarlo, son las copias de seguridad**. Hoy las hace Supabase y no pensamos en ellas |
+| Supabase Auth (`signInWithOtp`, `verifyOtp`, sesión, cookies) | Autenticación propia | **Es la pieza grande.** Ver abajo |
+| **RLS de Postgres** | Nada equivalente — pasa a ser código | **Es el riesgo grande.** Ver abajo |
+| Almacenamiento de Supabase | Disco del VPS o S3 compatible | Baja, hoy casi no se usa |
+| SMTP | No cambia: es un SMTP externo igual | Ninguna |
+
+**Las dos que hay que mirar de frente antes de decidir la fecha:**
+
+**La autenticación no es «un login».** Hoy Supabase nos da emisión y verificación
+de códigos, expiración, límite de intentos, rotación de tokens, refresco de
+sesión, cookies `httpOnly` bien puestas y `src/proxy.ts` apoyándose en todo eso.
+Escribirlo nosotros es posible y está resuelto en la industria, pero es donde los
+fallos no se ven hasta que alguien entra en la cuenta de otro. Conviene apoyarse
+en una librería probada y no en código a mano.
+
+**RLS es la barrera de verdad, y en un VPS deja de existir gratis.** Toda la
+seguridad de datos del proyecto está hoy en políticas dentro de Postgres: un bug
+en una ruta no da acceso porque la base dice que no. `dominio-regenera` lo
+sostiene como invariante. Postgres propio **sí** tiene RLS —no se pierde por
+mudarse—, pero deja de estar conectado a un `auth.uid()` que alguien mantenga por
+nosotros: hay que emitir y propagar esa identidad a cada conexión. Si en la
+mudanza se sustituye por comprobaciones en el código de la aplicación, el modelo
+de seguridad del proyecto cambia entero y hay que reescribir `dominio-regenera`.
+
+**Qué hay que decidir antes de empezar, y no durante:**
+
+1. ¿Se conserva RLS con Postgres propio, o se pasa la autorización a la
+   aplicación? *(Recomendación: conservarla. Es la decisión más barata de
+   respetar y la más cara de deshacer.)*
+2. ¿Quién responde a las 3 de la mañana si el VPS se cae? Vercel y Supabase se
+   reinician solos; una máquina nuestra no.
+3. ¿Cuál es la política de copias, dónde viven y **cuándo se prueba una
+   restauración**? Una copia que nadie restauró no es una copia.
+4. ¿Se migran los datos que existan, o se parte de cero? Depende de si para
+   entonces hay proveedores y órdenes reales.
+5. ¿Se va todo de golpe o primero la aplicación y después la base?
+
+**Y algo que afecta al trabajo diario desde el primer día:** hoy cada PR tiene
+despliegue de vista previa automático. Con VPS propio eso hay que construirlo o
+perderlo, y perderlo cambia cómo revisamos el trabajo del otro — que es el único
+momento en que cada uno ve lo que hizo el agente del otro. Está en `flujo-git`.
+
+**Cuando se haga, `docs/DEPLOY.md` se reescribe entero** y este bloque se
+convierte en un hito.
 
 ---
 
@@ -223,6 +385,14 @@ deba guardar quién postuló, y la aprobación crear `provider_members` y el rol
   fragmento `#`, y un fragmento no llega al servidor. El enlace del correo tiene
   que ser
   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email`.
+- **`sameLine` del carrito compara `listingId` **y** `date`.** Quitar o buscar una
+  línea pasando solo el id compila, no falla y no empareja con una experiencia
+  reservada: la línea se vuelve inmortal, suma en el contador de la cabecera y la
+  página declara la cesta vacía. Fue exactamente el bug de `v0.3.2`.
+- **Subir `STORAGE_KEY` en `src/components/cart.ts` tira el carrito de todo el
+  mundo.** Se hace cuando lo guardado deja de poder resolverse —como cuando los
+  ids pasaron de cadena a uuid—, no cuando cambia la vista. Bajarla no recupera
+  nada.
 - **`middleware.ts` no existe aquí, es `src/proxy.ts`.** Next 16 deprecó esa
   convención. Cualquier tutorial de Supabase que encuentres crea `middleware.ts`
   porque está escrito para Next 15.
@@ -247,6 +417,13 @@ deba guardar quién postuló, y la aprobación crear `provider_members` y el rol
   son 20 USD/mes de Pro.
 - **`hairline` y `control` no son intercambiables.** El primero separa
   superficies; el segundo dibuja el borde de un control, donde WCAG pide 3:1.
+- **La longitud del código de acceso vive en el panel, no en el código.**
+  Authentication → Sign In / Providers → Email → *Email OTP Length*, entre 6 y
+  10. Está en **6**, que es lo que dice la pantalla de `/entrar`. La validación
+  acepta el rango entero a propósito: si alguien sube ese ajuste y el código
+  exigiera seis exactos, **nadie podría entrar** y el mensaje de error diría que
+  el código está mal cuando el correcto es el que tiene delante. Ya pasó con el
+  panel en 8.
 
 ---
 
