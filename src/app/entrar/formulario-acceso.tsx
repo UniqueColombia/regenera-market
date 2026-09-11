@@ -87,7 +87,11 @@ export function FormularioAcceso({
             inputMode="numeric"
             autoComplete="one-time-code"
             autoFocus
-            maxLength={7}
+            // Diez dígitos es el máximo que Supabase puede emitir, más margen
+            // para los espacios con que llega pegado desde el correo (el
+            // servidor los quita). Estaba en 7, que no dejaba ni escribir un
+            // código de 8 — el campo cortaba antes de terminar de teclearlo.
+            maxLength={14}
             aria-invalid={errors.token ? true : undefined}
             className={`w-full rounded-lg border bg-white px-3 py-3 text-center font-display text-2xl tracking-[0.4em] tabular-nums outline-none transition focus:border-brand-500 ${
               errors.token ? "border-red-500" : "border-control"
