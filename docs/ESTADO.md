@@ -4,8 +4,8 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-07
-- **Producción:** `v0.3.0` en `main` → **https://regenera-market.vercel.app**
+- **Corte:** 2026-09-11
+- **Producción:** `v0.3.2` en `main` → **https://regenera-market.vercel.app**
 - **Fase del roadmap:** 0 cerrada. **Bloques 0, 1, 2 y 3 de `docs/BETA.md`
   implementados y en producción.** Falta el correo para que el registro sirva
   para gente real.
@@ -107,7 +107,8 @@ curl -s https://regenera-market.vercel.app/catalogo | grep -o 'href="/oferta/[a-
 
 El catálogo se sirve de Postgres **en producción**, hay registro y acceso por
 código de seis dígitos, y existe un panel de administración para aprobar
-proveedores. Falta el correo —sin él el registro no sirve para gente real— y que
+proveedores. **Lo único que separa a la beta de recibir a una persona real son
+un SMTP propio y, con él, las dos plantillas de correo** (punto 1 bis). Y que
 alguien sea admin.
 
 ---
@@ -125,6 +126,7 @@ alguien sea admin.
 | Registro y acceso por código (`/entrar`, `/registro`) | ✅ **Bloque 2**, falta el correo |
 | Panel de administración (`/admin`) | ✅ **Bloque 3**, falta que alguien sea admin |
 | Vercel Production configurado y verificado | ✅ `v0.3.0`, **https://regenera-market.vercel.app** |
+| SMTP propio y plantillas con `{{ .Token }}` | ❌ **es lo que frena la beta**, ver punto 1 bis |
 | Vercel Preview | ❌ faltan las tres de Supabase |
 | Panel de proveedor | ❌ **Bloque 4, sin empezar** |
 
@@ -132,12 +134,70 @@ alguien sea admin.
 
 ## Lo que falta, y quién puede hacerlo
 
-### 🔴 Solo Ivan (`UniqueColombia`)
+### 🔴 Lo que frena la beta
 
-**1. SMTP de Google Workspace.** Authentication → SMTP Settings, con contraseña
-de aplicación de una cuenta `@uniquecolombia` (exige verificación en dos pasos
-activa). Remitente tipo `no-responder@uniquecolombia.com`, nombre visible
-«Seregenera».
+**1 bis. Un SMTP propio, y con él las dos plantillas de correo.**
+
+**Sin esto el registro no funciona para nadie, ni para nosotros.** Las plantillas
+de fábrica solo traen `{{ .ConfirmationURL }}`: llega un enlace y la aplicación
+pide seis dígitos.
+
+#### Primero el SMTP, porque si no las plantillas no se dejan editar
+
+**No es un muro de plan: no hace falta Pro.** Es un muro de remitente. Desde el
+3 de junio de 2026 los proyectos gratuitos que usan el enviador por defecto de
+Supabase tienen las plantillas bloqueadas —estarían mandando texto arbitrario
+desde la infraestructura de Supabase, que es un regalo para el spam—. Al nuestro
+le aplica: se creó en septiembre. Configurar un SMTP propio las desbloquea, y eso
+Supabase no lo cobra. **El orden es SMTP primero, plantillas después; no hay
+forma de hacerlo al revés.**
+
+De paso quita un límite que sorprende: el enviador por defecto manda **2 correos
+por hora**. Con SMTP propio se arranca en 30/hora y se sube en *Rate Limits*.
+
+**Las plantillas sobreviven al cambio de SMTP** — son configuración aparte. Sirve
+cualquier SMTP para desbloquearlas hoy (un Gmail personal con contraseña de
+aplicación vale): se editan, se prueba el flujo entero, y cuando Ivan tenga la
+cuenta corporativa solo se cambian las credenciales. Eso convierte el punto 1 de
+«bloqueado esperando a Ivan» en «mejorar el remitente».
+
+**Se descartó el _Send Email hook_.** Está disponible en el plan gratuito, pero
+no desbloquea las plantillas: las *reemplaza*, obligando a escribir el correo en
+código. Y una función de Postgres no puede mandar un correo —Postgres no habla
+SMTP—, así que el ejemplo oficial solo encola en una tabla y todavía hacen falta
+`pg_cron`, un proceso que la vacíe y un proveedor externo. Se acaba necesitando
+el proveedor igual, más código propio que mantener. Es para lógica rara
+(idiomas, plantillas por tipo de cliente), no para esto.
+
+#### Y entonces sí, las plantillas
+
+Authentication → Emails → Templates. `{{ .Token }}` es la variable que renderiza
+el código de seis dígitos, y va en **dos** plantillas — *Magic Link* (quien ya
+tiene cuenta, entra por `/entrar`) y *Confirm signup* (quien se registra por
+primera vez, en `/registro`).
+`signInWithOtp` elige una u otra según el usuario exista; poner la variable en
+una sola deja la mitad de los casos rota según a quién le toque.
+
+El enlace de cortesía va a
+`{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email`, **nunca** a
+`{{ .ConfirmationURL }}` — ver «Trampas vigentes».
+
+Es panel, no repositorio: aquí no hay `supabase/config.toml`, así que ni se
+versiona ni el CI lo detecta. El código que lo espera ya está en producción desde
+`v0.3.1`.
+
+Prueba de que quedó: registrarse en `/registro` con un correo real y comprobar
+que el mensaje trae los seis dígitos **y** el enlace, y que los dos entran.
+
+### 🟠 Solo Ivan (`UniqueColombia`)
+
+**1. SMTP de Google Workspace — el remitente definitivo.** Authentication → SMTP
+Settings: `smtp.gmail.com`, puerto 587, con contraseña de aplicación de una
+cuenta `@uniquecolombia` (exige verificación en dos pasos activa). Remitente tipo
+`no-responder@uniquecolombia.com`, nombre visible «Seregenera».
+
+**Ya no bloquea la beta** si el punto 1 bis se hizo con otro SMTP: esto solo
+cambia quién aparece como remitente y sube el techo de envío a ~2.000 al día.
 
 **Sin esto el registro no sirve para gente real.** El enviador gratuito de
 Supabase está limitado a unos pocos correos por hora y su propia documentación lo
@@ -163,7 +223,7 @@ gh api repos/UniqueColombia/regenera-market/branches/main/protection >/dev/null 
 ### 🟠 Cualquiera con acceso a Vercel
 
 **4. Las tres variables de Supabase en el entorno *Preview*.** Las de Production
-ya están (release `v0.3.0`). **No bloquea producción:** lo que hace es que los
+ya están (desde el release `v0.3.0`). **No bloquea producción:** lo que hace es que los
 despliegues de preview de cada PR compilen verde y luego fallen en runtime, o
 sea que las previews no sirven para revisar nada que toque datos.
 
@@ -223,6 +283,14 @@ deba guardar quién postuló, y la aprobación crear `provider_members` y el rol
   fragmento `#`, y un fragmento no llega al servidor. El enlace del correo tiene
   que ser
   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email`.
+- **`sameLine` del carrito compara `listingId` **y** `date`.** Quitar o buscar una
+  línea pasando solo el id compila, no falla y no empareja con una experiencia
+  reservada: la línea se vuelve inmortal, suma en el contador de la cabecera y la
+  página declara la cesta vacía. Fue exactamente el bug de `v0.3.2`.
+- **Subir `STORAGE_KEY` en `src/components/cart.ts` tira el carrito de todo el
+  mundo.** Se hace cuando lo guardado deja de poder resolverse —como cuando los
+  ids pasaron de cadena a uuid—, no cuando cambia la vista. Bajarla no recupera
+  nada.
 - **`middleware.ts` no existe aquí, es `src/proxy.ts`.** Next 16 deprecó esa
   convención. Cualquier tutorial de Supabase que encuentres crea `middleware.ts`
   porque está escrito para Next 15.
