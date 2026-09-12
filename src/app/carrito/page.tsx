@@ -43,8 +43,11 @@ export default function CarritoPage() {
     priceCart(lines).then((data) => {
       if (cancelled) return;
       setResult({ key: cartKey, data });
-      // Una oferta retirada del catálogo se cae sola de la cesta.
-      for (const id of data.droppedIds) removeLine(id);
+      // Una oferta retirada del catálogo se cae sola de la cesta. Se quita por
+      // identidad completa: `removeLine(id)` a secas no empareja con una línea
+      // que lleve fecha, y esa línea se queda para siempre sumando en el
+      // contador de la cesta mientras la página la declara vacía.
+      for (const l of data.dropped) removeLine(l.listingId, l.date);
     });
     return () => {
       cancelled = true;
