@@ -138,6 +138,7 @@ probarlo en un navegador, mergearlo y desplegarlo.
 | SMTP propio y plantillas con `{{ .Token }}` | ✅ Gmail personal de Jesús, provisional |
 | Vercel Production configurado y verificado | ✅ `v0.3.2`, **https://regenera-market.vercel.app** |
 | `0004_clave_dispositivos_y_postulaciones.sql` | ✅ **aplicada** el 2026-09-13, inmutable |
+| `0005_recursion_ordenes_y_cotizaciones.sql` | ✅ **aplicada** el 2026-09-13, inmutable |
 | Que alguien sea admin | ✅ Jesús e Ivan, con `scripts/crear-admin.mts` |
 | Contraseña + segundo factor por dispositivo | 🟡 hecho, **sin desplegar** (rama) |
 | Las seis pantallas de `/admin` | 🟡 cinco hechas, **sin desplegar**; falta `/admin/evaluaciones` |
@@ -457,8 +458,16 @@ convierte en un hito.
   `__Host-`.** Ese prefijo exige `secure`, y en `localhost` sobre http el
   navegador la descartaría en silencio: el síntoma sería «el código se pide
   siempre» en desarrollo, sin ninguna pista de por qué.
-- **`0001`, `0002`, `0003` y `0004` son inmutables.** Ya corrieron contra la
-  base. Todo cambio posterior es `0005_`.
+- **Una política que consulta otra tabla protegida cuyas políticas consultan la
+  primera produce `42P17: infinite recursion`, y no lo detecta nada más que
+  ejecutarla.** Pasó con `orders` ↔ `order_items`: estaba mal desde `0001` y no
+  se vio en tres semanas porque las órdenes vivían en memoria y ninguna consulta
+  llegaba a la tabla. Lo arregló `0005`. **Regla práctica:** si una política
+  necesita mirar otra tabla protegida, la pregunta se responde con una función
+  `security definer` con `set search_path = public` —como `is_admin()`—, nunca
+  con un `exists (...)` dentro de la política.
+- **`0001` … `0005` son inmutables.** Ya corrieron contra la base. Todo cambio
+  posterior es `0006_`.
 - **Vercel Hobby es para proyectos no comerciales.** El día que entre dinero real
   son 20 USD/mes de Pro.
 - **`hairline` y `control` no son intercambiables.** El primero separa
