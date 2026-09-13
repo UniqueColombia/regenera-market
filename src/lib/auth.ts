@@ -79,13 +79,47 @@ export const getSesion = cache(async (): Promise<Sesion | null> => {
   };
 });
 
-/** Exige sesión. Si no la hay, manda a entrar y vuelve a donde estaba. */
+/**
+ * ¿Esta cuenta todavía no tiene contraseña?
+ *
+ * Supabase no lo dice por ninguna vía: `user.identities` trae el proveedor
+ * `email` tanto si hay contraseña como si la cuenta nació de un enlace mágico.
+ * Así que la marca la ponemos nosotros en `user_metadata` al establecerla —
+ * ver `src/app/entrar/actions.ts`.
+ *
+ * Las que no la tienen son de dos clases: las que se registraron cuando el
+ * acceso era solo por código, y las que crea un administrador con
+ * `scripts/crear-admin.mts`.
+ */
+export function necesitaClave(user: User): boolean {
+  return user.user_metadata?.tiene_clave !== true;
+}
+
+/**
+ * Exige sesión. Si no la hay, manda a entrar y vuelve a donde estaba.
+ *
+ * **Y si la hay pero la cuenta no tiene contraseña, manda a ponérsela.** Es lo
+ * que hace que «ahora hay contraseñas» le ocurra de verdad a las cuentas
+ * anteriores, en vez de quedar como una invitación que nadie acepta. Se hace
+ * aquí y no en `src/proxy.ts` porque el proxy corre en cada petición del sitio
+ * —incluidas las páginas públicas, donde no viene a cuento— y porque un
+ * redirect mal puesto ahí deja el sitio entero en un bucle.
+ *
+ * El corte del bucle es `destino`: la propia pantalla de la contraseña llama a
+ * `requireUser("/cuenta/clave")`, y ese caso no se redirige a sí mismo.
+ */
 export async function requireUser(destino?: string): Promise<User> {
   const user = await getUser();
   if (!user) {
     const volver = destino ? `?volver=${encodeURIComponent(destino)}` : "";
     redirect(`/entrar${volver}`);
   }
+
+  if (necesitaClave(user) && destino !== "/cuenta/clave") {
+    const volver = destino ? `?volver=${encodeURIComponent(destino)}` : "";
+    redirect(`/cuenta/clave${volver}`);
+  }
+
   return user;
 }
 
@@ -116,8 +150,8 @@ export async function hasRole(userId: string, role: Role): Promise<boolean> {
 }
 
 /** Exige rol de administrador. */
-export async function requireAdmin(): Promise<User> {
-  const user = await requireUser();
+export async function requireAdmin(destino = "/admin"): Promise<User> {
+  const user = await requireUser(destino);
   if (!(await hasRole(user.id, "admin"))) redirect("/");
   return user;
 }

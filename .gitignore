@@ -80,3 +80,6 @@ next-env.d.ts
 # identificadores de la organización y del proyecto: es de la máquina, no del
 # repositorio. (`.env*` ya está arriba; `vercel link` lo agrega otra vez.)
 .vercel
+
+# El CLI de Supabase (`npx supabase`) deja aquí su caché de versión.
+supabase/.temp/

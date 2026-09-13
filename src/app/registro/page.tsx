@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { FormularioAcceso } from "../entrar/formulario-acceso";
+import { FormularioRegistro } from "./formulario-registro";
 import { getUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default async function RegistroPage(props: PageProps<"/registro">) {
         Con una cuenta sigues tus pedidos y, si produces algo regenerativo,
         puedes postular tu empresa.
       </p>
-      <FormularioAcceso registro volver={volver} />
+      <FormularioRegistro volver={volver} />
     </div>
   );
 }
