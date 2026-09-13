@@ -3,7 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, LogOut, Menu, ShieldCheck, ShoppingBasket, Store, User, X } from "lucide-react";
+import {
+  ChevronDown,
+  LogOut,
+  Menu,
+  ShieldCheck,
+  ShoppingBasket,
+  Store,
+  User,
+  UserRound,
+  X,
+} from "lucide-react";
 import { cerrarSesion } from "@/app/salir/actions";
 import type { Sesion } from "@/lib/auth";
 import { Isotipo } from "./isotipo";
@@ -357,6 +367,14 @@ function MenuUsuario({ sesion }: { sesion: Sesion }) {
               Administración
             </Link>
           )}
+
+          <Link
+            href="/cuenta"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-sand hover:text-brand-700 active:bg-sand"
+          >
+            <UserRound className="size-4" />
+            Tu cuenta
+          </Link>
 
           <Link
             href="/vender"

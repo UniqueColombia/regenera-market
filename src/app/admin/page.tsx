@@ -1,165 +1,137 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
-import { DecisionProveedor } from "./decision-proveedor";
-import { ProviderAvatar } from "@/components/provider-avatar";
-import { TierBadge } from "@/components/tier-badge";
-import { requireAdmin } from "@/lib/auth";
-import { getProvidersForReview } from "@/lib/repo";
-import { longDate } from "@/lib/format";
-import type { ReviewStatus } from "@/lib/types";
-
-export const metadata: Metadata = {
-  title: "Administración",
-  robots: { index: false },
-};
+import {
+  ClipboardList,
+  Receipt,
+  Store,
+  Tags,
+  Users,
+} from "lucide-react";
+import { listOrders } from "@/lib/orders";
+import { getApplications, getListingsForAdmin, getProvidersForReview, getUsuarios } from "@/lib/repo";
+import { money } from "@/lib/format";
 
 /**
- * Panel de administración: aprobar, rechazar y suspender proveedores.
+ * Resumen: qué espera una decisión hoy.
  *
- * `requireAdmin()` es defensa en profundidad, no la defensa. Si alguien llegara
- * aquí sin serlo, la política `providers_public_read` le devolvería únicamente
- * los proveedores aprobados y `providers_admin_all` no le dejaría escribir una
- * fila. El helper existe para que vea un redirect limpio en vez de una tabla
- * incompleta que no entiende.
+ * La pantalla contesta una sola pregunta —«¿qué tengo que mirar?»— y por eso
+ * cada tarjeta cuenta **lo pendiente**, no lo acumulado. Un panel que dice «138
+ * ofertas» no ayuda a nadie a empezar el día; uno que dice «3 postulaciones sin
+ * respuesta» sí.
+ *
+ * Todas las consultas van por `repo.ts` y `orders.ts` con el cliente de sesión,
+ * así que lo que se cuenta es exactamente lo que RLS deja ver.
  */
 
-const ORDEN: ReviewStatus[] = [
-  "pending_review",
-  "draft",
-  "approved",
-  "suspended",
-  "rejected",
-];
-
-const ETIQUETA: Record<ReviewStatus, string> = {
-  pending_review: "Esperando decisión",
-  draft: "Borrador del proveedor",
-  approved: "Aprobados",
-  suspended: "Suspendidos",
-  rejected: "Rechazados",
-};
-
-const COLOR: Record<ReviewStatus, string> = {
-  pending_review: "bg-clay-100 text-clay-700 ring-clay-300/60",
-  draft: "bg-sand text-muted ring-hairline",
-  approved: "bg-brand-50 text-brand-700 ring-brand-200",
-  suspended: "bg-clay-100 text-clay-700 ring-clay-300/60",
-  rejected: "bg-red-50 text-red-700 ring-red-200",
-};
-
-/**
- * Nunca se prerenderiza en el build.
- *
- * No es una optimización renunciada: es el objetivo del Bloque 1. Una página que
- * se congela en compilación vuelve a exigir un deploy para que se vea un dato
- * nuevo, que es exactamente lo que se quitó de en medio. Además, sin esto el
- * build de un clon sin credenciales intenta renderizarla y revienta.
- */
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  await requireAdmin();
-  const proveedores = await getProvidersForReview();
+  // En paralelo: son cinco consultas independientes y en serie se notaría.
+  const [proveedores, postulaciones, ofertas, ordenes, usuarios] = await Promise.all([
+    getProvidersForReview(),
+    getApplications(),
+    getListingsForAdmin(),
+    listOrders(),
+    getUsuarios(),
+  ]);
 
-  const porEstado = ORDEN.map((estado) => ({
-    estado,
-    filas: proveedores.filter((p) => p.status === estado),
-  })).filter((g) => g.filas.length > 0);
-
-  const pendientes = proveedores.filter(
+  const postulacionesPendientes = postulaciones.filter(
     (p) => p.status === "pending_review",
   ).length;
+  const proveedoresPendientes = proveedores.filter(
+    (p) => p.status === "pending_review",
+  ).length;
+  const ofertasSinPublicar = ofertas.filter((o) => o.status !== "approved").length;
+  const ordenesPorCobrar = ordenes.filter((o) => o.status === "pending_payment");
+  const porCobrarCop = ordenesPorCobrar.reduce((suma, o) => suma + o.totalCop, 0);
+
+  const tarjetas = [
+    {
+      href: "/admin/postulaciones" as const,
+      icono: ClipboardList,
+      titulo: "Postulaciones",
+      dato: postulacionesPendientes,
+      pie:
+        postulacionesPendientes === 0
+          ? "Nada esperando respuesta"
+          : "sin respuesta todavía",
+      urgente: postulacionesPendientes > 0,
+    },
+    {
+      href: "/admin/ordenes" as const,
+      icono: Receipt,
+      titulo: "Órdenes por confirmar",
+      dato: ordenesPorCobrar.length,
+      pie:
+        ordenesPorCobrar.length === 0
+          ? "Ningún pago pendiente"
+          : `${money(porCobrarCop)} en juego`,
+      urgente: ordenesPorCobrar.length > 0,
+    },
+    {
+      href: "/admin/proveedores" as const,
+      icono: Store,
+      titulo: "Proveedores",
+      dato: proveedoresPendientes,
+      pie:
+        proveedoresPendientes === 0
+          ? `${proveedores.length} en total`
+          : "esperando decisión",
+      urgente: proveedoresPendientes > 0,
+    },
+    {
+      href: "/admin/ofertas" as const,
+      icono: Tags,
+      titulo: "Ofertas sin publicar",
+      dato: ofertasSinPublicar,
+      pie: `${ofertas.length - ofertasSinPublicar} publicadas en el catálogo`,
+      urgente: false,
+    },
+    {
+      href: "/admin/usuarios" as const,
+      icono: Users,
+      titulo: "Usuarios",
+      dato: usuarios.length,
+      pie: `${usuarios.filter((u) => u.roles.includes("admin")).length} con administración`,
+      urgente: false,
+    },
+  ];
 
   return (
-    <div className="container-page py-10">
-      <header>
-        <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
-          <ShieldCheck className="size-4" />
-          Administración
-        </p>
-        <h1 className="mt-3 font-display text-3xl text-ink sm:text-4xl">
-          Proveedores
+    <div>
+      <header className="mt-8">
+        <h1 className="font-display text-3xl text-ink sm:text-4xl">
+          Qué espera decisión
         </h1>
         <p className="mt-2 max-w-2xl text-muted">
-          {pendientes === 0
-            ? "No hay postulaciones esperando decisión."
-            : `${pendientes} ${pendientes === 1 ? "postulación espera" : "postulaciones esperan"} decisión.`}{" "}
-          Aprobar a un proveedor hace visibles sus ofertas en el catálogo;
-          suspenderlo las esconde sin borrar nada.
+          Todo lo que cambies aquí se ve en el sitio sin desplegar nada. Aprobar
+          una oferta la publica en el catálogo; confirmar un pago cierra la
+          orden.
         </p>
       </header>
 
-      <p className="mt-6 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800 ring-1 ring-brand-100">
-        El nivel y el puntaje no se tocan desde aquí: los escribe la base cuando
-        se aprueba una evaluación de sostenibilidad. Aprobar a un proveedor le
-        permite vender, no le da un sello.
-      </p>
-
-      {porEstado.map(({ estado, filas }) => (
-        <section key={estado} className="mt-10">
-          <h2 className="flex items-center gap-3 font-display text-xl text-ink">
-            {ETIQUETA[estado]}
-            <span className="rounded-full bg-sand px-2 py-0.5 text-xs font-medium tabular-nums text-muted">
-              {filas.length}
-            </span>
-          </h2>
-
-          <ul className="mt-4 space-y-3">
-            {filas.map((p) => (
-              <li
-                key={p.id}
-                className="flex flex-col gap-4 rounded-xl bg-white p-4 ring-1 ring-hairline sm:flex-row sm:items-center"
+      <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {tarjetas.map(({ href, icono: Icono, titulo, dato, pie, urgente }) => (
+          <li key={href}>
+            <Link
+              href={href}
+              className="flex h-full flex-col rounded-xl bg-white p-5 ring-1 ring-hairline transition hover:ring-brand-300 active:ring-brand-300"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-muted">
+                <Icono className="size-4" />
+                {titulo}
+              </span>
+              <span
+                className={`mt-3 font-display text-4xl tabular-nums ${
+                  urgente ? "text-clay-600" : "text-ink"
+                }`}
               >
-                <ProviderAvatar name={p.name} logoUrl={p.logoUrl} />
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-display text-lg leading-snug text-ink">
-                      {p.status === "approved" ? (
-                        <Link
-                          href={`/proveedor/${p.slug}`}
-                          className="transition-colors hover:text-brand-700 active:text-brand-700"
-                        >
-                          {p.name}
-                        </Link>
-                      ) : (
-                        p.name
-                      )}
-                    </h3>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${COLOR[p.status]}`}
-                    >
-                      {p.status}
-                    </span>
-                    <TierBadge tier={p.tier} score={p.sustainabilityScore} />
-                  </div>
-
-                  <p className="mt-0.5 truncate text-sm text-muted">
-                    {p.tagline}
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
-                    {p.city}, {p.department} · {p.email} · postuló el{" "}
-                    {longDate(p.createdAt)}
-                  </p>
-                </div>
-
-                <DecisionProveedor
-                  providerId={p.id}
-                  estado={p.status}
-                  nombre={p.name}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-
-      {proveedores.length === 0 && (
-        <p className="mt-10 rounded-xl bg-white p-10 text-center text-muted ring-1 ring-hairline">
-          Todavía no hay proveedores en la base.
-        </p>
-      )}
+                {dato}
+              </span>
+              <span className="mt-1 text-xs text-muted">{pie}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
