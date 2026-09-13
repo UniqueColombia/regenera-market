@@ -33,6 +33,10 @@ inmediato.
 | `/verificacion` | Metodología de verificación + autodiagnóstico interactivo |
 | `/vender` | Propuesta para proveedores y formulario de postulación |
 | `/carrito` · `/orden/[reference]` | Cesta multi-proveedor, checkout y confirmación |
+| `/registro` · `/entrar` | Crear cuenta y acceder: contraseña, y código de seis dígitos como segundo factor en dispositivos nuevos |
+| `/cuenta` · `/cuenta/clave` | Datos, contraseña y dispositivos de confianza |
+| `/admin` | Panel: resumen, ofertas, proveedores, postulaciones, órdenes y usuarios |
+| `/api/latido` | Señal de vida: consulta Postgres y dice cuánto tardó |
 
 | Módulo | Responsabilidad |
 |---|---|
@@ -42,7 +46,10 @@ inmediato.
 | `src/lib/repo.ts` | Acceso a datos. Funciones async a propósito, para que el cambio a Supabase no toque las páginas |
 | `src/lib/pricing.ts` | Precio efectivo (minorista/mayorista), comisión e impacto agregado |
 | `src/lib/payments.ts` | Capa de pasarela. Hoy modo manual; `getGateway()` es el único punto a cambiar |
-| `supabase/migrations/0001_init.sql` | Esquema completo con RLS |
+| `src/lib/password.ts` | Fuerza de una contraseña, con las mismas reglas en el navegador y en el servidor |
+| `src/lib/dispositivos.ts` | Dispositivos de confianza: qué convierte el código en segundo factor y no en peaje diario |
+| `src/lib/orders.ts` | Órdenes en Postgres. Explica por qué la escritura usa la clave de servicio y la lectura no |
+| `supabase/migrations/` | Esquema completo con RLS. `0001`–`0004`, todas aplicadas e inmutables |
 
 ## Decisiones que conviene conocer
 
@@ -57,6 +64,15 @@ exactamente lo que se le descontó.
 
 **El título y el precio se congelan en la orden.** Si el proveedor los cambia
 mañana, la orden histórica sigue diciendo lo que el comprador aceptó.
+
+**La contraseña se comprueba sin abrir sesión.** Si el dispositivo no se
+reconoce, hace falta además el código de seis dígitos del correo — y hasta que se
+verifique, no hay sesión de ninguna clase. Un segundo factor que se pide después
+de dejar entrar no es un segundo factor.
+
+**Recuperar la contraseña es entrar con código y definir una nueva.** No hay un
+flujo aparte: usar la misma plantilla de correo que ya funciona es un camino
+menos que se puede romper sin que nadie lo note.
 
 **Los roles viven en su propia tabla,** no en el perfil: si el usuario pudiera
 actualizar su propia fila de perfil, podría autoasignarse `admin`.

@@ -4,11 +4,20 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-11
+- **Corte:** 2026-09-13
 - **Producción:** `v0.3.2` en `main` → **https://regenera-market.vercel.app**
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1 y 2 de `docs/BETA.md` cerrados y
-  en producción. **El Bloque 3 está empezado, no cerrado** — ver abajo.
-  **El registro funciona de punta a punta desde el 2026-09-11.**
+  en producción. **El Bloque 3 está terminado pero NO desplegado** — ver abajo.
+
+> ⚠️ **Ojo con la diferencia entre «hecho» y «en producción».** El 2026-09-13 se
+> terminó el Bloque 3 entero y el acceso con contraseña, pero **vive en la rama
+> `feat/js-clave-y-panel-admin`, sin PR y sin mergear**. Producción sigue
+> sirviendo `v0.3.2`: acceso solo por código y `/admin` de una sola pantalla.
+>
+> **La migración `0004` sí está aplicada contra la base real**, que es la única
+> compartida. Es aditiva y no rompe el código viejo —lo único que reemplaza es el
+> cuerpo de `handle_new_user()`, para que guarde también el teléfono—, así que
+> producción funciona igual mientras tanto.
 
 > **Antes de creerle a este archivo, comprueba que no está viejo.** Es el único
 > documento del repositorio que caduca.
@@ -105,12 +114,13 @@ curl -s https://regenera-market.vercel.app/catalogo | grep -o 'href="/oferta/[a-
 
 ## En una frase
 
-El catálogo se sirve de Postgres **en producción**, hay registro y acceso por
-código de seis dígitos, y existe un panel de administración para aprobar
-proveedores. **El registro funciona de verdad**: llega el código, entra, y el
-enlace del correo también. Lo que falta para la beta ya no es el acceso — es que
-alguien sea admin y que el panel de administración haga algo más que aprobar
-proveedores.
+El catálogo se sirve de Postgres en producción. En la rama sin mergear, el acceso
+pasó a **contraseña con el código de seis dígitos como segundo factor** (solo en
+dispositivos nuevos), el panel de administración tiene **seis pantallas** en vez
+de una —incluido el CRUD de ofertas, que es lo que permite cambiar el catálogo
+sin desplegar—, las postulaciones y las órdenes dejaron de vivir en memoria, y
+**hay dos administradores**. Lo que falta para la beta ya no es construir: es
+probarlo en un navegador, mergearlo y desplegarlo.
 
 ---
 
@@ -126,10 +136,16 @@ proveedores.
 | `src/lib/repo.ts` contra Postgres | ✅ **Bloque 1 cerrado** |
 | Registro y acceso por código (`/entrar`, `/registro`) | ✅ **Bloque 2 cerrado**, probado de punta a punta |
 | SMTP propio y plantillas con `{{ .Token }}` | ✅ Gmail personal de Jesús, provisional |
-| Aprobar proveedores desde `/admin` | ✅ lo único que hace el panel hoy |
 | Vercel Production configurado y verificado | ✅ `v0.3.2`, **https://regenera-market.vercel.app** |
-| Las otras cuatro pantallas de `/admin` | ❌ **el Bloque 3 no está cerrado** |
-| Que alguien sea admin | ❌ nadie lo es todavía |
+| `0004_clave_dispositivos_y_postulaciones.sql` | ✅ **aplicada** el 2026-09-13, inmutable |
+| Que alguien sea admin | ✅ Jesús e Ivan, con `scripts/crear-admin.mts` |
+| Contraseña + segundo factor por dispositivo | 🟡 hecho, **sin desplegar** (rama) |
+| Las seis pantallas de `/admin` | 🟡 cinco hechas, **sin desplegar**; falta `/admin/evaluaciones` |
+| Órdenes y postulaciones en Postgres | 🟡 hecho, **sin desplegar** |
+| Latido diario contra la pausa de Supabase | 🟡 hecho, **empieza a correr al mergear** |
+| `/admin/evaluaciones` | ❌ la quinta pantalla de `docs/BETA.md` |
+| Subir imágenes de una oferta | ❌ fuera de la beta a propósito |
+| Fechas con cupo de una experiencia desde el panel | ❌ solo por script |
 | Vercel Preview | ❌ faltan las tres de Supabase |
 | Panel de proveedor | ❌ **Bloque 4, sin empezar** |
 | Servidor propio (VPS) en vez de Vercel + Supabase | ❌ decidido, sin fecha |
@@ -233,23 +249,23 @@ qué el CLI no sirve para esto.
 
 ### 🟡 Cualquiera, una sola vez
 
-**5. Darse de alta como administradores.** Nadie es admin todavía, y **eso es
-correcto por diseño**: la política `user_roles_admin_write` solo deja escribir
-roles a quien ya es admin, y no hay ninguno. El arranque es manual.
+**5. ✅ Resuelto el 2026-09-13: hay dos administradores.** Se hicieron con
+`scripts/crear-admin.mts`, que crea la cuenta si no existe y asigna el rol en la
+misma pasada. Los correos no se escriben aquí: el repositorio es público.
 
-Primero los dos se registran **por la aplicación**, en `/registro`, para que
-exista la fila en `auth.users`. Después, una vez, desde el SQL Editor:
-
-```sql
-insert into user_roles (user_id, role)
-select id, 'admin' from auth.users
- where email in ('<correo de Ivan>', '<correo de Jesús>')
-on conflict do nothing;
+```bash
+node --env-file=.env.local scripts/crear-admin.mts --listar
+node --env-file=.env.local scripts/crear-admin.mts correo@ejemplo.com --nombre "Nombre Apellido" --avisar
 ```
 
-Los correos **no se escriben en este archivo**: el repositorio es público.
+**El arranque en frío era real y ahora está roto por diseño, no por accidente.**
+La política `user_roles_admin_write` solo deja escribir roles a quien ya es
+admin, así que el primero no se puede crear desde la aplicación: el script usa la
+clave de servicio, que es uno de sus tres usos legítimos. A partir del segundo,
+lo normal es usar `/admin/usuarios` y dejar que RLS conceda el permiso.
 
-Comprobación: entrar en `/admin`. Si redirige a la portada, el rol no quedó.
+Una cuenta creada así **no tiene contraseña**: entra con código y la aplicación
+le exige ponerse una antes de dejarla usar el panel.
 
 **6. Rotar la contraseña de la base.** Settings → Database → *Reset database
 password*. La que se usó para aplicar las migraciones pasó por un chat.
@@ -258,53 +274,56 @@ password*. La que se usó para aplicar las migraciones pasó por un chat.
 
 ## Lo que sigue, por orden
 
-### 1. Terminar el Bloque 3 — qué puede hacer un administrador
+### 1. Probar en un navegador lo del 2026-09-13, y desplegarlo
 
-**`ESTADO.md` decía que el Bloque 3 estaba cerrado y no lo está.** Hoy `/admin`
-es **una** pantalla que hace **una** cosa: aprobar, rechazar o suspender
-proveedores (`src/app/admin/page.tsx` + `decidirProveedor` en `actions.ts`).
-`docs/BETA.md` especifica cinco pantallas, y faltan cuatro:
+**Es lo único que separa la beta de estar lista, y no lo puede hacer un agente:**
+aquí no hay navegador automatizado. Lo verificado hasta ahora es el build, los
+tipos, el lint, las políticas RLS probadas con el rol equivocado (doce
+comprobaciones, todas en verde) y las respuestas HTTP. **Lo que nadie ha
+recorrido con el ratón es la interfaz.**
 
-| Ruta | Qué resuelve | Estado |
+```bash
+git switch feat/js-clave-y-panel-admin && npm run dev
+```
+
+El recorrido, en este orden, porque cada paso depende del anterior:
+
+| Paso | Dónde | Qué tiene que pasar |
 |---|---|---|
-| `/admin` (proveedores) | Aprobar, rechazar, suspender | ✅ existe |
-| `/admin/postulaciones` | Lo que llega de `/vender`, aprobar o rechazar | ❌ |
-| `/admin/ofertas` | **El CRUD que falta**: crear y editar ofertas | ❌ |
-| `/admin/evaluaciones` | Revisar la evidencia y decidir | ❌ |
-| `/admin/ordenes` | Ver órdenes y confirmar el pago manual | ❌ |
+| 1 | `/registro` | Pide nombre, apellido, teléfono con país y contraseña con barra. Llega el código, entra |
+| 2 | `/entrar` | Con la contraseña, **sin** pedir código: este aparato ya es de confianza |
+| 3 | Ventana de incógnito → `/entrar` | Contraseña **y** código: es un aparato nuevo |
+| 4 | `/cuenta` | Aparecen los dos dispositivos. Quitar uno |
+| 5 | `/entrar` con la cuenta de admin (nunca tuvo clave) | Entra con código y **lo manda a ponerse contraseña** |
+| 6 | `/admin/ofertas` → Nueva | Crear una experiencia, publicarla, verla en `/catalogo` **sin desplegar** |
+| 7 | `/admin/ofertas` | Retirarla: desaparece del catálogo |
+| 8 | `/vender` | Postular. Aparece en `/admin/postulaciones`. Aprobarla crea la empresa |
+| 9 | `/carrito` | Comprar. La orden aparece en `/admin/ordenes`. Confirmar el pago |
+| 10 | `/admin/usuarios` | Enlazar a alguien con una de las empresas sembradas |
 
-Sin `/admin/ofertas` **el catálogo solo cambia corriendo `scripts/seed.mts`**, o
-sea editando código y desplegando. Es la pantalla que convierte esto en algo
-operable, y por eso es la primera.
+**Si algo falla, es más probable que sea de la interfaz que de los permisos**:
+esos ya se probaron contra la base.
 
-**Antes de escribir nada, cuatro cosas que `docs/BETA.md` ya dejó decididas y que
-no se renegocian:**
+Después: PR contra `staging` (skill `flujo-git`), y al mergear a `main` empieza a
+correr el latido — el workflow `.github/workflows/latido.yml` no existe en `main`
+hasta entonces, así que **la protección contra la pausa de Supabase todavía no
+está activa**.
 
-- **`src/app/admin/layout.tsx` llama a `requireAdmin()` una vez.** Ninguna página
-  de dentro repite la comprobación. Hoy la hace `page.tsx`; al haber más de una
-  pantalla eso deja de servir.
-- **Cada acción usa el cliente `server.ts`, nunca `admin.ts`.** Que alguien sea
-  admin se lo dice RLS a la base por `is_admin()`. Usar la clave de servicio
-  desactiva la única barrera real y convierte un bug de ruta en acceso total.
-- **Ni `sustainability_score` ni `tier` pueden ser campos editables.** Los
-  escribe el trigger `sync_provider_score()` cuando una evaluación pasa a
-  `approved`. Un formulario que los toque vacía de significado el nivel y borra
-  la auditoría del puntaje.
-- **Aprobar un proveedor no es cambiar `providers.status` y ya.** Hay que crear
-  la fila de `provider_members` que enlaza a la persona con la empresa, o
-  `manages_provider()` da falso y el Bloque 4 nace muerto sin que el síntoma
-  apunte a la causa. Hoy no se crea: los 13 proveedores sembrados no tienen dueño
-  humano.
+### 1 bis. Lo que quedó fuera del Bloque 3, a conciencia
 
-**Requisito previo, y es de una sola vez:** nadie es admin todavía (punto 5). Sin
-eso no se puede ni ver la pantalla que ya existe.
-
-**Criterio de salida:** se crea una experiencia desde `/admin/ofertas`, aparece
-en el catálogo sin desplegar, y se retira volviéndola borrador. Se aprueba una
-postulación y esa persona entra a su panel. Se confirma el pago de una orden.
-Nadie escribió SQL en todo el recorrido.
-
-Cargar `dominio-regenera` y `supabase-schema` antes de empezar.
+- **`/admin/evaluaciones`** — la quinta pantalla de `docs/BETA.md`. Las
+  evaluaciones de sostenibilidad se siguen aprobando por SQL. No bloquea la beta
+  mientras ningún proveedor haya llenado el cuestionario, que es hoy.
+- **Las fechas con cupo de una experiencia** (`listing_availability`) solo se
+  siembran con el script. Una experiencia creada desde el panel se puede comprar
+  sin fecha.
+- **Subir imágenes**: el formulario pide direcciones de texto. Estaba fuera de la
+  beta a propósito, pero es lo primero que va a pedir un proveedor real.
+- **Los dos secretos del latido** (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) los tiene
+  que crear alguien con permiso de administración del repositorio — o sea Ivan;
+  `seiler18` tiene `write` y no puede. **Sin ellos el latido funciona igual**: lo
+  que se pierde es poder distinguir «se cayó Vercel» de «se pausó Supabase», que
+  desde fuera se ven igual.
 
 ### 2. El Bloque 4 — panel de proveedor
 
@@ -396,8 +415,6 @@ convierte en un hito.
 - **`middleware.ts` no existe aquí, es `src/proxy.ts`.** Next 16 deprecó esa
   convención. Cualquier tutorial de Supabase que encuentres crea `middleware.ts`
   porque está escrito para Next 15.
-- **`0001`, `0002` y `0003` son inmutables.** Ya corrieron contra la base. Todo
-  cambio posterior es `0004_`.
 - **`unaccent` es `stable` y una columna generada exige `immutable`.** Por eso
   existe `public.sin_tildes()` en `0003`, con el diccionario fijado por
   `::regdictionary`. Si tocas la búsqueda, esa es la trampa.
@@ -410,9 +427,38 @@ convierte en un hito.
   libre.
 - **RLS no da error cuando niega: devuelve cero filas.** Toda escritura tiene que
   comprobar el resultado, o un intento denegado se ve como éxito.
-- **El plan gratuito de Supabase pausa los proyectos inactivos.** Si se detiene
-  tres semanas y luego se le pasa la URL a un hotel, se encuentra una página
-  muerta.
+- **El plan gratuito de Supabase pausa los proyectos inactivos**, y lo que cuenta
+  como actividad es una petición **desde fuera**: un `pg_cron` dentro de Postgres
+  correría todos los días sin evitar la pausa. Por eso el latido lo dispara
+  GitHub Actions (`.github/workflows/latido.yml`, 12:10 UTC = 07:10 en Colombia)
+  contra `/api/latido`. **Y GitHub desactiva los `schedule` de un repositorio
+  tras 60 días sin actividad**, avisando por correo: si el proyecto se queda
+  quieto dos meses, hay que reactivarlo a mano en la pestaña Actions — justo
+  cuando más falta hace.
+- **El cliente de `src/lib/supabase/efimero.ts` es lo que hace real el segundo
+  factor.** Comprueba la contraseña **sin escribir cookies**. Si alguien cambia
+  `entrarConClave()` para usar el de `server.ts`, la sesión queda abierta en
+  cuanto la contraseña resulta correcta y el código posterior no protege de nada:
+  basta cerrar la pestaña. Todo seguiría funcionando de cara al usuario y ninguna
+  prueba lo detectaría.
+- **`user_metadata.tiene_clave` es la única forma de saber si una cuenta tiene
+  contraseña.** Supabase no lo dice: `user.identities` trae el proveedor `email`
+  tanto si hay contraseña como si la cuenta nació de un enlace mágico. Si se deja
+  de escribir esa marca, se le exigirá crear contraseña a gente que ya la tiene.
+- **`requireUser()` redirige a `/cuenta/clave` a quien no tenga contraseña**, y
+  el corte del bucle es el parámetro `destino`: esa misma página llama a
+  `requireUser("/cuenta/clave")`. Copiar la llamada ahí sin el argumento deja el
+  sitio en un bucle de redirecciones.
+- **Un archivo `"use server"` solo puede exportar funciones asíncronas.** Por eso
+  las tablas de estados de una orden viven en `src/lib/order-status.ts` y no
+  junto a la acción que las usa. Exportar una constante desde un `"use server"`
+  rompe la compilación con un error que no dice eso.
+- **La cookie del dispositivo (`sgr_dispositivo`) no lleva el prefijo
+  `__Host-`.** Ese prefijo exige `secure`, y en `localhost` sobre http el
+  navegador la descartaría en silencio: el síntoma sería «el código se pide
+  siempre» en desarrollo, sin ninguna pista de por qué.
+- **`0001`, `0002`, `0003` y `0004` son inmutables.** Ya corrieron contra la
+  base. Todo cambio posterior es `0005_`.
 - **Vercel Hobby es para proyectos no comerciales.** El día que entre dinero real
   son 20 USD/mes de Pro.
 - **`hairline` y `control` no son intercambiables.** El primero separa
