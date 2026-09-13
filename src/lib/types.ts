@@ -185,3 +185,45 @@ export interface ListingFilters {
   certification?: string;
   sort?: "relevance" | "price_asc" | "price_desc" | "impact" | "newest";
 }
+
+/**
+ * Postulación de proveedor: lo que llega de `/vender`.
+ *
+ * Vive en `provider_applications` (migración 0004). Antes era un array en
+ * memoria del servidor y se perdía en cada redespliegue.
+ */
+export interface ProviderApplication {
+  id: string;
+  /** Quién postuló, si tenía sesión. Al aprobar, queda como dueño de la empresa. */
+  userId?: string;
+  name: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  department: string;
+  city: string;
+  website?: string;
+  description: string;
+  status: ReviewStatus;
+  reviewerNotes?: string;
+  /** El proveedor que se creó al aprobarla. */
+  providerId?: string;
+  createdAt: string;
+}
+
+/**
+ * Un usuario visto desde administración.
+ *
+ * Sale de la función `admin_listar_usuarios()` y no de una consulta normal: el
+ * correo vive en `auth.users`, esquema que la clave anon no puede leer.
+ */
+export interface AdminUsuario {
+  id: string;
+  email: string;
+  fullName: string;
+  phone?: string;
+  roles: Role[];
+  lastSignInAt?: string;
+  emailConfirmedAt?: string;
+  createdAt: string;
+}

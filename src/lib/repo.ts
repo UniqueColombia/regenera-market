@@ -2,12 +2,15 @@ import { cache } from "react";
 import { createClient } from "./supabase/server";
 import { TIERS } from "./taxonomy";
 import type {
+  AdminUsuario,
   Listing,
   ListingFilters,
   ListingKind,
   Provider,
+  ProviderApplication,
   ProviderTrait,
   ReviewStatus,
+  Role,
   Tier,
   Vertical,
 } from "./types";
@@ -479,4 +482,181 @@ export async function getMarketplaceStats() {
       ? Math.round((conNivel / filas.length) * 100)
       : 0,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Lecturas del panel de administración
+//
+// Van aquí, y no en cada página, por la invariante 18: `repo.ts` es la única
+// puerta a los datos. Y **ninguna comprueba el rol**, igual que
+// `getProvidersForReview()`: quien decide qué filas se devuelven es RLS. Si
+// además filtraran por rol en JavaScript habría dos reglas que mantener de
+// acuerdo, y la de abajo sería la única que de verdad protege.
+// ---------------------------------------------------------------------------
+
+/** Una oferta con el nombre de su proveedor, para las listas del panel. */
+export interface ListingAdmin extends Listing {
+  providerName: string;
+  providerStatus: ReviewStatus;
+}
+
+/**
+ * Todas las ofertas, en cualquier estado.
+ *
+ * Consulta `listings` y **no** la vista `listings_publicos`: la vista filtra a
+ * "aprobado de proveedor aprobado", que es justo lo contrario de lo que hace
+ * falta aquí — el panel existe para ver lo que todavía no está publicado.
+ */
+export async function getListingsForAdmin(): Promise<ListingAdmin[]> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("listings")
+    .select(`${COLUMNAS_LISTING}, providers(name, status)`)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`getListingsForAdmin: ${error.message}`);
+
+  return (data as unknown as (FilaListing & {
+    providers: { name: string; status: ReviewStatus } | null;
+  })[]).map((fila) => ({
+    ...aListing(fila),
+    providerName: fila.providers?.name ?? "Sin proveedor",
+    providerStatus: fila.providers?.status ?? "draft",
+  }));
+}
+
+/** Una oferta por id, en cualquier estado. Para el formulario de edición. */
+export async function getListingByIdForAdmin(
+  id: string,
+): Promise<Listing | undefined> {
+  if (!UUID.test(id)) return undefined;
+  const db = await createClient();
+  const { data, error } = await db
+    .from("listings")
+    .select(COLUMNAS_LISTING)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getListingByIdForAdmin: ${error.message}`);
+  return data ? aListing(data as unknown as FilaListing) : undefined;
+}
+
+interface FilaPostulacion {
+  id: string;
+  user_id: string | null;
+  name: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  department: string;
+  city: string;
+  website: string | null;
+  description: string;
+  status: ReviewStatus;
+  reviewer_notes: string | null;
+  provider_id: string | null;
+  created_at: string;
+}
+
+/**
+ * Las postulaciones de `/vender`.
+ *
+ * Orden: lo más antiguo primero dentro de lo pendiente. Quien lleva más tiempo
+ * esperando respuesta se atiende antes — el mismo criterio que en proveedores.
+ */
+export async function getApplications(): Promise<ProviderApplication[]> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("provider_applications")
+    .select(
+      "id, user_id, name, contact_name, email, phone, department, city, website, description, status, reviewer_notes, provider_id, created_at",
+    )
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`getApplications: ${error.message}`);
+
+  return (data as FilaPostulacion[]).map((f) => ({
+    id: f.id,
+    userId: f.user_id ?? undefined,
+    name: f.name,
+    contactName: f.contact_name,
+    email: f.email,
+    phone: f.phone,
+    department: f.department,
+    city: f.city,
+    website: f.website ?? undefined,
+    description: f.description,
+    status: f.status,
+    reviewerNotes: f.reviewer_notes ?? undefined,
+    providerId: f.provider_id ?? undefined,
+    // `soloFecha` porque `longDate()` espera AAAA-MM-DD: con la marca de tiempo
+    // entera arma una cadena imposible y pinta «Invalid Date».
+    createdAt: soloFecha(f.created_at),
+  }));
+}
+
+/**
+ * Los usuarios y sus roles.
+ *
+ * Pasa por la función `admin_listar_usuarios()` de la migración 0004, que es
+ * `security definer` para poder leer `auth.users` y lleva `where is_admin()`
+ * dentro. **Ese `where` es la política**: a quien no sea administrador la
+ * llamada le devuelve cero filas en vez de un error, que es como niega RLS.
+ */
+export async function getUsuarios(): Promise<AdminUsuario[]> {
+  const db = await createClient();
+  const { data, error } = await db.rpc("admin_listar_usuarios");
+  if (error) throw new Error(`getUsuarios: ${error.message}`);
+
+  return (data as {
+    id: string;
+    email: string;
+    full_name: string;
+    phone: string | null;
+    roles: Role[] | null;
+    last_sign_in_at: string | null;
+    email_confirmed_at: string | null;
+    created_at: string;
+  }[]).map((u) => ({
+    id: u.id,
+    email: u.email,
+    fullName: u.full_name,
+    phone: u.phone ?? undefined,
+    roles: u.roles ?? [],
+    lastSignInAt: u.last_sign_in_at ?? undefined,
+    emailConfirmedAt: u.email_confirmed_at ?? undefined,
+    createdAt: u.created_at,
+  }));
+}
+
+/** Quién gestiona qué empresa. Para la pantalla de usuarios del panel. */
+export interface VinculoProveedor {
+  userId: string;
+  providerId: string;
+  providerName: string;
+  esDueno: boolean;
+}
+
+/**
+ * Los vínculos persona ↔ empresa.
+ *
+ * La política `provider_members_read` decide el alcance: un administrador los ve
+ * todos, cualquier otro solo los suyos. Sin filtro escrito a mano, otra vez a
+ * propósito.
+ */
+export async function getVinculosProveedor(): Promise<VinculoProveedor[]> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("provider_members")
+    .select("user_id, provider_id, is_owner, providers(name)");
+  if (error) throw new Error(`getVinculosProveedor: ${error.message}`);
+
+  return (data as unknown as {
+    user_id: string;
+    provider_id: string;
+    is_owner: boolean;
+    providers: { name: string } | null;
+  }[]).map((v) => ({
+    userId: v.user_id,
+    providerId: v.provider_id,
+    providerName: v.providers?.name ?? "Empresa",
+    esDueno: v.is_owner,
+  }));
 }

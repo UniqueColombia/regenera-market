@@ -36,7 +36,7 @@ export default async function EntrarPage(props: PageProps<"/entrar">) {
     <div className="container-page max-w-md py-16">
       <h1 className="font-display text-3xl text-ink">Entrar</h1>
       <p className="mt-2 text-muted">
-        Escribe tu correo y te mandamos un código para entrar.
+        Entra con tu correo y tu contraseña.
       </p>
       {error && (
         <p
@@ -46,7 +46,7 @@ export default async function EntrarPage(props: PageProps<"/entrar">) {
           {ERRORES[error] ?? ERRORES.desconocido}
         </p>
       )}
-      <FormularioAcceso registro={false} volver={volver} />
+      <FormularioAcceso volver={volver} />
     </div>
   );
 }

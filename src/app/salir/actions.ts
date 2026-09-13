@@ -17,7 +17,11 @@ import { createClient } from "@/lib/supabase/server";
  */
 export async function cerrarSesion() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  // `scope: "local"` cierra **esta** sesión, no todas. Por defecto `signOut()`
+  // revoca los tokens de la persona en todos sus dispositivos, y eso convierte
+  // «salir» en el computador del hotel en «me echó del teléfono». Quien quiera
+  // lo otro tiene la pantalla de dispositivos de confianza en `/cuenta`.
+  await supabase.auth.signOut({ scope: "local" });
   revalidatePath("/", "layout");
   redirect("/");
 }
