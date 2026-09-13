@@ -4,20 +4,19 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-13
-- **Producción:** `v0.3.2` en `main` → **https://regenera-market.vercel.app**
-- **Fase del roadmap:** 0 cerrada. Bloques 0, 1 y 2 de `docs/BETA.md` cerrados y
-  en producción. **El Bloque 3 está terminado pero NO desplegado** — ver abajo.
+- **Corte:** 2026-09-13 (después del release)
+- **Producción:** `v0.4.0` en `main` → **https://regenera-market.vercel.app**
+- **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
+  cerrados y **en producción**.
 
-> ⚠️ **Ojo con la diferencia entre «hecho» y «en producción».** El 2026-09-13 se
-> terminó el Bloque 3 entero y el acceso con contraseña, pero **vive en la rama
-> `feat/js-clave-y-panel-admin`, sin PR y sin mergear**. Producción sigue
-> sirviendo `v0.3.2`: acceso solo por código y `/admin` de una sola pantalla.
+> **El 2026-09-13 entró el release `v0.4.0`** (PR #42 → `staging`, #43 →
+> `main`): acceso con contraseña y segundo factor por dispositivo, panel de
+> administración de seis pantallas, órdenes y postulaciones en Postgres, y el
+> latido diario contra la pausa de Supabase.
 >
-> **La migración `0004` sí está aplicada contra la base real**, que es la única
-> compartida. Es aditiva y no rompe el código viejo —lo único que reemplaza es el
-> cuerpo de `handle_new_user()`, para que guarde también el teléfono—, así que
-> producción funciona igual mientras tanto.
+> Comprobado contra producción al desplegar: `/api/latido` responde `ok`,
+> `/catalogo` 200, `/entrar` pide contraseña, `/admin` sin sesión redirige. El
+> workflow `Latido` se disparó a mano y terminó en verde.
 
 > **Antes de creerle a este archivo, comprueba que no está viejo.** Es el único
 > documento del repositorio que caduca.
@@ -114,13 +113,13 @@ curl -s https://regenera-market.vercel.app/catalogo | grep -o 'href="/oferta/[a-
 
 ## En una frase
 
-El catálogo se sirve de Postgres en producción. En la rama sin mergear, el acceso
-pasó a **contraseña con el código de seis dígitos como segundo factor** (solo en
-dispositivos nuevos), el panel de administración tiene **seis pantallas** en vez
-de una —incluido el CRUD de ofertas, que es lo que permite cambiar el catálogo
-sin desplegar—, las postulaciones y las órdenes dejaron de vivir en memoria, y
-**hay dos administradores**. Lo que falta para la beta ya no es construir: es
-probarlo en un navegador, mergearlo y desplegarlo.
+Todo lo que hacía falta para operar la beta **está en producción**: el catálogo
+sale de Postgres, el acceso pide contraseña con el código de seis dígitos como
+segundo factor en dispositivos nuevos, el panel de administración tiene seis
+pantallas —incluido el CRUD de ofertas, que permite cambiar el catálogo sin
+desplegar—, las órdenes y las postulaciones se persisten, y hay dos
+administradores. **Lo que falta ya no es construir la plataforma: es meterle
+datos reales y proveedores reales.**
 
 ---
 
@@ -140,10 +139,10 @@ probarlo en un navegador, mergearlo y desplegarlo.
 | `0004_clave_dispositivos_y_postulaciones.sql` | ✅ **aplicada** el 2026-09-13, inmutable |
 | `0005_recursion_ordenes_y_cotizaciones.sql` | ✅ **aplicada** el 2026-09-13, inmutable |
 | Que alguien sea admin | ✅ Jesús e Ivan, con `scripts/crear-admin.mts` |
-| Contraseña + segundo factor por dispositivo | 🟡 hecho, **sin desplegar** (rama) |
-| Las seis pantallas de `/admin` | 🟡 cinco hechas, **sin desplegar**; falta `/admin/evaluaciones` |
-| Órdenes y postulaciones en Postgres | 🟡 hecho, **sin desplegar** |
-| Latido diario contra la pausa de Supabase | 🟡 hecho, **empieza a correr al mergear** |
+| Contraseña + segundo factor por dispositivo | ✅ en producción desde `v0.4.0` |
+| Las seis pantallas de `/admin` | ✅ en producción; falta `/admin/evaluaciones` |
+| Órdenes y postulaciones en Postgres | ✅ en producción |
+| Latido diario contra la pausa de Supabase | ✅ corriendo, 12:10 UTC |
 | `/admin/evaluaciones` | ❌ la quinta pantalla de `docs/BETA.md` |
 | Subir imágenes de una oferta | ❌ fuera de la beta a propósito |
 | Fechas con cupo de una experiencia desde el panel | ❌ solo por script |
@@ -275,42 +274,20 @@ password*. La que se usó para aplicar las migraciones pasó por un chat.
 
 ## Lo que sigue, por orden
 
-### 1. Probar en un navegador lo del 2026-09-13, y desplegarlo
+### 1. Abrir a proveedores reales
 
-**Es lo único que separa la beta de estar lista, y no lo puede hacer un agente:**
-aquí no hay navegador automatizado. Lo verificado hasta ahora es el build, los
-tipos, el lint, las políticas RLS probadas con el rol equivocado (doce
-comprobaciones, todas en verde) y las respuestas HTTP. **Lo que nadie ha
-recorrido con el ratón es la interfaz.**
+La plataforma ya hace lo que tenía que hacer. El siguiente paso no es código:
 
-```bash
-git switch feat/js-clave-y-panel-admin && npm run dev
-```
+1. **El SMTP definitivo** (solo Ivan, punto 1 de arriba). Hoy el correo de acceso
+   sale del Gmail personal de Jesús, con techo de ~500 al día. No se sostiene
+   frente a un hotel.
+2. **Cargar proveedores de verdad** desde `/admin/ofertas` y `/admin/usuarios`,
+   o aprobando lo que llegue por `/vender`. Los 13 sembrados son ficticios y no
+   se pueden presentar como reales — invariante 21.
+3. **Enlazar cada proveedor con una persona** (`/admin/usuarios`). Mientras una
+   empresa no tenga a nadie, solo un administrador puede tocarla.
 
-El recorrido, en este orden, porque cada paso depende del anterior:
-
-| Paso | Dónde | Qué tiene que pasar |
-|---|---|---|
-| 1 | `/registro` | Pide nombre, apellido, teléfono con país y contraseña con barra. Llega el código, entra |
-| 2 | `/entrar` | Con la contraseña, **sin** pedir código: este aparato ya es de confianza |
-| 3 | Ventana de incógnito → `/entrar` | Contraseña **y** código: es un aparato nuevo |
-| 4 | `/cuenta` | Aparecen los dos dispositivos. Quitar uno |
-| 5 | `/entrar` con la cuenta de admin (nunca tuvo clave) | Entra con código y **lo manda a ponerse contraseña** |
-| 6 | `/admin/ofertas` → Nueva | Crear una experiencia, publicarla, verla en `/catalogo` **sin desplegar** |
-| 7 | `/admin/ofertas` | Retirarla: desaparece del catálogo |
-| 8 | `/vender` | Postular. Aparece en `/admin/postulaciones`. Aprobarla crea la empresa |
-| 9 | `/carrito` | Comprar. La orden aparece en `/admin/ordenes`. Confirmar el pago |
-| 10 | `/admin/usuarios` | Enlazar a alguien con una de las empresas sembradas |
-
-**Si algo falla, es más probable que sea de la interfaz que de los permisos**:
-esos ya se probaron contra la base.
-
-Después: PR contra `staging` (skill `flujo-git`), y al mergear a `main` empieza a
-correr el latido — el workflow `.github/workflows/latido.yml` no existe en `main`
-hasta entonces, así que **la protección contra la pausa de Supabase todavía no
-está activa**.
-
-### 1 bis. Lo que quedó fuera del Bloque 3, a conciencia
+### 2. Lo que quedó fuera del Bloque 3, a conciencia
 
 - **`/admin/evaluaciones`** — la quinta pantalla de `docs/BETA.md`. Las
   evaluaciones de sostenibilidad se siguen aprobando por SQL. No bloquea la beta
@@ -326,13 +303,13 @@ está activa**.
   que se pierde es poder distinguir «se cayó Vercel» de «se pausó Supabase», que
   desde fuera se ven igual.
 
-### 2. El Bloque 4 — panel de proveedor
+### 3. El Bloque 4 — panel de proveedor
 
 Mismo patrón que `/admin` aplicado al otro rol. Depende del cabo suelto de arriba
 (`provider_members`): mientras nadie se convierta en `provider`, no hay a quién
 enseñarle ese panel.
 
-### 3. Mudarse a servidor propio, y dejar de depender de Supabase
+### 4. Mudarse a servidor propio, y dejar de depender de Supabase
 
 **Decidido, sin fecha: arranca cuando Ivan compre el VPS de Hostinger.** El
 destino es que todo lo que hoy vive en Vercel y Supabase corra en una máquina
