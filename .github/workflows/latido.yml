@@ -1,0 +1,106 @@
+name: Latido
+
+# ---------------------------------------------------------------------------
+# Mantiene despierto el proyecto de Supabase.
+#
+# El plan gratuito **pausa un proyecto que pasa siete días sin actividad de
+# API**. No borra los datos —restaurar es un botón en el panel— pero mientras
+# está pausado el sitio responde 500 a todo el mundo, y eso se descubre tarde y
+# mal: cuando alguien a quien le pasaste el enlace se encuentra una página
+# muerta.
+#
+# Lo que cuenta como actividad es una petición **desde fuera**. Un `pg_cron`
+# dentro de Postgres no sirve: corre en la base sin generar ni una llamada a la
+# API, así que el contador de inactividad no se entera. Por eso el latido lo
+# dispara GitHub, que es una máquina ajena al proyecto.
+#
+# De paso vigila producción: si un día el sitio responde 500 porque alguien
+# borró una variable de entorno, este job se pone rojo y GitHub manda el correo.
+# Es el único aviso automático que hay hoy de que producción se cayó.
+#
+# ⚠️ **GitHub desactiva los `schedule` de un repositorio tras 60 días sin
+# actividad** y avisa por correo antes de hacerlo. Si el proyecto se queda
+# quieto dos meses, hay que volver a activarlo a mano en la pestaña Actions —
+# si no, el latido se para justo cuando más falta hace.
+# ---------------------------------------------------------------------------
+
+on:
+  schedule:
+    # 12:10 UTC = 07:10 en Colombia. Minuto 10 y no en punto a propósito: GitHub
+    # encola los cron de todo el mundo a las horas redondas y los retrasa.
+    - cron: "10 12 * * *"
+  # Para poder probarlo sin esperar a mañana.
+  workflow_dispatch:
+
+concurrency:
+  group: latido
+  cancel-in-progress: false
+
+jobs:
+  latido:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      SITIO: https://regenera-market.vercel.app
+
+    steps:
+      - name: Despertar la base a través de la aplicación
+        run: |
+          set -uo pipefail
+
+          # /api/latido consulta Postgres y devuelve JSON. Si todavía no está
+          # desplegado (la ruta nació en la rama de la clave y el panel), se cae
+          # a /catalogo, que también lee de la base y existe desde antes.
+          for ruta in /api/latido /catalogo; do
+            echo "→ GET $SITIO$ruta"
+            codigo=$(curl -sS -o /tmp/respuesta -w "%{http_code}" \
+                      --max-time 45 --retry 3 --retry-delay 20 --retry-all-errors \
+                      "$SITIO$ruta" || echo "000")
+            echo "   HTTP $codigo"
+
+            if [ "$codigo" = "200" ]; then
+              head -c 300 /tmp/respuesta; echo
+              echo "✅ La base respondió por $ruta."
+              exit 0
+            fi
+
+            # 404 = esa ruta aún no existe en producción; se prueba la siguiente.
+            # Cualquier otro código es un fallo de verdad y hay que verlo.
+            if [ "$codigo" != "404" ]; then
+              echo "::error::$ruta respondió $codigo. 500 suele ser Supabase pausado o una variable de entorno borrada; 000 es que el sitio no contestó."
+              head -c 500 /tmp/respuesta; echo
+              exit 1
+            fi
+          done
+
+          echo "::error::Ninguna ruta respondió 200. Revisa que el despliegue de producción esté vivo."
+          exit 1
+
+      # Segundo camino, directo contra la API de Supabase, sin pasar por Vercel.
+      # Solo corre si alguien con permiso de administración del repositorio creó
+      # los dos secretos; mientras no existan, se salta sin ensuciar el log.
+      #
+      # Sirve para distinguir "se cayó Vercel" de "se pausó Supabase", que desde
+      # fuera se ven igual: un 500.
+      - name: Tocar la API de Supabase directamente
+        # Se consultan los secretos aquí y no el `env` del propio paso: el `env`
+        # de un paso todavía no existe cuando se evalúa su `if`, y la condición
+        # daría siempre falso.
+        if: ${{ secrets.SUPABASE_URL != '' && secrets.SUPABASE_ANON_KEY != '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -uo pipefail
+          codigo=$(curl -sS -o /tmp/rest -w "%{http_code}" \
+                    --max-time 45 --retry 3 --retry-delay 20 --retry-all-errors \
+                    -H "apikey: $SUPABASE_ANON_KEY" \
+                    -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+                    "$SUPABASE_URL/rest/v1/providers?select=id&limit=1" || echo "000")
+          echo "REST HTTP $codigo"
+          if [ "$codigo" != "200" ]; then
+            echo "::error::La API de Supabase respondió $codigo. Si el sitio sí contestó, el problema no es Vercel."
+            exit 1
+          fi
+          echo "✅ PostgREST responde."
