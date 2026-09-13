@@ -358,11 +358,26 @@ export async function verificarCodigo(datos: unknown): Promise<ResultadoCodigo> 
   if (!parsed.success) return { ok: false, errors: errores(parsed.error) };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.verifyOtp({
+
+  // `email` primero porque es el tipo del código de acceso, que es el caso
+  // habitual. Si falla se reintenta como `signup`: el código que manda `signUp`
+  // al crear la cuenta puede pedir ese otro tipo según cómo esté configurado el
+  // proyecto, y un registro que no se puede confirmar deja a la persona con una
+  // cuenta a la que no puede entrar. Dos intentos cuestan una llamada de más;
+  // equivocarse cuesta el registro entero.
+  let { data, error } = await supabase.auth.verifyOtp({
     email: parsed.data.email,
     token: parsed.data.token,
     type: "email",
   });
+
+  if (error) {
+    ({ data, error } = await supabase.auth.verifyOtp({
+      email: parsed.data.email,
+      token: parsed.data.token,
+      type: "signup",
+    }));
+  }
 
   if (error || !data.user) {
     return {
