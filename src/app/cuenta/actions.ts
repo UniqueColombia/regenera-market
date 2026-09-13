@@ -71,7 +71,10 @@ export async function definirClave(datos: unknown): Promise<ResultadoClave> {
     if (error) {
       return { ok: false, errors: { actual: "Esa no es tu contraseña actual" } };
     }
-    await efimero.auth.signOut();
+    // `scope: "local"`, otra vez: sin él, comprobar la contraseña actual cerraría
+    // la sesión de la persona en todos sus dispositivos —incluida esta, a mitad
+    // de cambiar la clave— por haber escrito bien su propia contraseña.
+    await efimero.auth.signOut({ scope: "local" });
   }
 
   const problema = validarClave(parsed.data.password, [
@@ -99,9 +102,8 @@ export async function definirClave(datos: unknown): Promise<ResultadoClave> {
 
   // El aparato desde el que alguien acaba de ponerse contraseña es, por
   // definición, uno en el que ya confía: llegó hasta aquí pasando el código.
-  const supabaseSesion = await createClient();
   await recordarDispositivo(
-    supabaseSesion,
+    supabase,
     user.id,
     await asegurarIdDispositivo(),
     await describirDispositivo(),

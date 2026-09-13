@@ -436,6 +436,18 @@ convierte en un hito.
   tras 60 días sin actividad**, avisando por correo: si el proyecto se queda
   quieto dos meses, hay que reactivarlo a mano en la pestaña Actions — justo
   cuando más falta hace.
+- **`supabase.auth.signOut()` sin argumentos cierra la sesión en TODOS los
+  dispositivos de esa persona.** El valor por defecto de `scope` es `global` y
+  revoca todos sus tokens. En los tres sitios donde se llama va
+  `signOut({ scope: "local" })`: sin eso, entrar desde un computador nuevo —o
+  simplemente escribir bien tu contraseña actual para cambiarla— echaría a la
+  persona de su teléfono y de su portátil. El síntoma sería «se me cierra la
+  sesión sola», sin nada que lo relacione con la causa.
+- **El contexto `secrets` no existe en el `if` de un paso de GitHub Actions.**
+  Solo están `github`, `needs`, `job`, `runner`, `env`, `vars`, `steps`, `inputs`
+  y `matrix`. Un `if: ${{ secrets.X != '' }}` no se evalúa como falso: revienta el
+  workflow entero con «Unrecognized named-value». El secreto se copia al `env` del
+  job y la condición mira la copia — así está hecho en `latido.yml`.
 - **El cliente de `src/lib/supabase/efimero.ts` es lo que hace real el segundo
   factor.** Comprueba la contraseña **sin escribir cookies**. Si alguien cambia
   `entrarConClave()` para usar el de `server.ts`, la sesión queda abierta en

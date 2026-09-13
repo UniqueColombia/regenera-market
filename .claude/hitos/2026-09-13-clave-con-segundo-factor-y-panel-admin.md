@@ -21,9 +21,9 @@ para operar la beta:
 3. **La base ya no se va a dormir.** Un workflow de GitHub Actions la toca todos
    los días a las 07:10 de Colombia.
 
-Además: `ichbinseiler@gmail.com` e `info@uniquecolombia.co` son administradores —
-antes no lo era nadie, que era el requisito previo que bloqueaba el Bloque 3
-entero.
+Además: **las cuentas de Jesús y de Ivan son administradoras** — antes no lo era
+nadie, que era el requisito previo que bloqueaba el Bloque 3 entero. Los correos
+no se escriben aquí: el repositorio es público.
 
 ## Por qué así
 

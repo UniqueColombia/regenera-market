@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createEphemeralClient, createTokenClient } from "@/lib/supabase/efimero";
 import {
@@ -218,7 +219,7 @@ export async function registrarse(datos: unknown): Promise<ResultadoAcceso> {
   // sesión y las cookies quedaron escritas. No hay código que pedir, pero sí hay
   // que recordar el aparato: es el primero de esta cuenta.
   if (data.session && data.user) {
-    await confiarEnEsteAparato(data.user.id);
+    await confiarEnEsteAparato(supabase, data.user.id);
     return { ok: true, requiereCodigo: false };
   }
 
@@ -286,7 +287,7 @@ export async function entrarConClave(datos: unknown): Promise<ResultadoAcceso> {
     }
 
     // Renueva `last_seen_at` y, de paso, la cookie del aparato.
-    await confiarEnEsteAparato(user.id);
+    await confiarEnEsteAparato(supabase, user.id);
     return {
       ok: true,
       requiereCodigo: false,
@@ -297,7 +298,14 @@ export async function entrarConClave(datos: unknown): Promise<ResultadoAcceso> {
   // Aparato nuevo. Se revoca el token que se acaba de emitir —no llegó a
   // guardarse en ninguna cookie, pero dejarlo vivo sería dejar una llave tirada—
   // y se manda el código.
-  await efimero.auth.signOut();
+  //
+  // **`scope: "local"` no es opcional: `signOut()` sin argumentos cierra la
+  // sesión en TODOS los dispositivos.** Sin esto, entrar desde un computador
+  // nuevo echaría a la persona de su teléfono y de su portátil, y el síntoma
+  // sería «se me cierra la sesión sola» sin nada que lo relacione con haber
+  // entrado desde otro sitio. Aquí solo hay que revocar el token que se acaba de
+  // emitir tres líneas más arriba.
+  await efimero.auth.signOut({ scope: "local" });
 
   const supabase = await createClient();
   const { error: errorCodigo } = await supabase.auth.signInWithOtp({
@@ -386,7 +394,7 @@ export async function verificarCodigo(datos: unknown): Promise<ResultadoCodigo> 
     };
   }
 
-  await confiarEnEsteAparato(data.user.id);
+  await confiarEnEsteAparato(supabase, data.user.id);
 
   return { ok: true, necesitaClave: !tieneClave(data.user.user_metadata) };
 }
@@ -394,13 +402,25 @@ export async function verificarCodigo(datos: unknown): Promise<ResultadoCodigo> 
 /**
  * Guarda este aparato como conocido para el usuario de la sesión actual.
  *
- * Se hace con el cliente de sesión (no con la clave de servicio) para que la
- * política `trusted_devices_own` sea la que autorice: si algún día esta función
- * se llamara con el id de otra persona, la base lo rechazaría.
+ * **Recibe el cliente que acaba de abrir la sesión en vez de crear otro.** Uno
+ * nuevo tendría que releer la cookie recién escrita en esta misma petición, y
+ * aunque Next devuelve lo que se escribió, no hay razón para depender de ese
+ * detalle: si alguna vez no lo hiciera, el `insert` se quedaría sin
+ * `auth.uid()`, RLS devolvería cero filas **sin error** y el síntoma sería que
+ * el código se pide siempre, sin nada en los registros que lo explique.
+ *
+ * Va con el cliente de sesión y no con la clave de servicio para que la política
+ * `trusted_devices_own` sea la que autorice: si algún día se llamara con el id
+ * de otra persona, la base lo rechazaría.
  */
-async function confiarEnEsteAparato(userId: string): Promise<void> {
-  const idDispositivo = await asegurarIdDispositivo();
-  const etiqueta = await describirDispositivo();
-  const supabase = await createClient();
-  await recordarDispositivo(supabase, userId, idDispositivo, etiqueta);
+async function confiarEnEsteAparato(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<void> {
+  await recordarDispositivo(
+    supabase,
+    userId,
+    await asegurarIdDispositivo(),
+    await describirDispositivo(),
+  );
 }

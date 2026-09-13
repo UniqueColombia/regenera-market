@@ -43,6 +43,14 @@ jobs:
 
     env:
       SITIO: https://regenera-market.vercel.app
+      # Se leen aquí, a nivel de job, y no dentro del paso que los usa: el
+      # contexto `secrets` NO existe en el `if` de un paso (solo github, needs,
+      # job, runner, env, vars, steps, inputs y matrix), y usarlo ahí revienta el
+      # workflow entero con «Unrecognized named-value: 'secrets'». El `env` del
+      # job sí está disponible, así que el secreto se copia aquí y la condición
+      # mira la copia. Mientras no existan, valen cadena vacía.
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
     steps:
       - name: Despertar la base a través de la aplicación
@@ -84,13 +92,7 @@ jobs:
       # Sirve para distinguir "se cayó Vercel" de "se pausó Supabase", que desde
       # fuera se ven igual: un 500.
       - name: Tocar la API de Supabase directamente
-        # Se consultan los secretos aquí y no el `env` del propio paso: el `env`
-        # de un paso todavía no existe cuando se evalúa su `if`, y la condición
-        # daría siempre falso.
-        if: ${{ secrets.SUPABASE_URL != '' && secrets.SUPABASE_ANON_KEY != '' }}
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        if: ${{ env.SUPABASE_URL != '' && env.SUPABASE_ANON_KEY != '' }}
         run: |
           set -uo pipefail
           codigo=$(curl -sS -o /tmp/rest -w "%{http_code}" \
