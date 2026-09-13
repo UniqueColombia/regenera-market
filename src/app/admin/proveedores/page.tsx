@@ -1,27 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
 import { DecisionProveedor } from "./decision-proveedor";
 import { ProviderAvatar } from "@/components/provider-avatar";
 import { TierBadge } from "@/components/tier-badge";
-import { requireAdmin } from "@/lib/auth";
 import { getProvidersForReview } from "@/lib/repo";
 import { longDate } from "@/lib/format";
 import type { ReviewStatus } from "@/lib/types";
 
 export const metadata: Metadata = {
-  title: "Administración",
-  robots: { index: false },
+  title: "Proveedores",
 };
 
 /**
- * Panel de administración: aprobar, rechazar y suspender proveedores.
+ * Aprobar, rechazar y suspender proveedores.
  *
- * `requireAdmin()` es defensa en profundidad, no la defensa. Si alguien llegara
- * aquí sin serlo, la política `providers_public_read` le devolvería únicamente
- * los proveedores aprobados y `providers_admin_all` no le dejaría escribir una
- * fila. El helper existe para que vea un redirect limpio en vez de una tabla
- * incompleta que no entiende.
+ * **No comprueba el rol**: lo hace `src/app/admin/layout.tsx`, una sola vez para
+ * todo el panel. Y aunque no lo hiciera, la política `providers_public_read`
+ * solo le devolvería a un curioso los proveedores aprobados, y
+ * `providers_admin_all` no le dejaría escribir ni una fila.
  */
 
 const ORDEN: ReviewStatus[] = [
@@ -58,8 +54,7 @@ const COLOR: Record<ReviewStatus, string> = {
  */
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
-  await requireAdmin();
+export default async function ProveedoresPage() {
   const proveedores = await getProvidersForReview();
 
   const porEstado = ORDEN.map((estado) => ({
@@ -72,13 +67,9 @@ export default async function AdminPage() {
   ).length;
 
   return (
-    <div className="container-page py-10">
-      <header>
-        <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
-          <ShieldCheck className="size-4" />
-          Administración
-        </p>
-        <h1 className="mt-3 font-display text-3xl text-ink sm:text-4xl">
+    <div>
+      <header className="mt-8">
+        <h1 className="font-display text-3xl text-ink sm:text-4xl">
           Proveedores
         </h1>
         <p className="mt-2 max-w-2xl text-muted">
