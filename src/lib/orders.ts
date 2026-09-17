@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import { createClient } from "./supabase/server";
 import { getUser } from "./auth";
+import { COMMISSION_RATE } from "./pricing";
 import type { Order, OrderItem, OrderStatus } from "./types";
 
 /**
@@ -68,6 +69,8 @@ interface FilaItem {
   qty: number;
   date: string | null;
   commission_cop: number;
+  /** Puede llegar null en las órdenes anteriores a los niveles de proveedor. */
+  commission_rate: number | string | null;
 }
 
 function numero(v: number | string | null): number | undefined {
@@ -92,6 +95,9 @@ function aOrden(fila: FilaOrden, items: FilaItem[]): Order {
       qty: i.qty,
       date: i.date ?? undefined,
       commissionCop: i.commission_cop,
+      // Las órdenes creadas antes de que la comisión dependiera del nivel no
+      // guardaron la tasa. Se les atribuye la base, que es la que se les aplicó.
+      commissionRate: numero(i.commission_rate) ?? COMMISSION_RATE,
     })),
     subtotalCop: fila.subtotal_cop,
     commissionTotalCop: fila.commission_total_cop,
@@ -154,6 +160,7 @@ export async function saveOrder(order: Order): Promise<void> {
         qty: i.qty,
         date: i.date ?? null,
         commission_cop: i.commissionCop,
+        commission_rate: i.commissionRate,
       })),
     );
     if (errorItems) throw new Error(`saveOrder (items): ${errorItems.message}`);
@@ -194,7 +201,7 @@ export async function getOrderByReference(
 
   const { data: items, error: errorItems } = await db
     .from("order_items")
-    .select("listing_id, provider_id, title_snapshot, unit_price_cop, qty, date, commission_cop")
+    .select("listing_id, provider_id, title_snapshot, unit_price_cop, qty, date, commission_cop, commission_rate")
     .eq("order_id", data.id);
   if (errorItems) throw new Error(`getOrderByReference (items): ${errorItems.message}`);
 
@@ -217,7 +224,7 @@ export async function listOrders(): Promise<Order[]> {
   const { data, error } = await db
     .from("orders")
     .select(
-      "*, order_items(listing_id, provider_id, title_snapshot, unit_price_cop, qty, date, commission_cop)",
+      "*, order_items(listing_id, provider_id, title_snapshot, unit_price_cop, qty, date, commission_cop, commission_rate)",
     )
     .order("created_at", { ascending: false });
   if (error) throw new Error(`listOrders: ${error.message}`);

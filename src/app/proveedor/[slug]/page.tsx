@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, Globe, Mail, MapPin, Phone } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
@@ -38,15 +39,15 @@ export default async function ProveedorPage(
 
   return (
     <div>
+      {/*
+        El distintivo lleva el nivel y ya no el puntaje al lado: desde la
+        migración 0006 son dos cosas distintas —el nivel se gana con actividad,
+        el puntaje sale de la evaluación— y juntarlos en la misma píldora es lo
+        que hacía creer que uno salía del otro. El puntaje tiene su tarjeta.
+      */}
       <HeroBanner
         foto={portada}
-        distintivo={
-          <TierBadge
-            tier={provider.tier}
-            score={provider.sustainabilityScore}
-            size="md"
-          />
-        }
+        distintivo={<TierBadge tier={provider.tier} size="md" />}
         titulo={provider.name}
       >
         <p className="mt-2 text-lg text-brand-100">{provider.tagline}</p>
@@ -119,14 +120,37 @@ export default async function ProveedorPage(
         <aside className="space-y-5">
           <div className="rounded-xl bg-white p-6 ring-1 ring-hairline">
             <h2 className="font-display text-lg text-ink">
-              Nivel de verificación
+              Nivel {TIERS[provider.tier].label}
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              {TIERS[provider.tier].description}
+            </p>
+            <p className="mt-3 text-sm text-muted">
+              <span className="font-medium tabular-nums text-ink">
+                {provider.experiencePoints.toLocaleString("es-CO")}
+              </span>{" "}
+              puntos de experiencia ·{" "}
+              <Link
+                href="/niveles"
+                className="font-medium text-brand-700 underline underline-offset-4"
+              >
+                cómo se ganan
+              </Link>
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-white p-6 ring-1 ring-hairline">
+            <h2 className="font-display text-lg text-ink">
+              Evaluación de sostenibilidad
             </h2>
             <p className="mt-3 font-display text-4xl text-brand-700 tabular-nums">
               {provider.sustainabilityScore}
               <span className="text-lg text-muted">/100</span>
             </p>
             <p className="mt-2 text-sm text-muted">
-              {TIERS[provider.tier].description}
+              {provider.evaluacionVerificada
+                ? "Evaluación verificada: seis dimensiones con evidencia revisada por el equipo."
+                : "Todavía sin evaluación verificada. El puntaje se muestra igual, y no condiciona lo que puede publicar."}
             </p>
             <div
               className="mt-4 h-2 overflow-hidden rounded-full bg-sand"

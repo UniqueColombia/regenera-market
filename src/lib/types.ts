@@ -26,8 +26,11 @@ export type ReviewStatus =
   | "suspended";
 
 /**
- * Nivel de verificación regenerativa. Se deriva del puntaje, nunca se escribe
- * a mano: ver `tierForScore` en lib/sustainability.ts
+ * Nivel público del proveedor.
+ *
+ * **Se deriva de los puntos de experiencia** (`src/lib/niveles.ts`), lo escribe
+ * un trigger y nunca un formulario. `unverified` es un valor heredado que no se
+ * asigna a nadie nuevo: todo proveedor nace en `semilla`.
  */
 export type Tier = "unverified" | "semilla" | "raiz" | "bosque";
 
@@ -59,9 +62,17 @@ export interface Provider {
   email: string;
   phone?: string;
   status: ReviewStatus;
-  /** 0-100, calculado por el motor de verificación */
+  /** 0-100, calculado por el motor de verificación de sostenibilidad */
   sustainabilityScore: number;
+  /**
+   * Nivel público. **Desde la migración 0006 se deriva de `experiencePoints`**,
+   * no del puntaje de sostenibilidad — ver `src/lib/niveles.ts`.
+   */
   tier: Tier;
+  /** Puntos de experiencia acumulados. Suben con la actividad y nunca bajan. */
+  experiencePoints: number;
+  /** ¿Pasó la evaluación de sostenibilidad? Es un sello aparte del nivel. */
+  evaluacionVerificada: boolean;
   /** Códigos de certificaciones reconocidas y verificadas por un admin */
   certifications: string[];
   foundedYear?: number;
@@ -153,6 +164,15 @@ export interface OrderItem {
   date?: string;
   /** Comisión de Seregenera sobre este ítem, en COP */
   commissionCop: number;
+  /**
+   * La tasa con la que se calculó esa comisión (0.12, 0.10, 0.08…).
+   *
+   * Se congela en el ítem igual que el título y el precio (invariante 6): la
+   * tasa depende del nivel del proveedor y el nivel sube con el tiempo, así que
+   * recalcularla contra el nivel de hoy daría un número distinto del que se
+   * aplicó. Sin esto, una orden vieja no se puede auditar.
+   */
+  commissionRate: number;
 }
 
 export interface Order {
@@ -200,8 +220,18 @@ export interface ProviderApplication {
   contactName: string;
   email: string;
   phone: string;
+  /** Desde la 0006. Las filas anteriores traen `Colombia` por defecto. */
+  country: string;
+  /** Departamento, provincia, región o estado: depende del país. */
   department: string;
   city: string;
+  /** Forma jurídica declarada (`src/lib/paises.ts`). Vacío en las filas viejas. */
+  orgType?: string;
+  /** Cómo se llama el documento tributario en su país: NIT, RUC, RFC, CUIT… */
+  taxIdKind?: string;
+  taxId?: string;
+  /** Verticales que dice atender. Hasta cinco. */
+  categories: string[];
   website?: string;
   description: string;
   status: ReviewStatus;

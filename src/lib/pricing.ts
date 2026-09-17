@@ -1,4 +1,5 @@
-import type { CartLine, ImpactMetrics, Listing } from "./types";
+import { COMISION_BASE, comisionPara } from "./niveles";
+import type { CartLine, ImpactMetrics, Listing, Tier } from "./types";
 
 /**
  * Comisión de la plataforma.
@@ -7,11 +8,16 @@ import type { CartLine, ImpactMetrics, Listing } from "./types";
  * sobre el total: una orden puede repartirse entre varios proveedores y cada
  * uno tiene que poder auditar exactamente lo que se le descontó.
  *
- * 12% es el punto de partida; cuando existan datos de conversión conviene
- * diferenciarla por tipo de oferta (las experiencias soportan más comisión que
- * los productos físicos, que ya cargan con logística).
+ * **Ya no es una constante: depende del nivel del proveedor.** 12 % es la tasa
+ * de entrada (Semilla), 10 % en Raíz y 8 % en Bosque — la tabla vive en
+ * `src/lib/niveles.ts`. Esta constante se queda como la tasa **base**, que es la
+ * que se aplica cuando no se sabe de qué nivel es el proveedor.
+ *
+ * Ante la duda, la tasa alta. Cobrar de menos por un nivel mal leído es plata
+ * que se pierde sin que ningún error lo diga; cobrar de más lo reclama el
+ * proveedor el mismo día.
  */
-export const COMMISSION_RATE = 0.12;
+export const COMMISSION_RATE = COMISION_BASE;
 
 export interface PricedLine {
   line: CartLine;
@@ -20,6 +26,15 @@ export interface PricedLine {
   /** true si la cantidad alcanzó el mínimo mayorista */
   wholesaleApplied: boolean;
   subtotalCop: number;
+  /**
+   * La tasa que se aplicó, no solo el monto.
+   *
+   * Se guarda porque la tasa cambia con el nivel del proveedor y el nivel sube
+   * con el tiempo: sin esto, una orden de hace seis meses sería imposible de
+   * auditar — se sabría cuánto se descontó y no si estuvo bien descontado. Es lo
+   * que la invariante 2 de `dominio-regenera` anticipaba.
+   */
+  commissionRate: number;
   commissionCop: number;
   impact: ImpactMetrics;
 }
@@ -36,9 +51,21 @@ export function unitPriceFor(listing: Listing, qty: number): number {
   return listing.priceCop;
 }
 
-export function priceLine(line: CartLine, listing: Listing): PricedLine {
+/**
+ * Valoriza una línea del carrito.
+ *
+ * `tierProveedor` es opcional y su ausencia no es un error: significa «no pude
+ * averiguar el nivel», y entonces se cobra la tasa base. Quien llama desde el
+ * carrito lo resuelve con `getProviderTiers()`.
+ */
+export function priceLine(
+  line: CartLine,
+  listing: Listing,
+  tierProveedor?: Tier,
+): PricedLine {
   const unitPriceCop = unitPriceFor(listing, line.qty);
   const subtotalCop = unitPriceCop * line.qty;
+  const commissionRate = comisionPara(tierProveedor);
 
   return {
     line,
@@ -46,7 +73,10 @@ export function priceLine(line: CartLine, listing: Listing): PricedLine {
     unitPriceCop,
     wholesaleApplied: unitPriceCop !== listing.priceCop,
     subtotalCop,
-    commissionCop: Math.round(subtotalCop * COMMISSION_RATE),
+    commissionRate,
+    // Al peso, nunca `toFixed(2)`: todo el dinero del proyecto es entero en COP
+    // (invariante 5). Con tasas como 0,085 esto importa más que con 0,12.
+    commissionCop: Math.round(subtotalCop * commissionRate),
     impact: {
       co2KgSaved: mul(listing.impact.co2KgSaved, line.qty),
       waterLitersSaved: mul(listing.impact.waterLitersSaved, line.qty),
