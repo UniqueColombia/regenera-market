@@ -4,7 +4,7 @@ import { z } from "zod";
 import { generateReference, getGateway } from "@/lib/payments";
 import { saveOrder } from "@/lib/orders";
 import { priceLine, totalsFor } from "@/lib/pricing";
-import { getListingsByIds } from "@/lib/repo";
+import { getListingsByIds, getProviderTiers } from "@/lib/repo";
 import type { Order, OrderItem } from "@/lib/types";
 import type { CartLine, PricedCartDTO } from "./types";
 
@@ -19,11 +19,18 @@ export async function priceCart(lines: CartLine[]): Promise<PricedCartDTO> {
   const listings = await getListingsByIds(lines.map((l) => l.listingId));
   const byId = new Map(listings.map((l) => [l.id, l]));
 
+  // La comisión depende del nivel del proveedor (src/lib/niveles.ts), así que
+  // hace falta saber de qué nivel es cada uno antes de valorizar. Un proveedor
+  // que no aparezca en el mapa paga la tasa base, que es la más alta.
+  const niveles = await getProviderTiers(listings.map((l) => l.providerId));
+
   const priced = lines
     .map((line) => {
       const listing = byId.get(line.listingId);
       // Una oferta retirada del catálogo simplemente desaparece del carrito.
-      return listing ? priceLine(line, listing) : null;
+      return listing
+        ? priceLine(line, listing, niveles.get(listing.providerId))
+        : null;
     })
     .filter((l): l is NonNullable<typeof l> => l !== null);
 
@@ -95,10 +102,14 @@ export async function checkout(
   const listings = await getListingsByIds(lines.map((l) => l.listingId));
   const byId = new Map(listings.map((l) => [l.id, l]));
 
+  const niveles = await getProviderTiers(listings.map((l) => l.providerId));
+
   const priced = lines
     .map((line) => {
       const listing = byId.get(line.listingId);
-      return listing ? priceLine(line, listing) : null;
+      return listing
+        ? priceLine(line, listing, niveles.get(listing.providerId))
+        : null;
     })
     .filter((l): l is NonNullable<typeof l> => l !== null);
 
@@ -119,6 +130,7 @@ export async function checkout(
     qty: l.line.qty,
     date: l.line.date,
     commissionCop: l.commissionCop,
+    commissionRate: l.commissionRate,
   }));
 
   const order: Order = {

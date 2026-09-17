@@ -454,13 +454,24 @@ que enlaza al usuario que postuló con el proveedor. Sin ella,
 `manages_provider()` devuelve falso y el proveedor aprobado no puede tocar nada
 de lo suyo — el Bloque 4 entero queda muerto y el síntoma no apunta a la causa.
 
+> **Resuelto el 2026-09-17 por la migración 0006**, y por eso este párrafo se
+> queda escrito: `postular_proveedor()` crea la empresa, `provider_members` y el
+> rol en la misma transacción, así que quien postula **con sesión** ya no pasa
+> por ningún botón. Lo que sigue llegando a `/admin/postulaciones` son las
+> postulaciones **sin cuenta**, y para esas la trampa de arriba sigue viva tal
+> cual. Ver `docs/NIVELES.md`.
+
 ### La trampa que hay que tener presente
 
 **El puntaje de sostenibilidad y el nivel los escribe el trigger, no un
-formulario.** `sync_provider_score()` los baja a `providers` cuando una
-evaluación pasa a `approved`. Ninguna pantalla del panel puede tener un campo
-editable de `sustainability_score` ni de `tier`. Si un admin puede escribirlos a
-mano, el nivel deja de significar nada y la auditoría del puntaje se pierde.
+formulario.** `sync_provider_score()` baja el puntaje a `providers` cuando una
+evaluación pasa a `approved`; **el nivel ya no sale de ahí** — desde la 0006 lo
+deriva `sync_tier_por_experiencia()` de los puntos de experiencia, y no hay forma
+de escribirlo a mano (ver `docs/NIVELES.md`).
+
+Ninguna pantalla del panel puede tener un campo editable de
+`sustainability_score` ni de `tier`. Si un admin puede escribirlos a mano, el
+nivel deja de significar nada y la auditoría del puntaje se pierde.
 
 Relacionado y anotado en `docs/DEPLOY.md`: como el repositorio es público,
 `src/lib/sustainability.ts` publica los puntos exactos de cada respuesta, así que
