@@ -50,12 +50,14 @@ agente del otro.
 | `docs/BETA.md` | Cómo se ejecutan las Fases 1 y 2, bloque por bloque | Humanos y agentes |
 | `docs/DEPLOY.md` | Stack de despliegue, por qué se eligió y qué se descartó | Humanos y agentes |
 | `docs/IMAGENES.md` | Qué imágenes faltan, con qué prompt se generan y dónde van | Humanos y agentes |
+| `docs/NIVELES.md` | Cómo se gana el nivel de proveedor, el gemelo SQL/TS y sus trampas | Humanos y agentes |
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
 | `.claude/agents/` | Subagentes con encargo propio. Un archivo por agente | Claude Code |
 | `.claude/hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
 | `.claude/prospectos/` | CSV crudos del prospector. **No se versiona** (ver Límites duros) | Humanos |
 | `outputs/` | Entregables generados (el Excel de prospectos). **No se versiona** | Humanos |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
+| `plantillas-correo/` | Copia de referencia de los correos que manda Supabase. Su HTML vive en el panel, no en el repo | Humanos |
 | `public/img/` | Imágenes del sitio ya optimizadas: marca, secciones, ofertas. `marca/` se regenera con `scripts/generar-marca.sh`, no se edita | — |
 | `tools/img-originales/` | Originales pesados de las imágenes. **No se versiona** | Humanos |
 | `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear, prospectar proveedores, optimizar imágenes, generar la marca | Humanos y hooks |

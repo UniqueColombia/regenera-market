@@ -326,6 +326,7 @@ sujeto, en porcentaje.
 | `hero-home` | rancho y pareja tejiendo, a la derecha | `object-[78%_50%]` | `src/app/page.tsx` |
 | `hero-verificacion` | agrónomo agachado, a la derecha | `object-[80%_50%]` | `src/app/verificacion/page.tsx` |
 | `hero-vender` | las dos personas empacando | `object-[62%_50%]` | `src/app/vender/page.tsx` |
+| `hero-vender` (reutilizada) | las dos personas empacando | `object-[35%_50%]` | `src/app/niveles/page.tsx` |
 | `hero-proveedores` | flat-lay parejo, sin sujeto único | centro (por defecto) | — |
 
 **Si regeneras una de estas cuatro fotos, revisa el anclaje.** Un encuadre nuevo
