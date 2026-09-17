@@ -100,35 +100,37 @@ export const KIND_PLURAL: Record<ListingKind, string> = {
 };
 
 /**
- * Niveles de verificación. El nombre es deliberadamente regenerativo en vez de
- * bronce/plata/oro: comunica progresión ecológica, no jerarquía comercial.
+ * Los tres niveles, para pintarlos. El nombre es deliberadamente regenerativo
+ * en vez de bronce/plata/oro: comunica progresión ecológica, no jerarquía
+ * comercial.
+ *
+ * **Los umbrales y la comisión no están aquí**, están en `src/lib/niveles.ts`,
+ * que es el gemelo de la migración 0006. Esta tabla tenía un `min` con el
+ * puntaje de sostenibilidad desde el que se otorgaba cada nivel, y dejó de ser
+ * verdad el día que el nivel pasó a salir de los puntos de experiencia. Se
+ * quitó en vez de dejarlo sin usar: un número a mano que ya no manda es lo que
+ * hace que alguien vuelva a filtrar por él sin que nada se queje.
  */
-export const TIERS: Record<
-  Tier,
-  { label: string; min: number; description: string }
-> = {
+export const TIERS: Record<Tier, { label: string; description: string }> = {
   unverified: {
     label: "Sin verificar",
-    min: 0,
-    description: "Aún no completa la evaluación de sostenibilidad.",
+    description:
+      "Ficha anterior al sistema de niveles. Ningún proveedor nuevo entra así.",
   },
   semilla: {
     label: "Semilla",
-    min: 40,
     description:
-      "Prácticas sostenibles documentadas y compromiso verificado de mejora.",
+      "Acaba de llegar: publica y vende desde hoy, y su historial empieza ahora.",
   },
   raiz: {
     label: "Raíz",
-    min: 60,
     description:
-      "Impacto medido, cadena de suministro local y beneficio comunitario demostrable.",
+      "Con recorrido: pedidos entregados, perfil completo y buenas reseñas.",
   },
   bosque: {
     label: "Bosque",
-    min: 80,
     description:
-      "Impacto neto positivo verificado con certificación externa vigente.",
+      "Referente del marketplace, con historial largo, sostenido y verificable.",
   },
 };
 

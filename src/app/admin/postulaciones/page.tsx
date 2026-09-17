@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, Mail, MapPin, Phone } from "lucide-react";
+import { Building2, FileText, Landmark, Mail, MapPin, Phone } from "lucide-react";
 import { DecisionPostulacion } from "./decision-postulacion";
 import { getApplications } from "@/lib/repo";
+import { etiquetaTipoOrganizacion } from "@/lib/paises";
+import { VERTICALS } from "@/lib/taxonomy";
 import { longDate } from "@/lib/format";
 import { mostrarTelefono } from "@/lib/telefono";
 import type { ReviewStatus } from "@/lib/types";
@@ -98,10 +100,29 @@ export default async function PostulacionesPage() {
                   <div className="flex items-center gap-1.5">
                     <MapPin className="size-3.5 shrink-0" />
                     <dt className="sr-only">Dónde</dt>
+                    {/* El país va aquí desde la 0006: «Cusco, Cusco» sin país no
+                        dice dónde está una empresa cuando el formulario ya no es
+                        solo colombiano. */}
                     <dd>
-                      {p.city}, {p.department}
+                      {p.city}, {p.department} · {p.country}
                     </dd>
                   </div>
+                  {p.taxId && (
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="size-3.5 shrink-0" />
+                      <dt className="sr-only">Identificación tributaria</dt>
+                      <dd>
+                        {p.taxIdKind ?? "Identificación"} {p.taxId}
+                      </dd>
+                    </div>
+                  )}
+                  {p.orgType && (
+                    <div className="flex items-center gap-1.5">
+                      <Landmark className="size-3.5 shrink-0" />
+                      <dt className="sr-only">Tipo de organización</dt>
+                      <dd>{etiquetaTipoOrganizacion(p.orgType)}</dd>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5">
                     <Mail className="size-3.5 shrink-0" />
                     <dt className="sr-only">Correo</dt>
@@ -130,6 +151,19 @@ export default async function PostulacionesPage() {
                 <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink">
                   {p.description}
                 </p>
+
+                {p.categories.length > 0 && (
+                  <ul className="mt-3 flex flex-wrap gap-1.5">
+                    {p.categories.map((c) => (
+                      <li
+                        key={c}
+                        className="rounded-full bg-sand px-2.5 py-0.5 text-xs font-medium text-muted"
+                      >
+                        {VERTICALS.find((v) => v.id === c)?.label ?? c}
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
                 <p className="mt-3 text-xs text-muted">
                   Postuló el {longDate(p.createdAt)}

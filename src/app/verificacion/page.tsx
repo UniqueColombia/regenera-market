@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
-import { ClipboardCheck, Eye, ShieldCheck, Users } from "lucide-react";
+import Link from "next/link";
+import {
+  BadgeCheck,
+  ClipboardCheck,
+  Eye,
+  ShieldCheck,
+  Sprout,
+  Users,
+} from "lucide-react";
 import { SustainabilityQuiz } from "@/components/sustainability-quiz";
-import { TierBadge } from "@/components/tier-badge";
 import { HeroBanner } from "@/components/hero-banner";
-import { DIMENSIONS } from "@/lib/sustainability";
-import { TIERS } from "@/lib/taxonomy";
+import { DIMENSIONS, PUNTAJE_MINIMO_SELLO } from "@/lib/sustainability";
+import { eventoExperiencia } from "@/lib/niveles";
+
+/** Lo que suma la evaluación al nivel. Sale de la tabla, no de un número escrito aquí. */
+const PUNTOS_EVALUACION = eventoExperiencia("evaluacion_aprobada").puntos;
 
 export const metadata: Metadata = {
   title: "Cómo verificamos",
@@ -25,13 +35,13 @@ const STEPS = [
   },
   {
     icon: ShieldCheck,
-    title: "Se asigna un nivel público",
-    body: "El puntaje determina el sello que aparece en cada ficha. No se compra, no se negocia y se revisa cada doce meses.",
+    title: "Se otorga el sello",
+    body: "El puntaje y el sello de evaluación verificada aparecen en la ficha. No se compran, no se negocian y se revisan cada doce meses. El nivel del proveedor es otra cosa: ese se gana vendiendo.",
   },
   {
     icon: Users,
     title: "El comprador puede reclamar",
-    body: "Si lo que recibiste no corresponde con lo declarado, lo investigamos. Un proveedor puede perder su nivel, y las ofertas quedan suspendidas mientras tanto.",
+    body: "Si lo que recibiste no corresponde con lo declarado, lo investigamos. Un proveedor puede perder el sello, y las ofertas quedan suspendidas mientras tanto.",
   },
 ];
 
@@ -122,24 +132,51 @@ export default function VerificacionPage() {
         </div>
       </section>
 
+      {/* ------------------------------------------------------------------ */}
+      {/* Qué da aprobarla — y qué no                                         */}
+      {/*                                                                     */}
+      {/* Aquí vivían los tres niveles con su umbral de puntaje. Dejó de ser  */}
+      {/* verdad: el nivel sale de los puntos de experiencia y esta página    */}
+      {/* trata del sello, que es la otra cosa. Ver `src/lib/niveles.ts`.     */}
+      {/* ------------------------------------------------------------------ */}
       <section className="container-page py-14">
-        <h2 className="font-display text-3xl text-ink">Los tres niveles</h2>
-        <ul className="mt-8 grid gap-4 md:grid-cols-3">
-          {(["semilla", "raiz", "bosque"] as const).map((t) => (
-            <li key={t} className="rounded-xl bg-white p-6 ring-1 ring-hairline">
-              <TierBadge tier={t} size="md" />
-              <p className="mt-4 font-display text-3xl text-ink tabular-nums">
-                {TIERS[t].min}
-                <span className="text-base text-muted"> puntos o más</span>
-              </p>
-              <p className="mt-2 text-sm text-muted">{TIERS[t].description}</p>
-            </li>
-          ))}
-        </ul>
+        <h2 className="font-display text-3xl text-ink">Qué da aprobarla</h2>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl bg-white p-6 ring-1 ring-hairline">
+            <BadgeCheck className="size-7 text-brand-600" />
+            <h3 className="mt-4 font-display text-lg text-ink">
+              El sello de evaluación verificada
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Aparece en la ficha del proveedor junto a su puntaje y al desglose
+              por dimensión. No se compra, no se negocia y se revisa cada doce
+              meses.
+            </p>
+          </div>
+          <div className="rounded-xl bg-white p-6 ring-1 ring-hairline">
+            <Sprout className="size-7 text-clay-600" />
+            <h3 className="mt-4 font-display text-lg text-ink">
+              {PUNTOS_EVALUACION} puntos de experiencia
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Es, con diferencia, lo que más suma para el nivel del proveedor —
+              pero el nivel no depende de esto: se gana publicando, vendiendo y
+              entregando.{" "}
+              <Link
+                href="/niveles"
+                className="font-medium text-brand-700 underline underline-offset-4"
+              >
+                Cómo funcionan los niveles
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
         <p className="mt-6 max-w-2xl text-sm text-muted">
-          Por debajo de {TIERS.semilla.min} puntos el proveedor no obtiene sello
-          y no puede publicar. Le indicamos qué dimensión lo está frenando y
-          puede volver a presentarse cuando la mejore.
+          Por debajo de {PUNTAJE_MINIMO_SELLO} puntos no se otorga el sello, y
+          eso no frena a nadie: publicar y vender no dependen de esta evaluación.
+          Le indicamos qué dimensión lo está frenando y puede volver a
+          presentarse cuando la mejore.
         </p>
       </section>
 

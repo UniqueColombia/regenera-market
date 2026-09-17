@@ -7,6 +7,13 @@ import type { Provider } from "@/lib/types";
  * rango de proveedor que buscamos (desde una asociación campesina hasta una
  * empresa de tecnología). Se reemplazan por proveedores reales en cuanto entre
  * el primer lote de onboarding.
+ *
+ * **`tier` y `experiencePoints` viven aquí para que el tipo cuadre, no para que
+ * la base los use.** `scripts/seed.mts` no escribe ninguno de los dos: el nivel
+ * lo deriva un trigger de los puntos de experiencia, y los puntos los otorga
+ * `otorgar_experiencia()` cuando ocurre un hecho real (migración 0006 — ver
+ * `src/lib/niveles.ts`). Llevan un valor coherente con su nivel para que la
+ * ficha de demostración no se contradiga a sí misma.
  */
 export const PROVIDERS: Provider[] = [
   {
@@ -24,6 +31,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 74,
     tier: "raiz",
+    experiencePoints: 980,
+    evaluacionVerificada: true,
     certifications: ["fair-trade", "gots"],
     foundedYear: 2016,
     traits: ["women_led", "campesino", "rural"],
@@ -44,6 +53,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 86,
     tier: "bosque",
+    experiencePoints: 2600,
+    evaluacionVerificada: true,
     certifications: ["fsc", "comercio-justo", "carbon-neutral"],
     foundedYear: 2011,
     traits: ["rural", "campesino"],
@@ -64,6 +75,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 58,
     tier: "semilla",
+    experiencePoints: 310,
+    evaluacionVerificada: true,
     certifications: ["iso-14001", "watersense"],
     foundedYear: 2019,
     traits: [],
@@ -83,6 +96,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 71,
     tier: "raiz",
+    experiencePoints: 720,
+    evaluacionVerificada: true,
     certifications: ["grs-recycled", "energy-star"],
     foundedYear: 2018,
     traits: ["rural"],
@@ -103,6 +118,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 78,
     tier: "raiz",
+    experiencePoints: 1240,
+    evaluacionVerificada: true,
     certifications: ["bpi-compostable", "ok-compost"],
     foundedYear: 2020,
     traits: ["rural"],
@@ -123,6 +140,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 88,
     tier: "bosque",
+    experiencePoints: 2740,
+    evaluacionVerificada: true,
     certifications: ["b-corp", "iso-14001", "carbon-neutral"],
     foundedYear: 2015,
     traits: ["b_corp"],
@@ -142,6 +161,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 76,
     tier: "raiz",
+    experiencePoints: 860,
+    evaluacionVerificada: true,
     certifications: ["fair-trade", "comercio-justo"],
     foundedYear: 2017,
     traits: ["afro", "community_owned", "rural"],
@@ -161,6 +182,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 91,
     tier: "bosque",
+    experiencePoints: 3120,
+    evaluacionVerificada: true,
     certifications: ["rainforest-alliance", "carbon-neutral", "nts-ts"],
     foundedYear: 2013,
     traits: ["indigenous", "community_owned", "rural"],
@@ -181,6 +204,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 64,
     tier: "raiz",
+    experiencePoints: 640,
+    evaluacionVerificada: true,
     certifications: ["energy-star"],
     foundedYear: 2021,
     traits: ["rural"],
@@ -200,6 +225,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 72,
     tier: "raiz",
+    experiencePoints: 1100,
+    evaluacionVerificada: true,
     certifications: ["mincomercio", "rainforest-alliance"],
     foundedYear: 2019,
     traits: ["women_led"],
@@ -219,6 +246,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 83,
     tier: "bosque",
+    experiencePoints: 2880,
+    evaluacionVerificada: true,
     certifications: ["rainforest-alliance", "biosphere"],
     foundedYear: 2014,
     traits: ["community_owned"],
@@ -238,6 +267,8 @@ export const PROVIDERS: Provider[] = [
     status: "approved",
     sustainabilityScore: 81,
     tier: "bosque",
+    experiencePoints: 2510,
+    evaluacionVerificada: true,
     certifications: ["fair-trade", "rainforest-alliance"],
     foundedYear: 2009,
     traits: ["campesino", "community_owned", "rural"],
@@ -257,6 +288,8 @@ export const PROVIDERS: Provider[] = [
     status: "pending_review",
     sustainabilityScore: 0,
     tier: "unverified",
+    experiencePoints: 0,
+    evaluacionVerificada: false,
     certifications: [],
     foundedYear: 2022,
     traits: ["indigenous", "women_led", "community_owned", "rural"],

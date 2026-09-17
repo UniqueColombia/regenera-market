@@ -1,13 +1,16 @@
-import { CERTIFICATIONS, TIERS } from "./taxonomy";
-import type { Tier } from "./types";
+import { CERTIFICATIONS } from "./taxonomy";
 
 /**
  * Motor de verificación regenerativa.
  *
  * El proveedor responde un cuestionario y adjunta evidencia; un admin la revisa
- * y aprueba. El puntaje resultante (0-100) determina el nivel visible en cada
- * ficha. Es deliberadamente auditable: cada punto sale de una respuesta
- * concreta, nunca de una impresión general.
+ * y aprueba. El puntaje resultante (0-100) es deliberadamente auditable: cada
+ * punto sale de una respuesta concreta, nunca de una impresión general.
+ *
+ * **Lo que el puntaje NO determina, desde la migración 0006, es el nivel.** El
+ * nivel sale de los puntos de experiencia (`src/lib/niveles.ts`). Aprobar esta
+ * evaluación otorga el sello de evaluación verificada —que es otra cosa, y se
+ * muestra aparte— y los 300 puntos de experiencia que más pesan de la tabla.
  *
  * Las certificaciones externas suman en su propia dimensión, con tope, para que
  * un proveedor pequeño sin plata para certificarse pueda igual llegar a Raíz por
@@ -219,7 +222,6 @@ function maxRawFor(dimension: Dimension): number {
 
 export interface ScoreBreakdown {
   total: number;
-  tier: Tier;
   dimensions: {
     id: string;
     label: string;
@@ -277,15 +279,22 @@ export function scoreProvider(
     dimensions.reduce((sum, d) => sum + d.contribution, 0),
   );
 
-  return { total, tier: tierForScore(total), dimensions };
+  return { total, dimensions };
 }
 
-export function tierForScore(score: number): Tier {
-  if (score >= TIERS.bosque.min) return "bosque";
-  if (score >= TIERS.raiz.min) return "raiz";
-  if (score >= TIERS.semilla.min) return "semilla";
-  return "unverified";
-}
+/**
+ * Puntaje desde el que el equipo aprueba una evaluación.
+ *
+ * **No lo impone la base**: quien aprueba es un administrador, y la migración
+ * 0006 marca el sello cuando la evaluación queda `approved`, mire el número que
+ * mire. Está aquí porque es el criterio que el sitio le promete al proveedor en
+ * `/verificacion`, y una promesa pública tiene que estar escrita en un sitio.
+ *
+ * Por debajo no se aprueba, y **eso ya no impide publicar**: desde que el nivel
+ * se gana con actividad, quedarse corto en la evaluación solo significa no tener
+ * todavía el sello.
+ */
+export const PUNTAJE_MINIMO_SELLO = 40;
 
 /** Total de preguntas, para mostrar progreso en el onboarding. */
 export const TOTAL_QUESTIONS = DIMENSIONS.reduce(

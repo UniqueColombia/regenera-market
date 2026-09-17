@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, FileCheck2, RotateCcw } from "lucide-react";
-import { TierBadge } from "./tier-badge";
+import { ArrowRight, BadgeCheck, FileCheck2, RotateCcw } from "lucide-react";
 import {
   DIMENSIONS,
+  PUNTAJE_MINIMO_SELLO,
   scoreProvider,
   TOTAL_QUESTIONS,
 } from "@/lib/sustainability";
-import { CERTIFICATIONS, TIERS } from "@/lib/taxonomy";
+import { CERTIFICATIONS } from "@/lib/taxonomy";
 
 /**
  * Autodiagnóstico público.
@@ -135,13 +135,16 @@ export function SustainabilityQuiz() {
           </p>
 
           <div className="mt-3">
-            {result.tier === "unverified" ? (
-              <p className="text-sm text-muted">
-                Todavía por debajo de {TIERS.semilla.min} puntos, el umbral de
-                Semilla.
+            {result.total >= PUNTAJE_MINIMO_SELLO ? (
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700 ring-1 ring-brand-200">
+                <BadgeCheck className="size-4" aria-hidden />
+                Alcanza el sello
               </p>
             ) : (
-              <TierBadge tier={result.tier} size="md" />
+              <p className="text-sm text-muted">
+                Faltan {PUNTAJE_MINIMO_SELLO - result.total} puntos para el sello
+                de evaluación verificada.
+              </p>
             )}
           </div>
 
@@ -181,8 +184,10 @@ export function SustainabilityQuiz() {
           </ul>
 
           <p className="mt-5 border-t border-hairline pt-4 text-xs text-muted">
-            Este resultado es orientativo. El nivel real se asigna cuando nuestro
-            equipo revisa la evidencia que respalda cada respuesta.
+            Este resultado es orientativo: el sello se otorga cuando nuestro
+            equipo revisa la evidencia que respalda cada respuesta. Tu nivel de
+            proveedor es otra cosa y no depende de esto — se gana publicando y
+            entregando, y empieza en Semilla desde el primer día.
           </p>
 
           {complete && (

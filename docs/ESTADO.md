@@ -4,10 +4,38 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-13 (después del release)
+- **Corte:** 2026-09-17
 - **Producción:** `v0.4.0` en `main` → **https://regenera-market.vercel.app**
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**.
+
+> ## 🔴 Lo primero: la migración 0006 no está aplicada
+>
+> El 2026-09-17 entró en el repositorio una tanda que **cambia el modelo de
+> negocio**: el proveedor se da de alta solo y el nivel se gana con actividad en
+> vez de salir de la evaluación de sostenibilidad. Está explicada en
+> [`docs/NIVELES.md`](NIVELES.md).
+>
+> **`supabase/migrations/0006_niveles_por_experiencia_y_alta_directa.sql` hay que
+> aplicarla ANTES de que este código llegue a producción.** El formulario de
+> `/vender` llama a `postular_proveedor()`, que no existe hasta que la migración
+> corra: sin ella, postular responde error y la postulación se pierde.
+>
+> ```bash
+> psql "$DATABASE_URL" -f supabase/migrations/0006_niveles_por_experiencia_y_alta_directa.sql
+> ```
+>
+> Y después, comprobar que quedó:
+>
+> ```bash
+> # 1 = la función existe;  0 = la migración no corrió
+> psql "$DATABASE_URL" -tAc "select count(*) from pg_proc where proname = 'postular_proveedor'"
+> psql "$DATABASE_URL" -tAc "select count(*) from pg_proc where proname = 'otorgar_experiencia'"
+> ```
+>
+> Lo segundo, sin prisa: las cinco variables `SMTP_*` de `.env.example` en
+> Vercel. Sin ellas el alta funciona igual y el correo de respaldo solo se
+> escribe en la consola del servidor — nadie lo recibe.
 
 > **El 2026-09-13 entró el release `v0.4.0`** (PR #42 → `staging`, #43 →
 > `main`): acceso con contraseña y segundo factor por dispositivo, panel de
@@ -121,6 +149,12 @@ desplegar—, las órdenes y las postulaciones se persisten, y hay dos
 administradores. **Lo que falta ya no es construir la plataforma: es meterle
 datos reales y proveedores reales.**
 
+Y desde el 2026-09-17, **en el repositorio y todavía no en producción**, está lo
+que quita el último portero: el proveedor se da de alta solo y el nivel se gana
+vendiendo en vez de esperando a que alguien apruebe su evaluación
+([`docs/NIVELES.md`](NIVELES.md)). Para que eso exista de verdad falta correr una
+migración y cargar cinco variables — el bloque rojo de arriba.
+
 ---
 
 ## Lo que ya está
@@ -143,6 +177,11 @@ datos reales y proveedores reales.**
 | Las seis pantallas de `/admin` | ✅ en producción; falta `/admin/evaluaciones` |
 | Órdenes y postulaciones en Postgres | ✅ en producción |
 | Latido diario contra la pausa de Supabase | ✅ corriendo, 12:10 UTC |
+| Niveles por experiencia y comisión por nivel | 🟡 **en el repositorio, sin desplegar** — falta aplicar 0006 |
+| Alta directa del proveedor (`postular_proveedor()`) | 🟡 ídem. Con sesión, postular crea la empresa en el acto |
+| `/niveles` y la ficha con nivel y sello separados | 🟡 ídem |
+| Correo transaccional de la aplicación (`src/lib/correo/`) | 🟡 código listo; faltan las `SMTP_*` en Vercel |
+| `0006_niveles_por_experiencia_y_alta_directa.sql` | ❌ **SIN aplicar.** Bloquea el despliegue de lo de arriba |
 | `/admin/evaluaciones` | ❌ la quinta pantalla de `docs/BETA.md` |
 | Subir imágenes de una oferta | ❌ fuera de la beta a propósito |
 | Fechas con cupo de una experiencia desde el panel | ❌ solo por script |
@@ -274,6 +313,19 @@ password*. La que se usó para aplicar las migraciones pasó por un chat.
 
 ## Lo que sigue, por orden
 
+### 0. Poner en pie lo que ya está escrito
+
+1. **Aplicar `0006`** — ver el bloque rojo del principio. Va **antes** de
+   desplegar; si el código llega primero, `/vender` responde error y la
+   postulación se pierde.
+2. **Las cinco `SMTP_*` en Vercel** (Production, y de paso Preview). Las mismas
+   credenciales que ya tiene Supabase en Authentication → SMTP Settings. Sin
+   ellas nadie recibe el correo de respaldo de su postulación, y no hay ningún
+   error que lo delate: se escribe en la consola del servidor y ya.
+3. **Probarlo de punta a punta**: entrar con una cuenta de prueba, mandar el
+   formulario de `/vender` y comprobar que la empresa aparece en `/proveedores`
+   con nivel Semilla, que llega el correo y que `/niveles` abre.
+
 ### 1. Abrir a proveedores reales
 
 La plataforma ya hace lo que tenía que hacer. El siguiente paso no es código:
@@ -281,11 +333,16 @@ La plataforma ya hace lo que tenía que hacer. El siguiente paso no es código:
 1. **El SMTP definitivo** (solo Ivan, punto 1 de arriba). Hoy el correo de acceso
    sale del Gmail personal de Jesús, con techo de ~500 al día. No se sostiene
    frente a un hotel.
-2. **Cargar proveedores de verdad** desde `/admin/ofertas` y `/admin/usuarios`,
-   o aprobando lo que llegue por `/vender`. Los 13 sembrados son ficticios y no
-   se pueden presentar como reales — invariante 21.
-3. **Enlazar cada proveedor con una persona** (`/admin/usuarios`). Mientras una
-   empresa no tenga a nadie, solo un administrador puede tocarla.
+2. **Cargar proveedores de verdad** desde `/admin/ofertas` y `/admin/usuarios`.
+   Los 13 sembrados son ficticios y no se pueden presentar como reales —
+   invariante 21.
+3. **Ya no hace falta aprobar a nadie para que entre.** Con la 0006, quien
+   postula con sesión queda dado de alta solo, con su empresa, su vínculo de
+   dueño y su rol. `/admin/postulaciones` sigue existiendo para las que llegan
+   **sin cuenta**, que son las únicas que quedan en `pending_review`.
+4. **Enlazar con una persona a los proveedores viejos** (`/admin/usuarios`): los
+   sembrados no tienen `provider_members`, y mientras una empresa no tenga a
+   nadie, solo un administrador puede tocarla.
 
 ### 2. Lo que quedó fuera del Bloque 3, a conciencia
 
@@ -455,8 +512,26 @@ convierte en un hito.
   necesita mirar otra tabla protegida, la pregunta se responde con una función
   `security definer` con `set search_path = public` —como `is_admin()`—, nunca
   con un `exists (...)` dentro de la política.
-- **`0001` … `0005` son inmutables.** Ya corrieron contra la base. Todo cambio
-  posterior es `0006_`.
+- **El nivel de un proveedor no se puede escribir a mano, ni con la clave de
+  servicio.** Desde la 0006, un trigger `before insert or update` lo deriva de
+  `experience_points` y pisa cualquier valor. Un `update providers set tier =
+  bosque` parece funcionar y no cambia nada. Para subir a alguien se le dan
+  puntos con `otorgar_experiencia()` — ver `docs/NIVELES.md`.
+- **Los puntos y los umbrales están escritos dos veces**: en la 0006 y en
+  `src/lib/niveles.ts`. Manda la base; el de TypeScript existe para poder
+  pintarlo sin una consulta. Si divergen, la pantalla le promete al proveedor
+  puntos que nunca le llegan.
+- **La comisión ya no es una constante.** Depende del nivel de quien vende, así
+  que valorizar el carrito necesita leer el nivel de cada proveedor
+  (`getProviderTiers`). Un proveedor que no se pueda leer paga la tasa base, que
+  es la más alta: ante la duda se cobra de más, porque cobrar de menos es plata
+  que se pierde sin que ningún error lo diga.
+- **`order_items.commission_rate` congela la tasa aplicada.** No se recalcula
+  nunca contra el nivel de hoy: el nivel sube con el tiempo y una orden de hace
+  seis meses dejaría de cuadrar consigo misma.
+- **`0001` … `0005` son inmutables.** Ya corrieron contra la base. `0006`
+  todavía no: mientras no se aplique **sí** se puede corregir en el sitio, y en
+  cuanto corra pasa a ser inmutable como las demás y lo siguiente es `0007_`.
 - **Vercel Hobby es para proyectos no comerciales.** El día que entre dinero real
   son 20 USD/mes de Pro.
 - **`hairline` y `control` no son intercambiables.** El primero separa
@@ -487,4 +562,8 @@ Y contra la aplicación corriendo:
 npm run build && npm run start
 curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/catalogo   # 200 = la base responde
 curl -s -o /dev/null -w "%{redirect_url}\n" localhost:3000/admin   # /entrar = el guardia funciona
+curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/niveles    # 200 = la tanda de niveles está desplegada
 ```
+
+Y si lo que quieres saber es si la **base** ya tiene la 0006, eso no está en el
+repositorio: está en el bloque rojo del principio de este archivo.
