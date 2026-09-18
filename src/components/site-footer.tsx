@@ -59,6 +59,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link href="/niveles" className="text-brand-200 transition-colors hover:text-white active:text-white">
+                Niveles de proveedor
+              </Link>
+            </li>
+            <li>
               <Link href="/catalogo" className="text-brand-200 transition-colors hover:text-white active:text-white">
                 Catálogo completo
               </Link>

@@ -5,7 +5,8 @@ import { HeroBanner } from "@/components/hero-banner";
 import { ListingCard } from "@/components/listing-card";
 import { TierBadge } from "@/components/tier-badge";
 import { getFeaturedListings, getMarketplaceStats, getProviderById } from "@/lib/repo";
-import { TIERS, VERTICALS } from "@/lib/taxonomy";
+import { VERTICALS } from "@/lib/taxonomy";
+import { NIVELES } from "@/lib/niveles";
 
 /**
  * Nunca se prerenderiza en el build.
@@ -165,32 +166,43 @@ export default async function HomePage() {
           </h2>
           <p className="mt-3 max-w-2xl text-muted">
             Cada proveedor responde una evaluación de seis dimensiones, adjunta
-            evidencia y la revisa nuestro equipo. El nivel que ves en cada ficha
-            sale de ese puntaje, no de una promesa.
+            evidencia y la revisa nuestro equipo. El sello que ves en una ficha
+            sale de ese puntaje, no de una promesa. El nivel —Semilla, Raíz o
+            Bosque— es otra cosa: lo gana vendiendo y cumpliendo.
           </p>
 
           <ul className="mt-8 grid gap-4 md:grid-cols-3">
-            {(["semilla", "raiz", "bosque"] as const).map((t) => (
+            {NIVELES.map((nivel) => (
               <li
-                key={t}
+                key={nivel.id}
                 className="rounded-xl bg-white p-6 ring-1 ring-hairline"
               >
-                <TierBadge tier={t} size="md" />
-                <p className="mt-3 text-sm text-muted">{TIERS[t].description}</p>
+                <TierBadge tier={nivel.id} size="md" />
+                <p className="mt-3 text-sm text-muted">{nivel.resumen}</p>
                 <p className="mt-4 text-xs font-medium uppercase tracking-wide text-brand-600">
-                  Desde {TIERS[t].min} puntos
+                  {nivel.minPuntos === 0
+                    ? "Desde el primer día"
+                    : `Desde ${nivel.minPuntos.toLocaleString("es-CO")} puntos de experiencia`}
                 </p>
               </li>
             ))}
           </ul>
 
-          <Link
-            href="/verificacion"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-800"
-          >
-            Conoce la metodología completa
-            <ArrowRight className="size-4" />
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link
+              href="/verificacion"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-brand-800"
+            >
+              Conoce la metodología completa
+              <ArrowRight className="size-4" />
+            </Link>
+            <Link
+              href="/niveles"
+              className="text-sm font-medium text-brand-700 underline underline-offset-4"
+            >
+              Cómo se gana un nivel
+            </Link>
+          </div>
         </div>
       </section>
 

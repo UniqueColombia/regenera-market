@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { createClient } from "./supabase/server";
-import { TIERS } from "./taxonomy";
+import { nivelesDesde } from "./niveles";
 import type {
   AdminUsuario,
   Listing,
@@ -50,7 +50,7 @@ const COLUMNAS_LISTING = `
 const COLUMNAS_PROVIDER = `
   id, slug, name, legal_name, tax_id, tagline, description, logo_url, cover_url,
   department, city, website, email, phone, status, sustainability_score, tier,
-  founded_year, traits, created_at,
+  experience_points, sustainability_verified_at, founded_year, traits, created_at,
   provider_certifications(certification_code)
 `;
 
@@ -114,6 +114,8 @@ interface FilaProvider {
   status: ReviewStatus;
   sustainability_score: number;
   tier: Tier;
+  experience_points: number | null;
+  sustainability_verified_at: string | null;
   founded_year: number | null;
   traits: ProviderTrait[];
   created_at: string;
@@ -212,6 +214,10 @@ function aProvider(f: FilaProvider): Provider {
     status: f.status,
     sustainabilityScore: f.sustainability_score,
     tier: f.tier,
+    // `?? 0` y no un error: una fila anterior a la migración 0006 no tiene la
+    // columna poblada, y un proveedor sin puntos es exactamente uno de cero.
+    experiencePoints: f.experience_points ?? 0,
+    evaluacionVerificada: f.sustainability_verified_at !== null,
     certifications: (f.provider_certifications ?? []).map(
       (c) => c.certification_code,
     ),
@@ -260,7 +266,13 @@ export async function searchListings(
 
   // "De este nivel hacia arriba": quien busca Raíz también quiere ver Bosque.
   // Invariante 16 de `dominio-regenera`; no lo conviertas en igualdad.
-  if (filters.tier) q = q.gte("provider_score", TIERS[filters.tier].min);
+  //
+  // **Filtra por `provider_tier` y ya no por `provider_score`.** Eran la misma
+  // cosa mientras el nivel salía del puntaje de sostenibilidad (0-100); desde
+  // que sale de los puntos de experiencia, comparar contra `TIERS[x].min` mezcla
+  // dos escalas y el filtro empieza a devolver cualquier cosa. Ver
+  // `src/lib/niveles.ts`.
+  if (filters.tier) q = q.in("provider_tier", nivelesDesde(filters.tier));
 
   if (filters.q) {
     const p = patron(filters.q);
@@ -424,6 +436,35 @@ export async function getApprovedProviders(): Promise<Provider[]> {
     .order("sustainability_score", { ascending: false });
   if (error) throw new Error(`getApprovedProviders: ${error.message}`);
   return (data as unknown as FilaProvider[]).map(aProvider);
+}
+
+/**
+ * El nivel de varios proveedores de una vez.
+ *
+ * Existe por el carrito: la comisión depende del nivel de quien vende
+ * (`src/lib/niveles.ts`), así que valorizar una cesta con ítems de cinco
+ * empresas necesita cinco niveles. Traer los cinco proveedores enteros con
+ * `getProviderById` serían cinco viajes y cinco filas completas para leer una
+ * columna.
+ *
+ * Un proveedor que no aparezca en el resultado —porque RLS lo ocultó o porque el
+ * id no existe— simplemente no sale en el mapa, y quien llama aplica la tasa
+ * base. Eso es deliberado: **a falta de nivel se cobra la comisión más alta**.
+ */
+export async function getProviderTiers(
+  ids: string[],
+): Promise<Map<string, Tier>> {
+  const unicos = [...new Set(ids)].filter((id) => UUID.test(id));
+  if (unicos.length === 0) return new Map();
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("providers")
+    .select("id, tier")
+    .in("id", unicos);
+  if (error) throw new Error(`getProviderTiers: ${error.message}`);
+
+  return new Map((data as { id: string; tier: Tier }[]).map((f) => [f.id, f.tier]));
 }
 
 /**
