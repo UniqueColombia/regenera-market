@@ -220,8 +220,18 @@ export interface ProviderApplication {
   contactName: string;
   email: string;
   phone: string;
+  /** Desde la 0006. Las filas anteriores traen `Colombia` por defecto. */
+  country: string;
+  /** Departamento, provincia, región o estado: depende del país. */
   department: string;
   city: string;
+  /** Forma jurídica declarada (`src/lib/paises.ts`). Vacío en las filas viejas. */
+  orgType?: string;
+  /** Cómo se llama el documento tributario en su país: NIT, RUC, RFC, CUIT… */
+  taxIdKind?: string;
+  taxId?: string;
+  /** Verticales que dice atender. Hasta cinco. */
+  categories: string[];
   website?: string;
   description: string;
   status: ReviewStatus;

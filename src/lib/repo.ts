@@ -587,8 +587,13 @@ interface FilaPostulacion {
   contact_name: string;
   email: string;
   phone: string;
+  country: string | null;
   department: string;
   city: string;
+  org_type: string | null;
+  tax_id_kind: string | null;
+  tax_id: string | null;
+  categories: string[] | null;
   website: string | null;
   description: string;
   status: ReviewStatus;
@@ -608,7 +613,7 @@ export async function getApplications(): Promise<ProviderApplication[]> {
   const { data, error } = await db
     .from("provider_applications")
     .select(
-      "id, user_id, name, contact_name, email, phone, department, city, website, description, status, reviewer_notes, provider_id, created_at",
+      "id, user_id, name, contact_name, email, phone, country, department, city, org_type, tax_id_kind, tax_id, categories, website, description, status, reviewer_notes, provider_id, created_at",
     )
     .order("created_at", { ascending: true });
   if (error) throw new Error(`getApplications: ${error.message}`);
@@ -620,8 +625,15 @@ export async function getApplications(): Promise<ProviderApplication[]> {
     contactName: f.contact_name,
     email: f.email,
     phone: f.phone,
+    // `?? "Colombia"` y no un error: las postulaciones anteriores a la 0006 se
+    // guardaron cuando el formulario solo preguntaba por departamento.
+    country: f.country ?? "Colombia",
     department: f.department,
     city: f.city,
+    orgType: f.org_type ?? undefined,
+    taxIdKind: f.tax_id_kind ?? undefined,
+    taxId: f.tax_id ?? undefined,
+    categories: f.categories ?? [],
     website: f.website ?? undefined,
     description: f.description,
     status: f.status,

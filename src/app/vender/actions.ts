@@ -6,7 +6,7 @@ import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { enviarCorreo } from "@/lib/correo";
 import { correoPostulacionRecibida } from "@/lib/correo/plantillas";
-import { IDS_TIPO_ORGANIZACION, NOMBRES_PAIS } from "@/lib/paises";
+import { IDS_TIPO_ORGANIZACION, NOMBRES_PAIS, paisPorNombre } from "@/lib/paises";
 import { VERTICALS } from "@/lib/taxonomy";
 
 /**
@@ -176,7 +176,10 @@ export async function submitApplication(
     _city: d.city,
     _description: d.description,
     _org_type: d.orgType,
-    _tax_id_kind: d.country,
+    // Cómo se llama el documento en su país (NIT, RUC, RFC, CUIT…), no el país:
+    // un número suelto no se puede validar ni usar para facturar, y guardar
+    // 'Perú' en la columna del tipo de documento no dice nada de él.
+    _tax_id_kind: paisPorNombre(d.country).documento,
     _tax_id: d.taxId,
     _website: d.website || null,
     _categories: d.categories ?? [],
