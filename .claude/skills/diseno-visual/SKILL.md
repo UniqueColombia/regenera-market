@@ -78,6 +78,28 @@ persona —usuario, proveedor o administrador— dice Seregenera**. Si encuentra
 código y nombres internos no importa. Ver el hito
 [marca Seregenera](../../hitos/2026-08-23-marca-seregenera.md).
 
+## Paridad móvil — toda acción de escritorio existe en el teléfono
+
+`MenuUsuario` de `src/components/site-header.tsx` es `hidden sm:block`. Durante
+un tiempo eso significó que **por debajo de 640 px la única opción de la cuenta
+era salir**: no se podía ver el perfil, ni llegar a la empresa, ni al panel de
+administración. Nadie lo notó desde un escritorio, que es exactamente el modo de
+fallo de esta clase de bug.
+
+**La regla:** si un menú, un desplegable o una barra se oculta en una anchura,
+sus acciones tienen que aparecer en el sustituto de esa anchura. No es opcional y
+no se comprueba solo — el CI no mira anchos de pantalla.
+
+Cómo se arregla y cómo no:
+
+- **Sí:** repetir las filas dentro del menú desplegable de móvil, que es donde el
+  usuario ya va a buscarlas. Es lo que ese mismo menú ya hacía con la navegación.
+- **No:** enseñar el desplegable de escritorio en pantallas pequeñas. Queda un
+  menú flotante encima de otro menú abierto, y en un teléfono no cabe.
+
+Al terminar cualquier cambio de navegación, recórrela a 375 px y comprueba que
+llegas a: tu cuenta, tu empresa, administración (si toca), el carrito y salir.
+
 ## Accesibilidad — no negociable
 
 - Todo icono que actúa solo lleva `aria-label` o un `<span class="sr-only">`.
@@ -95,5 +117,6 @@ código y nombres internos no importa. Ver el hito
 - [ ] Cero hex y cero colores fuera de la paleta
 - [ ] Serif solo en títulos
 - [ ] Se ve bien a 375 px de ancho
+- [ ] Toda acción del menú de escritorio se alcanza también desde el de móvil
 - [ ] Interactivos alcanzables con teclado y con foco visible
 - [ ] Ningún texto visible dice "Regenera Market"

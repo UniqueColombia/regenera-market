@@ -22,6 +22,20 @@
  * RFC mexicano mezcla letras. Guardar el tipo es lo que permite, el día que haya
  * facturación electrónica, saber qué se está mirando.
  *
+ * ## La ley no es colombiana
+ *
+ * La cláusula de autorización de datos de `/vender` decía «conforme a la Ley
+ * 1581 de 2012» a secas. Esa es la ley **colombiana**, y en un formulario que
+ * acepta proveedores de dieciocho países pasa una de dos cosas: o el peruano que
+ * la lee concluye que el sitio no es para él, o firma una autorización que cita
+ * una norma que no le aplica — que es peor, porque no autoriza nada.
+ *
+ * La redacción que manda es la general («la normativa de protección de datos que
+ * te aplique») y `proteccionDatos` solo **nombra** la de su país cuando la
+ * sabemos, que es lo que le da fuerza a una autorización: saber bajo qué norma
+ * se otorga. Cuando no la sabemos, la cláusula general sigue siendo válida y no
+ * se inventa una ley.
+ *
  * ## El orden
  *
  * Colombia primero porque es el mercado de hoy y sería absurdo hacerle buscar
@@ -38,27 +52,39 @@ export interface Pais {
   documento: string;
   /** Cómo llama a la división administrativa de primer nivel. */
   division: string;
+  /**
+   * La norma de protección de datos personales de ese país.
+   *
+   * **Solo sirve para nombrarla en la cláusula de autorización**, nunca para
+   * decidir si se puede guardar un dato: eso lo decide la política de
+   * privacidad del sitio, que es una y vale para todos. Ver el comentario
+   * «La ley no es colombiana» más abajo.
+   *
+   * `undefined` cuando no la conocemos o el país es «Otro». La cláusula se
+   * queda entonces en su redacción general, que es la que de verdad manda.
+   */
+  proteccionDatos?: string;
 }
 
 export const PAISES: Pais[] = [
-  { nombre: "Colombia", codigo: "CO", documento: "NIT", division: "Departamento" },
-  { nombre: "Argentina", codigo: "AR", documento: "CUIT", division: "Provincia" },
-  { nombre: "Bolivia", codigo: "BO", documento: "NIT", division: "Departamento" },
-  { nombre: "Brasil", codigo: "BR", documento: "CNPJ", division: "Estado" },
-  { nombre: "Chile", codigo: "CL", documento: "RUT", division: "Región" },
-  { nombre: "Costa Rica", codigo: "CR", documento: "Cédula jurídica", division: "Provincia" },
-  { nombre: "Ecuador", codigo: "EC", documento: "RUC", division: "Provincia" },
-  { nombre: "El Salvador", codigo: "SV", documento: "NIT", division: "Departamento" },
-  { nombre: "Guatemala", codigo: "GT", documento: "NIT", division: "Departamento" },
-  { nombre: "Honduras", codigo: "HN", documento: "RTN", division: "Departamento" },
-  { nombre: "México", codigo: "MX", documento: "RFC", division: "Estado" },
-  { nombre: "Nicaragua", codigo: "NI", documento: "RUC", division: "Departamento" },
-  { nombre: "Panamá", codigo: "PA", documento: "RUC", division: "Provincia" },
-  { nombre: "Paraguay", codigo: "PY", documento: "RUC", division: "Departamento" },
-  { nombre: "Perú", codigo: "PE", documento: "RUC", division: "Región" },
-  { nombre: "República Dominicana", codigo: "DO", documento: "RNC", division: "Provincia" },
-  { nombre: "Uruguay", codigo: "UY", documento: "RUT", division: "Departamento" },
-  { nombre: "Venezuela", codigo: "VE", documento: "RIF", division: "Estado" },
+  { nombre: "Colombia", codigo: "CO", documento: "NIT", division: "Departamento", proteccionDatos: "la Ley 1581 de 2012" },
+  { nombre: "Argentina", codigo: "AR", documento: "CUIT", division: "Provincia", proteccionDatos: "la Ley 25.326 de Protección de los Datos Personales" },
+  { nombre: "Bolivia", codigo: "BO", documento: "NIT", division: "Departamento", proteccionDatos: "la normativa boliviana de protección de datos" },
+  { nombre: "Brasil", codigo: "BR", documento: "CNPJ", division: "Estado", proteccionDatos: "la Lei Geral de Proteção de Dados (Lei 13.709/2018)" },
+  { nombre: "Chile", codigo: "CL", documento: "RUT", division: "Región", proteccionDatos: "la Ley 19.628 sobre protección de la vida privada" },
+  { nombre: "Costa Rica", codigo: "CR", documento: "Cédula jurídica", division: "Provincia", proteccionDatos: "la Ley 8968 de Protección de la Persona" },
+  { nombre: "Ecuador", codigo: "EC", documento: "RUC", division: "Provincia", proteccionDatos: "la Ley Orgánica de Protección de Datos Personales" },
+  { nombre: "El Salvador", codigo: "SV", documento: "NIT", division: "Departamento", proteccionDatos: "la Ley de Protección de Datos Personales" },
+  { nombre: "Guatemala", codigo: "GT", documento: "NIT", division: "Departamento", proteccionDatos: "la normativa guatemalteca de protección de datos" },
+  { nombre: "Honduras", codigo: "HN", documento: "RTN", division: "Departamento", proteccionDatos: "la normativa hondureña de protección de datos" },
+  { nombre: "México", codigo: "MX", documento: "RFC", division: "Estado", proteccionDatos: "la Ley Federal de Protección de Datos Personales en Posesión de los Particulares" },
+  { nombre: "Nicaragua", codigo: "NI", documento: "RUC", division: "Departamento", proteccionDatos: "la Ley 787 de Protección de Datos Personales" },
+  { nombre: "Panamá", codigo: "PA", documento: "RUC", division: "Provincia", proteccionDatos: "la Ley 81 de 2019 de Protección de Datos Personales" },
+  { nombre: "Paraguay", codigo: "PY", documento: "RUC", division: "Departamento", proteccionDatos: "la Ley 6534 de Protección de Datos Personales" },
+  { nombre: "Perú", codigo: "PE", documento: "RUC", division: "Región", proteccionDatos: "la Ley 29733 de Protección de Datos Personales" },
+  { nombre: "República Dominicana", codigo: "DO", documento: "RNC", division: "Provincia", proteccionDatos: "la Ley 172-13 de Protección de Datos Personales" },
+  { nombre: "Uruguay", codigo: "UY", documento: "RUT", division: "Departamento", proteccionDatos: "la Ley 18.331 de Protección de Datos Personales" },
+  { nombre: "Venezuela", codigo: "VE", documento: "RIF", division: "Estado", proteccionDatos: "la normativa venezolana de protección de datos" },
   { nombre: "Otro", codigo: "XX", documento: "Identificación tributaria", division: "Región" },
 ];
 

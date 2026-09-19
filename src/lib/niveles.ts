@@ -297,11 +297,15 @@ export const EXPERIENCIA = [
     detalle: "Hasta tres. El tope es a propósito: un taller sin plata para certificarse tiene que poder llegar arriba igual.",
     repetible: true,
   },
-  // Los dos de la Comunidad ya están en `otorgar_experiencia()` porque los
-  // puntos se definen con la regla y no con la pantalla, pero **la sección de
-  // Comunidad todavía no existe**. `/niveles` los oculta hasta que exista: el
-  // `detalle` es texto que lee un proveedor, y anunciar puntos por algo que no
-  // se puede hacer es prometer de más. Ver `AUN_NO` en `src/app/niveles/page.tsx`.
+  // Los dos de la Comunidad. Estuvieron un tiempo definidos aquí y en
+  // `otorgar_experiencia()` sin que existiera dónde publicar, y `/niveles` los
+  // ocultaba con una lista `AUN_NO` para no prometer puntos por algo que no se
+  // podía hacer. La sección existe desde la migración 0007 (`/comunidad`), así
+  // que la lista se fue y estos dos se muestran como el resto.
+  //
+  // **Solo suman cuando la publicación se firma con la empresa.** Una entrada a
+  // título personal no tiene a quién darle puntos, y no debe: el nivel mide qué
+  // tan activa es la empresa. Lo impone el trigger `community_posts_experiencia`.
   {
     clave: "articulo_publicado",
     puntos: 30,

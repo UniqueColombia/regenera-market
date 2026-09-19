@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   ClipboardList,
   LayoutGrid,
+  MessagesSquare,
   Receipt,
   Store,
   Tags,
@@ -19,7 +20,7 @@ import {
  * servidor. Si el layout entero llevara `"use client"`, la comprobación de rol
  * tendría que mudarse a otra parte y el panel completo viajaría al navegador.
  *
- * Barra desplazable en horizontal en móvil: seis pestañas no caben en 360 px, y
+ * Barra desplazable en horizontal en móvil: siete pestañas no caben en 360 px, y
  * apilarlas empujaría el contenido media pantalla hacia abajo.
  */
 const SECCIONES = [
@@ -28,6 +29,7 @@ const SECCIONES = [
   { href: "/admin/proveedores", label: "Proveedores", icono: Store },
   { href: "/admin/postulaciones", label: "Postulaciones", icono: ClipboardList },
   { href: "/admin/ordenes", label: "Órdenes", icono: Receipt },
+  { href: "/admin/comunidad", label: "Comunidad", icono: MessagesSquare },
   { href: "/admin/usuarios", label: "Usuarios", icono: Users },
 ] as const;
 

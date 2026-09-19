@@ -68,6 +68,11 @@ export function SiteFooter() {
                 Catálogo completo
               </Link>
             </li>
+            <li>
+              <Link href="/comunidad" className="text-brand-200 transition-colors hover:text-white active:text-white">
+                Comunidad
+              </Link>
+            </li>
           </ul>
         </div>
 

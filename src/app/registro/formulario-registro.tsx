@@ -45,10 +45,13 @@ export function FormularioRegistro({ volver }: { volver?: string }) {
       setErrors({});
 
       // Con la confirmación de correo desactivada en el panel, `signUp` ya deja
-      // la sesión abierta y no hay código que pedir.
+      // la sesión abierta y no hay código que pedir. Se pasa igual por la
+      // pantalla de bienvenida: el resultado es el mismo —la cuenta quedó
+      // activa— y decirlo en los dos caminos evita que el registro termine en
+      // una portada que no explica qué pasó.
       if (!r.requiereCodigo) {
         router.refresh();
-        router.push(destino);
+        router.push(`/registro/listo?volver=${encodeURIComponent(destino)}`);
         return;
       }
 
@@ -61,6 +64,7 @@ export function FormularioRegistro({ volver }: { volver?: string }) {
       <PasoCodigo
         email={email}
         volver={volver}
+        origen="registro"
         onCambiarCorreo={() => {
           setPaso("datos");
           setErrors({});

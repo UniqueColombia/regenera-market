@@ -3,6 +3,8 @@ import { createClient } from "./supabase/server";
 import { nivelesDesde } from "./niveles";
 import type {
   AdminUsuario,
+  CommunityPost,
+  CommunityTopic,
   Listing,
   ListingFilters,
   ListingKind,
@@ -711,5 +713,161 @@ export async function getVinculosProveedor(): Promise<VinculoProveedor[]> {
     providerId: v.provider_id,
     providerName: v.providers?.name ?? "Empresa",
     esDueno: v.is_owner,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Comunidad
+// ---------------------------------------------------------------------------
+
+const COLUMNAS_POST = `
+  id, title, body, topic, author_id, author_name, featured, reaction_count,
+  created_at, providers(id, slug, name, logo_url, tier)
+`;
+
+interface FilaPost {
+  id: string;
+  title: string;
+  body: string;
+  topic: CommunityTopic;
+  author_id: string;
+  author_name: string;
+  featured: boolean;
+  reaction_count: number;
+  created_at: string;
+  providers: {
+    id: string;
+    slug: string;
+    name: string;
+    logo_url: string | null;
+    tier: Tier;
+  } | null;
+}
+
+function aPost(fila: FilaPost, reaccionados: Set<string>): CommunityPost {
+  return {
+    id: fila.id,
+    title: fila.title,
+    body: fila.body,
+    topic: fila.topic,
+    authorId: fila.author_id,
+    authorName: fila.author_name || "Alguien de la comunidad",
+    provider: fila.providers
+      ? {
+          id: fila.providers.id,
+          slug: fila.providers.slug,
+          name: fila.providers.name,
+          logoUrl: fila.providers.logo_url ?? undefined,
+          tier: fila.providers.tier,
+        }
+      : undefined,
+    featured: fila.featured,
+    reactionCount: fila.reaction_count,
+    reacted: reaccionados.has(fila.id),
+    createdAt: fila.created_at,
+  };
+}
+
+/**
+ * Cuáles de estas publicaciones ya marcó quien está mirando.
+ *
+ * Una sola consulta para toda la página en vez de una por tarjeta.
+ * `community_reactions_read_own` hace el filtro: sin sesión devuelve cero filas
+ * y el botón sale sin marcar, que es exactamente lo que se quiere mostrarle a
+ * quien todavía no tiene cuenta.
+ */
+async function reaccionesPropias(ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const db = await createClient();
+  const { data, error } = await db
+    .from("community_reactions")
+    .select("post_id")
+    .in("post_id", ids);
+  // Un fallo aquí no debe tumbar el muro: lo peor que pasa es que el botón
+  // aparezca sin marcar y una segunda reacción rebote contra la clave primaria.
+  if (error || !data) return new Set();
+  return new Set((data as { post_id: string }[]).map((f) => f.post_id));
+}
+
+/**
+ * El muro, lo más reciente primero.
+ *
+ * **Los destacados van arriba y no mezclados por fecha.** Destacar es el único
+ * gesto editorial que tiene el equipo sobre la Comunidad, y si el orden lo
+ * disolviera en dos días no serviría para nada — ni para el proveedor, a quien
+ * le vale 80 puntos de experiencia.
+ *
+ * El filtro por `status` no se escribe aquí: lo impone `community_posts_read`.
+ * Escribirlo a mano sería pedirle al código que garantice lo que garantiza la
+ * base, y el día que se olvide en otra consulta ahí sí habría fuga.
+ */
+export async function getCommunityPosts(limite = 20): Promise<CommunityPost[]> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("community_posts")
+    .select(COLUMNAS_POST)
+    .eq("status", "approved")
+    .order("featured", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limite);
+  if (error) throw new Error(`getCommunityPosts: ${error.message}`);
+
+  const filas = data as unknown as FilaPost[];
+  const reaccionados = await reaccionesPropias(filas.map((f) => f.id));
+  return filas.map((f) => aPost(f, reaccionados));
+}
+
+/**
+ * Las empresas en cuyo nombre puede publicar esta persona.
+ *
+ * Sale de `provider_members`, que es la tabla que decide quién gestiona qué
+ * —nunca de un rol ni de un texto del formulario—. Si devuelve vacío, el
+ * formulario no ofrece la opción de firmar como empresa, y el `with check` de
+ * `community_posts_insert` la rechazaría igual si alguien la forzara.
+ */
+export async function getEmpresasQueGestiono(): Promise<
+  { id: string; name: string }[]
+> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("provider_members")
+    .select("provider_id, providers(name)");
+  if (error || !data) return [];
+
+  return (data as unknown as {
+    provider_id: string;
+    providers: { name: string } | null;
+  }[])
+    .filter((v) => v.providers)
+    .map((v) => ({ id: v.provider_id, name: v.providers!.name }));
+}
+
+/** Una publicación vista desde administración: trae también las ocultas. */
+export interface PostAdmin extends CommunityPost {
+  status: ReviewStatus;
+}
+
+/**
+ * El muro entero para moderar, incluidas las ocultas.
+ *
+ * El alcance lo decide `community_posts_read`, que a un administrador le
+ * devuelve todo y a cualquier otro solo lo aprobado y lo suyo. Es la misma razón
+ * por la que `getApplications()` tampoco filtra a mano: si el filtro viviera
+ * aquí, el día que se olvide en otra consulta ahí sí habría fuga.
+ *
+ * `reacted` viene en `false` y se ignora en el panel: moderar no es reaccionar.
+ */
+export async function getPostsForAdmin(): Promise<PostAdmin[]> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("community_posts")
+    .select(`${COLUMNAS_POST}, status`)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(`getPostsForAdmin: ${error.message}`);
+
+  return (data as unknown as (FilaPost & { status: ReviewStatus })[]).map((f) => ({
+    ...aPost(f, new Set()),
+    status: f.status,
   }));
 }
