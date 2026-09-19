@@ -97,6 +97,13 @@ Ubicación: `src/app/api/webhooks/<servicio>/route.ts`.
   dos veces.
 - **Falla de un servicio externo ≠ error 500 de nuestra app.** Si el correo de
   confirmación no sale, la orden ya existe: regístralo y sigue.
+
+  Y no basta con no lanzar: **tampoco puede devolver un error**. El 2026-09-19
+  el correo de respaldo de `/vender` estaba fuera de un `try`, así que un fallo
+  suyo —después de que la empresa ya existía— se le enseñaba a la persona como
+  «no pudimos registrar tu postulación». Volvía a mandar el formulario y la
+  segunda vez chocaba contra el límite de tres postulaciones por correo al día.
+  Un fallo de cortesía convertido en un bloqueo de 24 horas.
 - **No logees el cuerpo completo de una respuesta.** Trae tokens y datos
   personales de compradores.
 

@@ -54,6 +54,63 @@ Extrae cuando se cumple **una** de estas:
 No extraigas para "ordenar visualmente" un archivo. Un componente de un solo uso
 sin estado y sin reglas es una indirección que hay que perseguir para leer.
 
+## Server Actions: dos trampas del límite servidor/cliente
+
+### Un archivo `"use server"` solo exporta funciones asíncronas
+
+Y si exportas otra cosa, **no te avisa nadie**. El build pasa, `tsc` pasa,
+`eslint` pasa. Lo que recibe un componente de cliente al importar esa constante
+no es su valor: es una referencia a una acción del servidor.
+
+Ocurrió el 2026-09-20 con los topes de longitud del formulario de `/vender`:
+`LIMITES` se exportó desde `actions.ts` y el HTML servido salió con
+`maxLength="t"` en un campo y sin `maxLength` en los otros siete. O sea, **el
+límite no existía en el navegador** y nadie lo habría notado hasta que alguien
+pegara un texto largo. Se descubrió leyendo el HTML servido, no compilando.
+
+**Una constante que comparten servidor y cliente vive en un archivo normal que
+los dos importan.** En ese caso, `src/app/vender/limites.ts`.
+
+La forma de comprobarlo, cuando hay una duda:
+
+```bash
+npm run build && npx next start -p 3123 &
+curl -s http://localhost:3123/la-ruta | grep -o 'maxLength="[0-9]*"'
+```
+
+### Una acción que falla tiene que dejar un hilo
+
+Una Server Action que lanza manda a la persona a `error.tsx` y no deja **nada**
+que relacione lo que vio con lo que pasó. El registro tiene el error; la persona
+tiene una pantalla. «Me dio error al registrar mi empresa» es todo lo que se
+puede reportar, y con eso no se arregla nada. La variante peor es la acción que
+*captura* su fallo y devuelve un mensaje amable: esa no genera ni el `digest` de
+Next, así que el fallo no existe para nadie más que para quien lo sufrió.
+
+`src/lib/incidencias.ts` resuelve las dos:
+
+```ts
+try {
+  return await hacerLoQueSea(datos);
+} catch (e) {
+  const codigo = registrarFallo("ambito", e, { paso, largoTexto });
+  return { ok: false, errors: { form: mensajeDeFallo(codigo) } };
+}
+```
+
+Tres reglas al usarlo:
+
+- **En los datos del registro no va ningún dato personal.** Ni nombre, ni
+  correo, ni teléfono. Sí va lo que hace falta para reproducirlo: qué paso, qué
+  tipo de organización, cuántos caracteres tenía el texto. Los registros de
+  Vercel los lee más gente y viven más tiempo que el formulario.
+- **Nunca se enseña `error.message`.** Trae nombres de columnas y de políticas,
+  y no le sirve de nada a quien solo quería registrar su empresa.
+- **Lo que ya ocurrió no se puede convertir en error.** Si la operación real ya
+  está confirmada y falla un paso posterior —un correo, una notificación—, ese
+  paso va en su propio `try` y se apunta sin cambiar el resultado. Si no, la
+  persona repite una operación que ya se hizo. Ver la skill `nueva-integracion`.
+
 ## Dónde va cada cosa
 
 | Va en | Cuándo |

@@ -103,13 +103,19 @@ export default async function CuentaPage() {
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium text-muted">Rol</dt>
+          <dt className="text-xs font-medium text-muted">Qué puedes hacer</dt>
+          {/* **Nadie deja de ser comprador por vender.** Antes esto decía
+              «Proveedor» a secas para quien tuviera el rol, y era falso en lo
+              práctico: un hotel que además vende sus excedentes sigue pudiendo
+              comprar, y lo hace. Decir «Proveedor» le sugería que esa parte del
+              sitio ya no era para él.
+
+              Y se decide por la empresa, no por el rol. `user_roles` dice que
+              alguien vende; `provider_members` dice **de qué empresa** — y sin
+              empresa no hay nada que vender, aunque el rol esté puesto. */}
           <dd className="text-sm text-ink">
-            {sesion?.esAdmin
-              ? "Administración"
-              : sesion?.esProveedor
-                ? "Proveedor"
-                : "Comprador"}
+            {empresa ? "Comprar y vender" : "Comprar"}
+            {sesion?.esAdmin && " · Administración"}
           </dd>
         </div>
       </dl>
