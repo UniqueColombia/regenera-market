@@ -112,6 +112,28 @@ número que mire.
 
 ---
 
+## Dónde lo ve el proveedor
+
+`/cuenta/empresa`, desde la `0008`. Tres cosas en una pantalla: en qué nivel
+está, cuánto le falta para el siguiente y **cuánto bajaría su comisión al
+llegar**, y el historial de `experience_events` línea por línea.
+
+El historial no es adorno: es la invariante 14 de `dominio-regenera` —el puntaje
+tiene que poder seguirse punto por punto— puesta donde la ve el interesado.
+Hasta entonces los eventos se apuntaban y no había dónde mirarlos, así que el
+nivel era un número que subía solo, que es la forma más rápida de que se lea
+como arbitrario.
+
+Los eventos con una clave que `EXPERIENCIA` no conoce se muestran igual.
+`migracion_0006` acreditó a cada proveedor el nivel que ya tenía cuando el modelo
+cambió; esconderlo haría que la suma de la lista no cuadrara con el total, que es
+justo lo que una auditoría tiene que poder comprobar.
+
+`/niveles` sigue siendo otra cosa y no sobra: explica el sistema a quien todavía
+no está dentro.
+
+---
+
 ## Si hay que tocar algo
 
 ### Cambiar cuántos puntos da un evento
@@ -193,14 +215,47 @@ fichas en el catálogo.
 
 ---
 
+## Lo que el proveedor no puede escribir
+
+**Desde la migración `0008`, y antes sí podía.** `providers_member_update` (de la
+`0001`) dice `for update using (manages_provider(id))`, y una política de
+Postgres **no distingue columnas**: quien gestiona una empresa podía actualizar
+la fila entera, incluida `experience_points`. Como el nivel sale de ahí y la
+comisión sale del nivel, con la clave anon —que es pública por diseño— y una
+sesión normal de proveedor se pasaba del 12 % al 8 %. No hacía falta ninguna
+clave privada.
+
+Lo cierra el trigger `providers_proteger_derivados`, que devuelve a su valor
+anterior `experience_points`, `tier`, `sustainability_score`,
+`sustainability_verified_at`, `status` y `slug` cuando quien escribe es una
+sesión normal. Dos detalles que hay que saber antes de tocarlo:
+
+- **Distingue por `current_user`, no por una marca de transacción.** Una sesión
+  del sitio llega como `anon` o `authenticated`; la propia base
+  (`otorgar_experiencia()`, `sync_provider_score()`) y las tareas con la clave de
+  servicio llegan con otro rol y pasan. Eso es lo que evitó tener que reescribir
+  las funciones de la `0006`.
+- **Por eso no es `security definer`.** Dentro de una, `current_user` sería
+  siempre el dueño de la función y la comprobación no valdría nada.
+
+Si algún día hay un panel donde el proveedor edite su ficha, **esas seis columnas
+no entran en el formulario**. No porque el trigger las vaya a rechazar —las va a
+rechazar— sino porque un formulario que manda campos que la base deshace en
+silencio es un formulario que miente.
+
+---
+
 ## Lo que todavía no está
 
-- **El proveedor no ve sus puntos.** `progresoDe()` existe en `niveles.ts` para
-  pintar la barra, y la pantalla que la use es el panel de proveedor (Bloque 4).
-  Hoy los puntos solo se ven en `/proveedor/[slug]` como un número.
-- **La Comunidad no existe**, así que `articulo_publicado` y
-  `articulo_destacado` están en la base pero `/niveles` los oculta (`AUN_NO` en
-  `src/app/niveles/page.tsx`). El día que exista, se borra esa lista.
-- **`perfil_completo` y `cotizacion_respondida` no los dispara nadie todavía**:
-  no hay pantalla de perfil ni de respuesta a cotización. Los puntos están
-  definidos; el hecho que los otorga, no.
+- **El proveedor no edita el resto de su ficha.** Descripción, titular, ubicación
+  y contacto siguen saliendo de la postulación y corrigiéndose desde
+  administración. Consecuencia práctica: una empresa cuya postulación viniera
+  corta **no puede llegar a los 80 puntos de `perfil_completo` hoy**, porque el
+  trigger exige titular y descripción con sustancia y no hay dónde escribirlos.
+- **`cotizacion_respondida` no lo dispara nadie todavía**: no hay pantalla de
+  respuesta a cotización. Los puntos están definidos; el hecho que los otorga,
+  no. Es el mismo caso que tuvieron `articulo_publicado` (resuelto por la `0007`)
+  y `perfil_completo` (resuelto por la `0008`).
+- **El tope de `articulo_publicado` no existe.** Publicar cien entradas distintas
+  en la Comunidad daría cien veces 30 puntos. Si llega a ser un problema, el tope
+  va en `otorgar_experiencia()` junto al de ofertas, no en el trigger.
