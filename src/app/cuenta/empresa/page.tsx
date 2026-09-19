@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Building2 } from "lucide-react";
 import { Historial } from "./historial";
-import { guardarLogo, quitarLogo } from "./actions";
+import {
+  guardarLogo,
+  guardarPortada,
+  quitarLogo,
+  quitarPortada,
+} from "./actions";
 import { ProgresoNivel } from "@/components/progreso-nivel";
 import { SelectorImagen } from "@/components/selector-imagen";
 import { requireUser } from "@/lib/auth";
@@ -83,16 +88,44 @@ export default async function EmpresaPage() {
       </p>
 
       <section className="mt-10">
-        <h2 className="font-display text-xl text-ink">Tu logo</h2>
-        <div className="mt-3 rounded-xl bg-white p-5 ring-1 ring-hairline">
-          <SelectorImagen
-            nombre={empresa.name}
-            imagenUrl={empresa.logoUrl}
-            forma="cuadrada"
-            guardar={guardarLogo}
-            quitar={quitarLogo}
-            ayuda="Sale en tu ficha, en el catálogo y en lo que publiques en la Comunidad. Lo recortamos a cuadrado desde el centro; si tu logo es alargado, déjale aire alrededor antes de subirlo."
-          />
+        <h2 className="font-display text-xl text-ink">La cara de tu ficha</h2>
+        <p className="mt-1 text-sm text-muted">
+          Son dos imágenes distintas y hacen dos cosas distintas: el logo te
+          identifica en cualquier lista, y la portada es lo primero que ve quien
+          abre tu ficha.
+        </p>
+
+        <div className="mt-3 space-y-3">
+          <div className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+            <h3 className="font-display text-base text-ink">Tu logo</h3>
+            <div className="mt-4">
+              <SelectorImagen
+                nombre={empresa.name}
+                imagenUrl={empresa.logoUrl}
+                forma="cuadrada"
+                guardar={guardarLogo}
+                quitar={quitarLogo}
+                ayuda="Sale en tu ficha, en el catálogo y en lo que publiques en la Comunidad. Lo recortamos a cuadrado desde el centro; si tu logo es alargado, déjale aire alrededor antes de subirlo."
+              />
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+            <h3 className="font-display text-base text-ink">
+              La foto de portada
+            </h3>
+            <div className="mt-4">
+              <SelectorImagen
+                nombre={empresa.name}
+                imagenUrl={empresa.coverUrl}
+                forma="apaisada"
+                proporcion="apaisada"
+                guardar={guardarPortada}
+                quitar={quitarPortada}
+                ayuda="Ocupa todo el ancho al abrir tu ficha, detrás de tu nombre. Funciona mejor una foto de tu taller, tu cultivo o tu equipo trabajando que un montaje con texto: encima va el título y no se leerían los dos. Si no subes ninguna, usamos la foto de una de tus ofertas."
+              />
+            </div>
+          </div>
         </div>
       </section>
 
