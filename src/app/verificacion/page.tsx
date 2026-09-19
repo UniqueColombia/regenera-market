@@ -19,7 +19,7 @@ const PUNTOS_EVALUACION = eventoExperiencia("evaluacion_aprobada").puntos;
 export const metadata: Metadata = {
   title: "Cómo verificamos",
   description:
-    "La metodología de verificación de Seregenera: seis dimensiones, evidencia documental y revisión humana antes de asignar el nivel Semilla, Raíz o Bosque.",
+    "La metodología de verificación de Seregenera: seis dimensiones, evidencia documental y revisión humana antes de otorgar el sello de evaluación verificada.",
 };
 
 const STEPS = [
@@ -31,12 +31,12 @@ const STEPS = [
   {
     icon: Eye,
     title: "Nuestro equipo revisa la evidencia",
-    body: "Ninguna respuesta puntúa sola. Contrastamos el documento con lo declarado y, cuando algo no cuadra, pedimos aclaración antes de aprobar.",
+    body: "Contrastamos cada documento con lo declarado y, cuando algo no cuadra, pedimos aclaración antes de aprobar. Una respuesta sin su evidencia no puntúa.",
   },
   {
     icon: ShieldCheck,
     title: "Se otorga el sello",
-    body: "El puntaje y el sello de evaluación verificada aparecen en la ficha. No se compran, no se negocian y se revisan cada doce meses. El nivel del proveedor es otra cosa: ese se gana vendiendo.",
+    body: "El puntaje y el sello aparecen en la ficha del proveedor, y los revisamos cada doce meses. El nivel que se ve al lado mide otra cosa: cuánto lleva vendido y entregado.",
   },
   {
     icon: Users,
@@ -88,8 +88,9 @@ export default function VerificacionPage() {
             Las seis dimensiones
           </h2>
           <p className="mt-2 max-w-2xl text-muted">
-            Los pesos están pensados para que un taller pequeño sin plata para
-            certificarse pueda igual llegar a Raíz por prácticas reales.
+            Los pesos están repartidos para que un taller pequeño, sin plata
+            para certificarse, pueda sacar un buen puntaje por lo que hace de
+            verdad.
           </p>
 
           <ul className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -148,9 +149,8 @@ export default function VerificacionPage() {
               El sello de evaluación verificada
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Aparece en la ficha del proveedor junto a su puntaje y al desglose
-              por dimensión. No se compra, no se negocia y se revisa cada doce
-              meses.
+              Aparece en tu ficha junto a tu puntaje y al desglose por
+              dimensión. Lo revisamos cada doce meses.
             </p>
           </div>
           <div className="rounded-xl bg-white p-6 ring-1 ring-hairline">
@@ -159,9 +159,8 @@ export default function VerificacionPage() {
               {PUNTOS_EVALUACION} puntos de experiencia
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Es, con diferencia, lo que más suma para el nivel del proveedor —
-              pero el nivel no depende de esto: se gana publicando, vendiendo y
-              entregando.{" "}
+              Es el evento que más experiencia da de una sola vez. Tu nivel
+              además sube con lo que publicas, vendes y entregas.{" "}
               <Link
                 href="/niveles"
                 className="font-medium text-brand-700 underline underline-offset-4"
@@ -173,10 +172,10 @@ export default function VerificacionPage() {
           </div>
         </div>
         <p className="mt-6 max-w-2xl text-sm text-muted">
-          Por debajo de {PUNTAJE_MINIMO_SELLO} puntos no se otorga el sello, y
-          eso no frena a nadie: publicar y vender no dependen de esta evaluación.
-          Le indicamos qué dimensión lo está frenando y puede volver a
-          presentarse cuando la mejore.
+          El sello se otorga desde {PUNTAJE_MINIMO_SELLO} puntos. Si te quedas
+          corto te decimos qué dimensión te está pesando, y puedes volver a
+          presentarte cuando la mejores. Mientras tanto sigues publicando y
+          vendiendo igual.
         </p>
       </section>
 

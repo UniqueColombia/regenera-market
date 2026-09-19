@@ -18,11 +18,19 @@ import { pedirCodigo, verificarCodigo } from "@/app/entrar/actions";
  * que crea un administrador— se manda a `/cuenta/clave` en vez de a la portada.
  * Ponerse contraseña deja de ser una tarea que alguien tiene que acordarse de
  * hacer.
+ *
+ * **Salvo cuando se viene del registro, y esa excepción es el motivo de que
+ * exista `origen`.** Quien acaba de crear su cuenta ya eligió contraseña dos
+ * pantallas antes; mandarlo a `/cuenta/clave` le pide por segunda vez lo mismo
+ * que acaba de dar, y lo único que comunica es que la primera no sirvió de nada.
+ * Desde el registro, verificar el código termina en `/registro/listo`, que dice
+ * que la cuenta quedó activa. El camino de `/entrar` no cambia.
  */
 export function PasoCodigo({
   email,
   volver,
   nota,
+  origen = "acceso",
   onCambiarCorreo,
 }: {
   email: string;
@@ -30,6 +38,8 @@ export function PasoCodigo({
   volver?: string;
   /** Explica por qué se está pidiendo el código, cuando no es lo de siempre. */
   nota?: React.ReactNode;
+  /** De dónde se llega. Decide a dónde se va al verificar — ver la cabecera. */
+  origen?: "acceso" | "registro";
   /** Vuelve al primer paso. Si no se pasa, no se ofrece el botón. */
   onCambiarCorreo?: () => void;
 }) {
@@ -52,6 +62,16 @@ export function PasoCodigo({
       // `refresh()` antes de navegar: el encabezado se pinta en el servidor y
       // sin esto seguiría diciendo "Entrar" con la sesión ya abierta.
       router.refresh();
+
+      if (origen === "registro") {
+        // `necesitaClave` se ignora a propósito: quien viene del registro acaba
+        // de ponerla. Si la marca `tiene_clave` no llegó a los metadatos, el
+        // sitio se lo pedirá la próxima vez que entre a algo que exija sesión
+        // (`requireUser`), no en la pantalla de bienvenida.
+        router.push(`/registro/listo?volver=${encodeURIComponent(destino)}`);
+        return;
+      }
+
       router.push(
         r.necesitaClave
           ? `/cuenta/clave?volver=${encodeURIComponent(destino)}`

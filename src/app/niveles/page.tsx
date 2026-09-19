@@ -4,12 +4,7 @@ import { ArrowRight, BadgeCheck, Infinity as Infinito, TrendingDown } from "luci
 import { HeroBanner } from "@/components/hero-banner";
 import { Revelar } from "@/components/revelar";
 import { TierBadge } from "@/components/tier-badge";
-import {
-  EXPERIENCIA,
-  NIVELES,
-  comisionEnPorcentaje,
-  type ClaveExperiencia,
-} from "@/lib/niveles";
+import { EXPERIENCIA, NIVELES, comisionEnPorcentaje } from "@/lib/niveles";
 
 /**
  * Cómo funcionan los niveles, para el proveedor.
@@ -35,20 +30,19 @@ export const metadata: Metadata = {
 };
 
 /**
- * Lo que la base sí premia pero el sitio todavía no puede ofrecer.
+ * Qué suma experiencia.
  *
- * `articulo_publicado` y `articulo_destacado` existen en `otorgar_experiencia()`
- * porque los puntos se definen con la regla y no con la pantalla. Pero la
- * sección de Comunidad no está construida: anunciar puntos por publicar un
- * artículo en un sitio donde no se puede publicar ninguno es prometer algo que
- * no se puede cumplir, que es justo lo que esta página existe para no hacer.
+ * Aquí vivía `AUN_NO`, una lista que escondía `articulo_publicado` y
+ * `articulo_destacado` porque los puntos existían en `otorgar_experiencia()`
+ * pero **no existía dónde publicar**. La Comunidad se construyó (migración
+ * 0007, `/comunidad`), así que la lista se fue y los dos eventos aparecen con
+ * el resto.
  *
- * Se quitan de aquí y no de la tabla: el día que exista la Comunidad se borra
- * esta lista y aparecen solos.
+ * Si algún día vuelve a haber un evento premiado que el sitio no puede ofrecer
+ * todavía, se vuelve a filtrar aquí — nunca se quita de `src/lib/niveles.ts`,
+ * que es el gemelo de la base.
  */
-const AUN_NO: ClaveExperiencia[] = ["articulo_publicado", "articulo_destacado"];
-
-const EVENTOS = EXPERIENCIA.filter((e) => !AUN_NO.includes(e.clave));
+const EVENTOS = EXPERIENCIA;
 
 const PUNTOS_EVALUACION = EXPERIENCIA.find(
   (e) => e.clave === "evaluacion_aprobada",
@@ -63,13 +57,13 @@ export default function NivelesPage() {
         foto="/img/secciones/hero-vender.webp"
         encuadreMovil="object-[35%_50%]"
         encabezado="Niveles"
-        titulo="El nivel se gana vendiendo, no esperando a que alguien te apruebe"
+        titulo="Tu nivel sube con lo que vendes y entregas"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
-          Todo proveedor entra como Semilla y publica el mismo día. Publicar,
-          entregar pedidos y recibir buenas reseñas suman puntos de experiencia;
-          con los puntos sube el nivel, y con el nivel baja la comisión hasta el{" "}
-          {comisionEnPorcentaje(tope.comision)} %.
+          Empiezas como Semilla y publicas el mismo día. Cada oferta que
+          publicas, cada pedido que entregas y cada buena reseña te suman puntos
+          de experiencia; con los puntos sube tu nivel, y con el nivel baja tu
+          comisión hasta el {comisionEnPorcentaje(tope.comision)} %.
         </p>
         <div className="mt-8">
           <Link
@@ -88,9 +82,8 @@ export default function NivelesPage() {
       <section className="container-page py-14">
         <h2 className="font-display text-3xl text-ink">Los tres niveles</h2>
         <p className="mt-2 max-w-2xl text-muted">
-          Son tres y no diez a propósito: un escalón tiene que significar algo.
           Entre el primero y el último hay cuatro puntos de comisión de
-          diferencia en cada venta.
+          diferencia en cada venta que cierres.
         </p>
 
         <ul className="mt-8 grid gap-4 md:grid-cols-3">
@@ -148,9 +141,8 @@ export default function NivelesPage() {
           <Revelar>
             <h2 className="font-display text-3xl text-ink">Qué suma puntos</h2>
             <p className="mt-2 max-w-2xl text-muted">
-              Cada punto sale de un hecho: una oferta publicada, un pedido
-              entregado, una reseña de quien te compró. No se compran, no se
-              piden y no se negocian.
+              Cada punto sale de algo que hiciste: una oferta que publicaste, un
+              pedido que entregaste, una reseña de quien te compró.
             </p>
           </Revelar>
 
@@ -202,9 +194,10 @@ export default function NivelesPage() {
               El nivel mide oficio
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Sale de los puntos de experiencia: cuánto has publicado, entregado
-              y cumplido. Es lo que baja tu comisión y lo que te ordena mejor en
-              el catálogo. Se gana con el tiempo y no lo aprueba nadie.
+              Sale de los puntos de experiencia: lo que publicas, lo que
+              entregas, las reseñas que recibes y lo que aportas en la
+              Comunidad. Es lo que baja tu comisión y lo que te ordena mejor en
+              el catálogo. Se acumula con la actividad del día a día.
             </p>
           </div>
 
@@ -214,9 +207,11 @@ export default function NivelesPage() {
               El sello mide sostenibilidad
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Sale de la evaluación de seis dimensiones, con evidencia y revisión
-              humana. Es el evento que más puntos da —{PUNTOS_EVALUACION} de una
-              vez— y lo único que otorga el distintivo de evaluación verificada.
+              Es un estudio de tu operación: seis dimensiones, 16 preguntas,
+              evidencia documental —facturas de compra local, certificados
+              vigentes, actas de reparto comunitario— y revisión humana antes de
+              otorgarlo. Se revisa cada doce meses. Es también el evento que más
+              puntos da: {PUNTOS_EVALUACION} de una vez.
             </p>
             <Link
               href="/verificacion"

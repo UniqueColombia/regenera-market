@@ -10,7 +10,7 @@ import { certLabel, TRAIT_LABEL } from "@/lib/taxonomy";
 export const metadata: Metadata = {
   title: "Proveedores aliados",
   description:
-    "Las empresas, cooperativas y comunidades colombianas que producen lo que se vende en Seregenera, con su nivel de verificación de sostenibilidad.",
+    "Las empresas, cooperativas y comunidades que producen lo que se vende en Seregenera, con su nivel de proveedor y su evaluación de sostenibilidad.",
 };
 
 /**
@@ -38,8 +38,8 @@ export default async function ProveedoresPage() {
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
           Cooperativas campesinas, consejos comunitarios, empresas B y talleres
-          familiares. Todos pasaron por la misma evaluación de sostenibilidad, y
-          el nivel que ves es el que les dio su puntaje.
+          familiares. Entra a cualquiera y verás qué produce, de dónde es, cómo
+          le va con su evaluación de sostenibilidad y qué nivel lleva.
         </p>
       </HeroBanner>
 
