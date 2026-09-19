@@ -72,6 +72,8 @@ pueden pedir a mano con `/<nombre>`.
 
 | Skill | Cárgala cuando… |
 |---|---|
+| `acceso-y-registro` | Tocas `/entrar`, `/registro`, `paso-codigo.tsx` o `lib/auth.ts`, o cambias a dónde va alguien tras verificar un código |
+| `redaccion-producto` | Escribes o cambias cualquier texto que lee un usuario: un título, una tarjeta, un mensaje de confirmación, una etiqueta o un correo |
 | `flujo-git` | Vas a crear una rama, abrir un PR, hacer un release o resolver un conflicto. **Antes del primer commit de cualquier tarea.** |
 | `registrar-hito` | Terminaste algo que otro debería poder reconstruir sin preguntarte |
 | `dominio-regenera` | Tocas precios, comisiones, órdenes, roles o puntaje de sostenibilidad |
