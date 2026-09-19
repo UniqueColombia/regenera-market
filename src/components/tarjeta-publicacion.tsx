@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
-import { BotonReaccion } from "./boton-reaccion";
+import { Reacciones } from "./reacciones";
 import { ProviderAvatar } from "./provider-avatar";
 import { TierBadge } from "./tier-badge";
 import type { CommunityPost, CommunityTopic } from "@/lib/types";
@@ -9,9 +9,9 @@ import type { CommunityPost, CommunityTopic } from "@/lib/types";
  * Una publicación del muro.
  *
  * Componente de servidor: todo lo que pinta es texto que ya vino de la consulta.
- * Lo único que necesita el navegador es el botón de reacción, y por eso es el
- * único que lleva `"use client"` — la regla de `componentizacion` de bajar el
- * límite del cliente hasta la hoja que de verdad lo necesita.
+ * Lo único que necesita el navegador son las reacciones, y por eso son lo único
+ * que lleva `"use client"` — la regla de `componentizacion` de bajar el límite
+ * del cliente hasta la hoja que de verdad lo necesita.
  *
  * **La firma es doble a propósito.** Quien publica en nombre de una empresa
  * sigue siendo una persona, y la tarjeta dice las dos cosas: el avatar y el
@@ -62,9 +62,14 @@ export function TarjetaPublicacion({
   return (
     <article className="flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300">
       <header className="flex items-start gap-3">
+        {/* La imagen es de quien firma: el logo de la empresa cuando publica
+            en su nombre, y la foto de la persona cuando publica a título
+            propio. La forma lo dice sin texto — redonda es alguien, cuadrada
+            es una empresa. */}
         <ProviderAvatar
           name={post.provider?.name ?? post.authorName}
-          logoUrl={post.provider?.logoUrl}
+          logoUrl={post.provider?.logoUrl ?? post.authorAvatarUrl}
+          forma={post.provider ? "cuadrada" : "redonda"}
           className="size-11"
         />
         <div className="min-w-0 flex-1">
@@ -118,11 +123,14 @@ export function TarjetaPublicacion({
         {post.body}
       </p>
 
-      <footer className="mt-5 flex items-center justify-between gap-3 border-t border-hairline pt-4">
-        <BotonReaccion
+      {/* `flex-wrap` y no `justify-between` a secas: son cinco reacciones y un
+          enlace, y a 375 px no caben en una línea. Se envuelven en vez de
+          encogerse. */}
+      <footer className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-hairline pt-4">
+        <Reacciones
           postId={post.id}
-          reaccionado={post.reacted}
-          cuenta={post.reactionCount}
+          conteos={post.reactions}
+          mias={post.misReacciones}
           haySesion={haySesion}
         />
         {post.provider && (
