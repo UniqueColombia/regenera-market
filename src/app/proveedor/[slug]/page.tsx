@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, Globe, Mail, MapPin, Phone } from "lucide-react";
+import { DatosDeMiga, DatosDeProveedor } from "@/components/datos-estructurados";
 import { ListingCard } from "@/components/listing-card";
 import { HeroBanner } from "@/components/hero-banner";
 import { TierBadge } from "@/components/tier-badge";
@@ -9,6 +10,7 @@ import {
   getListingsByProvider,
   getProviderBySlug,
 } from "@/lib/repo";
+import { descripcion, publica } from "@/lib/seo";
 import { CERTIFICATIONS, TIERS, TRAIT_LABEL } from "@/lib/taxonomy";
 
 export async function generateMetadata(
@@ -17,7 +19,22 @@ export async function generateMetadata(
   const { slug } = await props.params;
   const provider = await getProviderBySlug(slug);
   if (!provider) return { title: "Proveedor no encontrado" };
-  return { title: provider.name, description: provider.tagline };
+
+  // El titular de la ficha puede venir corto de la postulación, y una
+  // descripción de ocho palabras en un resultado de búsqueda se lee como una
+  // ficha vacía. Se completa con dónde está, que es parte de lo que alguien
+  // busca cuando busca un proveedor.
+  const resumen =
+    provider.tagline.length >= 60
+      ? provider.tagline
+      : `${provider.tagline || provider.name} · Proveedor de ${provider.city}, ${provider.department}, en el marketplace de turismo regenerativo Seregenera.`;
+
+  return {
+    title: provider.name,
+    description: descripcion(resumen),
+    openGraph: { title: provider.name, description: resumen, type: "website" },
+    ...publica(`/proveedor/${provider.slug}`),
+  };
 }
 
 export default async function ProveedorPage(
@@ -39,6 +56,14 @@ export default async function ProveedorPage(
 
   return (
     <div>
+      <DatosDeProveedor provider={provider} />
+      <DatosDeMiga
+        pasos={[
+          { nombre: "Proveedores", ruta: "/proveedores" },
+          { nombre: provider.name, ruta: `/proveedor/${provider.slug}` },
+        ]}
+      />
+
       {/*
         El distintivo lleva el nivel y ya no el puntaje al lado: desde la
         migración 0006 son dos cosas distintas —el nivel se gana con actividad,
