@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import { AddToCart, RequestQuote } from "@/components/add-to-cart";
+import { DatosDeMiga, DatosDeOferta } from "@/components/datos-estructurados";
 import { ImpactChips } from "@/components/impact-chips";
 import { ListingCard } from "@/components/listing-card";
 import { ListingMedia } from "@/components/listing-media";
@@ -19,6 +20,7 @@ import {
   getProviderById,
   getRelatedListings,
 } from "@/lib/repo";
+import { descripcion, publica } from "@/lib/seo";
 import { certLabel, KIND_LABEL, VERTICAL_LABEL } from "@/lib/taxonomy";
 
 export async function generateMetadata(
@@ -31,13 +33,17 @@ export async function generateMetadata(
   const provider = await getProviderById(listing.providerId);
   return {
     title: listing.title,
-    description: listing.summary,
+    description: descripcion(listing.summary),
     openGraph: {
       title: listing.title,
       description: listing.summary,
       type: "website",
     },
     other: provider ? { "product:brand": provider.name } : undefined,
+    // La canónica apunta al slug, no a la URL con la que se llegó. El catálogo
+    // enlaza estas fichas con parámetros de filtro pegados, y sin esto cada
+    // combinación indexa como una página distinta con el mismo contenido.
+    ...publica(`/oferta/${listing.slug}`),
   };
 }
 
@@ -54,6 +60,16 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
 
   return (
     <div className="container-page py-8">
+      <DatosDeOferta listing={listing} provider={provider} />
+      {/* La miga declarada es la misma que se pinta debajo. Declarar una ruta
+          distinta de la que ve una persona es describirle otra cosa al robot. */}
+      <DatosDeMiga
+        pasos={[
+          { nombre: "Catálogo", ruta: "/catalogo" },
+          { nombre: listing.title, ruta: `/oferta/${listing.slug}` },
+        ]}
+      />
+
       <nav aria-label="Ruta" className="text-sm text-muted">
         <Link href="/catalogo" className="hover:text-brand-700">
           Catálogo

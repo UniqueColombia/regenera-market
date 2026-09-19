@@ -6,11 +6,13 @@ import { HeroBanner } from "@/components/hero-banner";
 import { TarjetaPublicacion } from "@/components/tarjeta-publicacion";
 import { getSesion } from "@/lib/auth";
 import { getCommunityPosts, getEmpresasQueGestiono } from "@/lib/repo";
+import { publica } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Comunidad",
   description:
     "Lo que cuentan compradores y proveedores de Seregenera: prácticas que funcionaron, noticias del sector y cómo les fue con sus pedidos.",
+  ...publica("/comunidad"),
 };
 
 /** Por lo mismo que la portada: un muro congelado en el build no es un muro. */

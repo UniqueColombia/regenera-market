@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
+import { BotonCookies } from "./aviso-cookies";
 import { Isotipo } from "./isotipo";
+import { CONTACTO } from "@/lib/legal";
 import { VERTICALS } from "@/lib/taxonomy";
 
 export function SiteFooter() {
@@ -84,31 +86,63 @@ export function SiteFooter() {
             <li className="flex items-center gap-2">
               <Mail className="size-4 shrink-0" />
               <a
-                href="mailto:dimensionnaturalsas@gmail.com"
+                href={`mailto:${CONTACTO.correo}`}
                 className="transition-colors hover:text-white active:text-white"
               >
-                dimensionnaturalsas@gmail.com
+                {CONTACTO.correo}
               </a>
             </li>
             <li className="flex items-center gap-2">
               <Phone className="size-4 shrink-0" />
-              <a href="tel:+573126844848" className="transition-colors hover:text-white active:text-white">
-                +57 312 684 4848
+              <a
+                href={`tel:${CONTACTO.telefonoE164}`}
+                className="transition-colors hover:text-white active:text-white"
+              >
+                {CONTACTO.telefono}
               </a>
             </li>
             <li className="flex items-center gap-2">
               <MapPin className="size-4 shrink-0" />
-              Dimension Natural SAS — Colombia
+              {CONTACTO.razonSocial} — {CONTACTO.pais}
             </li>
           </ul>
         </div>
       </div>
 
+      {/* Lo legal va en la barra inferior y no en una columna más: quien lo
+          busca lo busca abajo, y meterlo arriba lo pondría a competir con lo
+          que la gente sí viene a leer. Los tres enlaces son obligatorios de
+          tener y opcionales de mirar. */}
       <div className="border-t border-brand-800">
-        <p className="container-page py-5 text-center text-xs text-brand-300">
-          © {new Date().getFullYear()} Seregenera — Dimension Natural SAS.
-          Turismo que regenera vidas y paisajes.
-        </p>
+        <div className="container-page flex flex-col items-center gap-3 py-5 text-xs text-brand-300 sm:flex-row sm:justify-between">
+          <p className="text-center sm:text-left">
+            © {new Date().getFullYear()} Seregenera — {CONTACTO.razonSocial}.
+            Turismo que regenera vidas y paisajes.
+          </p>
+          <nav aria-label="Legal">
+            <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              <li>
+                <Link
+                  href="/terminos"
+                  className="transition-colors hover:text-white active:text-white"
+                >
+                  Términos y condiciones
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/privacidad"
+                  className="transition-colors hover:text-white active:text-white"
+                >
+                  Privacidad
+                </Link>
+              </li>
+              <li>
+                <BotonCookies className="transition-colors hover:text-white active:text-white" />
+              </li>
+            </ul>
+          </nav>
+        </div>
       </div>
     </footer>
   );
