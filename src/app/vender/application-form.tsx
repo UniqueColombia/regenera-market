@@ -38,9 +38,9 @@ import { VERTICALS } from "@/lib/taxonomy";
  */
 
 const PASOS = [
-  { titulo: "Tu organización", detalle: "Quién eres y cómo estás constituido" },
-  { titulo: "Contacto", detalle: "Dónde estás y cómo te escribimos" },
-  { titulo: "Qué vendes", detalle: "Lo que va a ver un comprador" },
+  { titulo: "La empresa", detalle: "Cómo se llama y cómo está constituida" },
+  { titulo: "Representante y contacto", detalle: "Quién la representa y dónde está" },
+  { titulo: "Qué vende", detalle: "Lo que va a ver un comprador" },
 ] as const;
 
 /** Qué campo pertenece a qué paso, para poder saltar al error que devuelva el servidor. */
@@ -60,7 +60,25 @@ const PASO_DE_CAMPO: Record<string, number> = {
   consent: 2,
 };
 
-export function ApplicationForm() {
+/**
+ * Lo que ya sabemos de quien llena el formulario, si tiene sesión abierta.
+ *
+ * Se piden **igual** en vez de darlos por buenos y ocultarlos: el correo de la
+ * cuenta puede ser el personal y el de la empresa otro, y el representante legal
+ * puede no ser quien está tecleando. Prellenar ahorra el trabajo sin decidir por
+ * nadie, que es la diferencia entre ayudar y suponer.
+ */
+export interface DatosConocidos {
+  contactName?: string;
+  email?: string;
+  phone?: string;
+}
+
+export function ApplicationForm({
+  conocidos = {},
+}: {
+  conocidos?: DatosConocidos;
+}) {
   const [paso, setPaso] = useState(0);
   const [pais, setPais] = useState(PAISES[0].nombre);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -224,23 +242,32 @@ export function ApplicationForm() {
 
       {/* ---------------------------------------------------------------- 2 */}
       <fieldset hidden={paso !== 1} disabled={pending} className="mt-6 space-y-4">
-        <legend className="sr-only">Contacto</legend>
+        <legend className="sr-only">Representante y contacto</legend>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo
             paso={1}
             name="contactName"
-            label="Tu nombre"
+            /* Antes decía «Tu nombre», y a quien ya se había registrado le
+               preguntaba por segunda vez algo que el sitio sabía. Aquí no se
+               está dando de alta una persona: se está dando de alta **una
+               empresa**, y lo que falta de ella es quién la representa — que
+               puede perfectamente no ser quien está tecleando. */
+            label="Nombre del representante legal"
             autoComplete="name"
+            defaultValue={conocidos.contactName}
+            ayuda="Quien firma por la organización. Si eres persona natural, tu propio nombre."
             error={errors.contactName}
             required
           />
           <Campo
             paso={1}
             name="email"
-            label="Correo"
+            label="Correo de la empresa"
             type="email"
             autoComplete="email"
+            defaultValue={conocidos.email}
+            ayuda="Al que le llegan los pedidos. Puede ser distinto del de tu cuenta."
             error={errors.email}
             required
           />
@@ -250,9 +277,10 @@ export function ApplicationForm() {
           <Campo
             paso={1}
             name="phone"
-            label="Teléfono o WhatsApp"
+            label="Teléfono o WhatsApp de la empresa"
             type="tel"
             autoComplete="tel"
+            defaultValue={conocidos.phone}
             error={errors.phone}
             required
           />
@@ -355,10 +383,19 @@ export function ApplicationForm() {
               required
               className="mt-0.5 size-4 shrink-0 accent-brand-700"
             />
+            {/* La norma que se nombra sale del país elegido en el paso 1, no
+                está escrita aquí. Antes decía «la Ley 1581 de 2012» a secas —la
+                colombiana— en un formulario que acepta dieciocho países. El
+                porqué completo está en la cabecera de `src/lib/paises.ts`. */}
             <span>
-              Autorizo a Seregenera a tratar mis datos personales para gestionar
-              mi postulación y mi cuenta de proveedor, conforme a la Ley 1581 de
-              2012.{" "}
+              Autorizo a Seregenera a tratar los datos personales de este
+              formulario para gestionar la postulación y la cuenta de proveedor
+              de la organización, conforme a la normativa de protección de datos
+              que resulte aplicable
+              {paisElegido.proteccionDatos
+                ? `, incluida ${paisElegido.proteccionDatos} en ${paisElegido.nombre}`
+                : ""}
+              .{" "}
               <Link
                 href="/verificacion"
                 className="text-brand-700 underline underline-offset-2"
@@ -457,6 +494,12 @@ function Progreso({ paso }: { paso: number }) {
  * responderemos pronto» sería mentirle y, peor, dejarlo sin hacer lo único que
  * tiene que hacer ahora, que es publicar. Quien postuló sin cuenta sí tiene un
  * paso pendiente, y la pantalla es ese paso.
+ *
+ * **Lo que ninguna de las dos dice es lo que no pasa.** Aquí ponía «No hay nada
+ * que aprobar» y «No revisamos ni aprobamos nada», que describen un trámite
+ * ausente en vez de decirle a alguien qué hacer a continuación. Una pantalla de
+ * confirmación tiene un solo trabajo: el siguiente paso. Ver la skill
+ * `redaccion-producto`.
  */
 function Listo({
   activada,
@@ -476,21 +519,21 @@ function Listo({
       )}
 
       <h3 className="mt-4 font-display text-2xl text-brand-900">
-        {activada ? "Ya estás dentro" : "Recibimos tu postulación"}
+        {activada ? "Tu empresa ya está registrada" : "Recibimos tu postulación"}
       </h3>
 
       <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-brand-800">
         {activada ? (
           <>
-            Tu ficha ya existe y entras como <strong>Semilla</strong>. No hay
-            nada que aprobar: puedes publicar lo que vendes desde hoy, y tu nivel
-            —y con él tu comisión— mejora según vendas y entregues.
+            Tu ficha pública está activa y entras en nivel{" "}
+            <strong>Semilla</strong>. Ya puedes publicar lo que vendes; cada
+            oferta, cada pedido entregado y cada buena reseña suman experiencia,
+            y con ella baja tu comisión.
           </>
         ) : (
           <>
-            Guardamos lo que nos contaste. Falta un solo paso: crea tu cuenta con
-            el mismo correo que escribiste y tu empresa queda activa en el acto.
-            No revisamos ni aprobamos nada.
+            Guardamos lo que nos contaste. Falta un paso: crea tu cuenta con el
+            mismo correo que escribiste y tu empresa queda activa en el acto.
           </>
         )}
       </p>
@@ -549,6 +592,7 @@ function Campo({
   placeholder,
   autoComplete,
   ayuda,
+  defaultValue,
 }: {
   paso: number;
   name: string;
@@ -559,6 +603,8 @@ function Campo({
   placeholder?: string;
   autoComplete?: string;
   ayuda?: string;
+  /** Lo que ya sabemos de la sesión. El campo sigue siendo editable. */
+  defaultValue?: string;
 }) {
   const idAyuda = ayuda ? `${name}-ayuda` : undefined;
   return (
@@ -571,6 +617,7 @@ function Campo({
         name={name}
         type={type}
         data-paso={paso}
+        defaultValue={defaultValue}
         required={required}
         placeholder={placeholder}
         autoComplete={autoComplete}
