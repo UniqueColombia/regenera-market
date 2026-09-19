@@ -235,8 +235,14 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
                   </FilaMovil>
                 </li>
                 <li>
-                  <FilaMovil href="/vender" activo={pathname === "/vender"}>
-                    {sesion.esProveedor ? "Mi empresa" : "Vender en Seregenera"}
+                  <FilaMovil
+                    href={sesion.esProveedor ? "/cuenta/empresa" : "/vender"}
+                    activo={
+                      pathname ===
+                      (sesion.esProveedor ? "/cuenta/empresa" : "/vender")
+                    }
+                  >
+                    {sesion.esProveedor ? "Tu empresa" : "Vender en Seregenera"}
                   </FilaMovil>
                 </li>
                 {sesion.esAdmin && (
@@ -413,12 +419,17 @@ function MenuUsuario({ sesion }: { sesion: Sesion }) {
             Tu cuenta
           </Link>
 
+          {/* Quien ya vende va a SU empresa —su logo, su nivel, de dónde
+              salieron sus puntos— y no a `/vender`, que es la página que
+              convence a quien todavía no está dentro. Antes las dos llevaban al
+              mismo sitio, y un proveedor que entraba por aquí volvía a leer el
+              argumento de venta que ya aceptó. */}
           <Link
-            href="/vender"
+            href={sesion.esProveedor ? "/cuenta/empresa" : "/vender"}
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-sand hover:text-brand-700 active:bg-sand"
           >
             <Store className="size-4" />
-            {sesion.esProveedor ? "Mi empresa" : "Vender en Seregenera"}
+            {sesion.esProveedor ? "Tu empresa" : "Vender en Seregenera"}
           </Link>
 
           {/* Formulario y no enlace: cerrar sesión con un GET lo puede disparar

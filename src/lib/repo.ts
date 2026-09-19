@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "./supabase/server";
 import { nivelesDesde } from "./niveles";
+import { esReaccion, leerConteos, type ReaccionId } from "./comunidad";
 import type {
   AdminUsuario,
   CommunityPost,
@@ -722,7 +723,7 @@ export async function getVinculosProveedor(): Promise<VinculoProveedor[]> {
 
 const COLUMNAS_POST = `
   id, title, body, topic, author_id, author_name, featured, reaction_count,
-  created_at, providers(id, slug, name, logo_url, tier)
+  reaction_counts, created_at, providers(id, slug, name, logo_url, tier)
 `;
 
 interface FilaPost {
@@ -734,6 +735,7 @@ interface FilaPost {
   author_name: string;
   featured: boolean;
   reaction_count: number;
+  reaction_counts: unknown;
   created_at: string;
   providers: {
     id: string;
@@ -744,7 +746,11 @@ interface FilaPost {
   } | null;
 }
 
-function aPost(fila: FilaPost, reaccionados: Set<string>): CommunityPost {
+function aPost(
+  fila: FilaPost,
+  mias: Map<string, ReaccionId[]>,
+  avatares: Map<string, string>,
+): CommunityPost {
   return {
     id: fila.id,
     title: fila.title,
@@ -752,6 +758,7 @@ function aPost(fila: FilaPost, reaccionados: Set<string>): CommunityPost {
     topic: fila.topic,
     authorId: fila.author_id,
     authorName: fila.author_name || "Alguien de la comunidad",
+    authorAvatarUrl: avatares.get(fila.author_id),
     provider: fila.providers
       ? {
           id: fila.providers.id,
@@ -763,30 +770,74 @@ function aPost(fila: FilaPost, reaccionados: Set<string>): CommunityPost {
       : undefined,
     featured: fila.featured,
     reactionCount: fila.reaction_count,
-    reacted: reaccionados.has(fila.id),
+    reactions: leerConteos(fila.reaction_counts),
+    misReacciones: mias.get(fila.id) ?? [],
     createdAt: fila.created_at,
   };
 }
 
 /**
- * Cuáles de estas publicaciones ya marcó quien está mirando.
+ * Qué marcó quien está mirando, publicación por publicación.
  *
  * Una sola consulta para toda la página en vez de una por tarjeta.
  * `community_reactions_read_own` hace el filtro: sin sesión devuelve cero filas
- * y el botón sale sin marcar, que es exactamente lo que se quiere mostrarle a
- * quien todavía no tiene cuenta.
+ * y los botones salen todos sin marcar, que es exactamente lo que se le quiere
+ * mostrar a quien todavía no tiene cuenta.
+ *
+ * Devuelve un mapa y no un conjunto desde la migración 0008: lo que hay que
+ * saber ya no es «¿reaccionó?» sino «¿con cuáles de las cinco?».
  */
-async function reaccionesPropias(ids: string[]): Promise<Set<string>> {
-  if (ids.length === 0) return new Set();
+async function reaccionesPropias(
+  ids: string[],
+): Promise<Map<string, ReaccionId[]>> {
+  const mapa = new Map<string, ReaccionId[]>();
+  if (ids.length === 0) return mapa;
+
   const db = await createClient();
   const { data, error } = await db
     .from("community_reactions")
-    .select("post_id")
+    .select("post_id, kind")
     .in("post_id", ids);
-  // Un fallo aquí no debe tumbar el muro: lo peor que pasa es que el botón
-  // aparezca sin marcar y una segunda reacción rebote contra la clave primaria.
-  if (error || !data) return new Set();
-  return new Set((data as { post_id: string }[]).map((f) => f.post_id));
+  // Un fallo aquí no debe tumbar el muro: lo peor que pasa es que los botones
+  // aparezcan sin marcar. Lo que NO puede pasar es que una segunda pulsación
+  // sobre algo ya marcado se lea como éxito sin mover el número — por eso
+  // `alternarReaccion()` comprueba cuántas filas tocó en vez de fiarse de esto.
+  if (error || !data) return mapa;
+
+  for (const fila of data as { post_id: string; kind: string }[]) {
+    if (!esReaccion(fila.kind)) continue;
+    const previas = mapa.get(fila.post_id);
+    if (previas) previas.push(fila.kind);
+    else mapa.set(fila.post_id, [fila.kind]);
+  }
+  return mapa;
+}
+
+/**
+ * Las fotos de perfil de quienes escribieron, en vivo.
+ *
+ * Por `avatares_publicos()`, que es `security definer` y devuelve **solo la
+ * foto**: `profiles` sigue siendo privada, así que ni el teléfono ni el
+ * documento de un comprador salen de aquí. Ver la sección 4.b de la migración
+ * 0008.
+ *
+ * Falla en silencio por lo mismo que la anterior: sin foto se dibuja el
+ * monograma de iniciales, que es un estado válido y no un error.
+ */
+async function avataresDeAutores(ids: string[]): Promise<Map<string, string>> {
+  const mapa = new Map<string, string>();
+  if (ids.length === 0) return mapa;
+
+  const db = await createClient();
+  const { data, error } = await db.rpc("avatares_publicos", {
+    _ids: [...new Set(ids)],
+  });
+  if (error || !data) return mapa;
+
+  for (const fila of data as { id: string; avatar_url: string | null }[]) {
+    if (fila.avatar_url) mapa.set(fila.id, fila.avatar_url);
+  }
+  return mapa;
 }
 
 /**
@@ -813,8 +864,11 @@ export async function getCommunityPosts(limite = 20): Promise<CommunityPost[]> {
   if (error) throw new Error(`getCommunityPosts: ${error.message}`);
 
   const filas = data as unknown as FilaPost[];
-  const reaccionados = await reaccionesPropias(filas.map((f) => f.id));
-  return filas.map((f) => aPost(f, reaccionados));
+  const [mias, avatares] = await Promise.all([
+    reaccionesPropias(filas.map((f) => f.id)),
+    avataresDeAutores(filas.map((f) => f.author_id)),
+  ]);
+  return filas.map((f) => aPost(f, mias, avatares));
 }
 
 /**
@@ -855,7 +909,7 @@ export interface PostAdmin extends CommunityPost {
  * por la que `getApplications()` tampoco filtra a mano: si el filtro viviera
  * aquí, el día que se olvide en otra consulta ahí sí habría fuga.
  *
- * `reacted` viene en `false` y se ignora en el panel: moderar no es reaccionar.
+ * `misReacciones` viene vacío y se ignora en el panel: moderar no es reaccionar.
  */
 export async function getPostsForAdmin(): Promise<PostAdmin[]> {
   const db = await createClient();
@@ -867,7 +921,86 @@ export async function getPostsForAdmin(): Promise<PostAdmin[]> {
   if (error) throw new Error(`getPostsForAdmin: ${error.message}`);
 
   return (data as unknown as (FilaPost & { status: ReviewStatus })[]).map((f) => ({
-    ...aPost(f, new Set()),
+    ...aPost(f, new Map(), new Map()),
     status: f.status,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Tu empresa
+// ---------------------------------------------------------------------------
+
+/**
+ * La empresa que gestiona quien está mirando, o `undefined`.
+ *
+ * Sale de `provider_members`, que es la tabla que decide quién gestiona qué —
+ * nunca del rol `provider`, que dice que alguien *es* proveedor pero no *de
+ * qué*. Un administrador que no gestione ninguna empresa no recibe ninguna.
+ *
+ * Si alguien gestiona varias devuelve la primera, priorizando aquella de la que
+ * es dueño. Hoy no puede pasar: `postular_proveedor()` enlaza a lo sumo una por
+ * persona. El día que pase, esto es lo que hay que convertir en un selector —
+ * y el sitio donde hacerlo es `/cuenta/empresa`, no cada página que la use.
+ */
+export async function getMiEmpresa(): Promise<Provider | undefined> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("provider_members")
+    .select("provider_id, is_owner")
+    .order("is_owner", { ascending: false })
+    .limit(1);
+  if (error || !data || data.length === 0) return undefined;
+
+  return getProviderById((data[0] as { provider_id: string }).provider_id);
+}
+
+/** Un punto de experiencia ganado: qué lo dio, cuánto y cuándo. */
+export interface EventoExperiencia {
+  id: string;
+  clave: string;
+  puntos: number;
+  createdAt: string;
+}
+
+/**
+ * De dónde salieron los puntos de una empresa, lo más reciente primero.
+ *
+ * Es lo que hace auditable el nivel: la invariante 14 de `dominio-regenera`
+ * exige que el puntaje se pueda seguir punto por punto, y hasta ahora los
+ * eventos se escribían sin que nadie pudiera verlos. El alcance lo decide
+ * `experience_events_read` — quien gestiona la empresa y un administrador, no el
+ * público: la lista dice cuánto vendió y cuándo, y eso es información comercial
+ * suya.
+ *
+ * Un evento con una clave que `src/lib/niveles.ts` no conozca —`migracion_0006`,
+ * por ejemplo— se devuelve igual. Quien pinta decide cómo llamarlo; esconderlo
+ * aquí haría que la suma de la lista no cuadrara con el total, que es justo lo
+ * que una auditoría tiene que poder comprobar.
+ */
+export async function getEventosDeExperiencia(
+  providerId: string,
+  limite = 50,
+): Promise<EventoExperiencia[]> {
+  if (!UUID.test(providerId)) return [];
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("experience_events")
+    .select("id, clave, puntos, created_at")
+    .eq("provider_id", providerId)
+    .order("created_at", { ascending: false })
+    .limit(limite);
+  if (error || !data) return [];
+
+  return (data as {
+    id: string;
+    clave: string;
+    puntos: number;
+    created_at: string;
+  }[]).map((e) => ({
+    id: e.id,
+    clave: e.clave,
+    puntos: e.puntos,
+    createdAt: e.created_at,
   }));
 }

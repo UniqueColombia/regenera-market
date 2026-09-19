@@ -12,6 +12,7 @@ import { SustainabilityQuiz } from "@/components/sustainability-quiz";
 import { HeroBanner } from "@/components/hero-banner";
 import { DIMENSIONS, PUNTAJE_MINIMO_SELLO } from "@/lib/sustainability";
 import { eventoExperiencia } from "@/lib/niveles";
+import { publica } from "@/lib/seo";
 
 /** Lo que suma la evaluación al nivel. Sale de la tabla, no de un número escrito aquí. */
 const PUNTOS_EVALUACION = eventoExperiencia("evaluacion_aprobada").puntos;
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
   title: "Cómo verificamos",
   description:
     "La metodología de verificación de Seregenera: seis dimensiones, evidencia documental y revisión humana antes de otorgar el sello de evaluación verificada.",
+  ...publica("/verificacion"),
 };
 
 const STEPS = [
