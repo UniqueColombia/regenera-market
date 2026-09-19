@@ -54,9 +54,16 @@ export default async function RegistroListoPage(
           ¡Tu cuenta está activa!
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-brand-800">
-          Confirmaste tu correo, {sesion.nombre}. De aquí en adelante entras con
-          tu contraseña, y el código de seis dígitos solo vuelve a aparecer
-          cuando entres desde un dispositivo nuevo.
+          Listo, {sesion.nombre}: tu correo quedó confirmado y ya puedes empezar
+          a usar Seregenera.
+        </p>
+
+        {/* Cómo se entra de ahora en adelante es un detalle mecánico: va en
+            letra pequeña y debajo de la acción, no en el párrafo que la
+            persona lee primero. Ver la skill `redaccion-producto`. */}
+        <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-brand-800/80">
+          De aquí en adelante entras con tu contraseña. El código de seis
+          dígitos solo vuelve a aparecer si entras desde un dispositivo nuevo.
         </p>
 
         <div className="mt-7 flex flex-wrap justify-center gap-3">

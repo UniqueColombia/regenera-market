@@ -183,9 +183,9 @@ export default async function HomePage() {
           </h2>
           <p className="mt-3 max-w-2xl text-muted">
             Cada proveedor responde una evaluación de seis dimensiones, adjunta
-            evidencia y la revisa nuestro equipo. El sello que ves en una ficha
-            sale de ese puntaje, no de una promesa. El nivel —Semilla, Raíz o
-            Bosque— es otra cosa: lo gana vendiendo y cumpliendo.
+            la evidencia y nuestro equipo la revisa antes de darle el sello. El
+            nivel que ves al lado —Semilla, Raíz o Bosque— mide otra cosa:
+            cuánto lleva vendido y entregado.
           </p>
 
           <ul className="mt-8 grid gap-4 md:grid-cols-3">
@@ -241,11 +241,11 @@ export default async function HomePage() {
                 Comunidad
               </p>
               <h2 className="mt-3 font-display text-3xl text-ink">
-                Lo que cuenta quien ya lo hizo
+                Pásate por la Comunidad
               </h2>
               <p className="mt-2 max-w-2xl text-muted">
-                Compradores y proveedores comparten lo que les funcionó y lo que
-                está pasando en el sector. Con cuenta, publicas tú también.
+                Otros compradores y proveedores cuentan aquí qué les funcionó y
+                preguntan lo que necesitan saber. Súmate cuando quieras.
               </p>
             </div>
             <Link

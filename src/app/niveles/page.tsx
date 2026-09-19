@@ -57,13 +57,13 @@ export default function NivelesPage() {
         foto="/img/secciones/hero-vender.webp"
         encuadreMovil="object-[35%_50%]"
         encabezado="Niveles"
-        titulo="El nivel se gana vendiendo, no esperando a que alguien te apruebe"
+        titulo="Tu nivel sube con lo que vendes y entregas"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
-          Todo proveedor entra como Semilla y publica el mismo día. Publicar,
-          entregar pedidos y recibir buenas reseñas suman puntos de experiencia;
-          con los puntos sube el nivel, y con el nivel baja la comisión hasta el{" "}
-          {comisionEnPorcentaje(tope.comision)} %.
+          Empiezas como Semilla y publicas el mismo día. Cada oferta que
+          publicas, cada pedido que entregas y cada buena reseña te suman puntos
+          de experiencia; con los puntos sube tu nivel, y con el nivel baja tu
+          comisión hasta el {comisionEnPorcentaje(tope.comision)} %.
         </p>
         <div className="mt-8">
           <Link
@@ -82,9 +82,8 @@ export default function NivelesPage() {
       <section className="container-page py-14">
         <h2 className="font-display text-3xl text-ink">Los tres niveles</h2>
         <p className="mt-2 max-w-2xl text-muted">
-          Son tres y no diez a propósito: un escalón tiene que significar algo.
           Entre el primero y el último hay cuatro puntos de comisión de
-          diferencia en cada venta.
+          diferencia en cada venta que cierres.
         </p>
 
         <ul className="mt-8 grid gap-4 md:grid-cols-3">
@@ -142,9 +141,8 @@ export default function NivelesPage() {
           <Revelar>
             <h2 className="font-display text-3xl text-ink">Qué suma puntos</h2>
             <p className="mt-2 max-w-2xl text-muted">
-              Cada punto sale de un hecho: una oferta publicada, un pedido
-              entregado, una reseña de quien te compró. No se compran, no se
-              piden y no se negocian.
+              Cada punto sale de algo que hiciste: una oferta que publicaste, un
+              pedido que entregaste, una reseña de quien te compró.
             </p>
           </Revelar>
 

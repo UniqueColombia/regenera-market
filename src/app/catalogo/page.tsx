@@ -16,7 +16,7 @@ import type { ListingFilters, ListingKind, Tier, Vertical } from "@/lib/types";
 export const metadata: Metadata = {
   title: "Catálogo",
   description:
-    "Productos, experiencias y servicios regenerativos de proveedores colombianos verificados, filtrables por vertical turística, categoría, departamento y nivel de verificación.",
+    "Productos, experiencias y servicios regenerativos de proveedores verificados, filtrables por vertical turística, categoría, departamento y nivel de proveedor.",
 };
 
 /**
@@ -42,8 +42,8 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
           Catálogo regenerativo
         </h1>
         <p className="mt-2 max-w-2xl text-muted">
-          Cada oferta pertenece a un proveedor verificado y muestra el impacto
-          que evita por unidad.
+          Filtra por lo que necesitas. En cada ficha ves quién lo produce, de
+          dónde viene y cuánto impacto evita por unidad.
         </p>
       </header>
 

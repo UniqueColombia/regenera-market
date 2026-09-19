@@ -37,11 +37,12 @@ export default async function ComunidadPage() {
             Comunidad
           </>
         }
-        titulo="Lo que cuenta quien ya lo hizo"
+        titulo="Cuéntanos cómo te fue"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
-          Compradores y proveedores comparten aquí lo que les funcionó, lo que
-          no, y lo que está pasando en el sector. Escribe quien tenga cuenta.
+          ¿Cambiaste algo en tu operación y funcionó? ¿Tienes una duda que
+          seguro otro ya resolvió? Este es el lugar para contarlo, preguntar y
+          leer lo que están haciendo otros.
         </p>
       </HeroBanner>
 
@@ -49,39 +50,40 @@ export default async function ComunidadPage() {
         {sesion ? (
           <FormularioPublicacion empresas={empresas} />
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white p-6 ring-1 ring-hairline">
-            <p className="text-sm text-muted">
-              Para publicar necesitas una cuenta. Leer no la necesita.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/registro?volver=%2Fcomunidad"
-                className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-brand-800"
-              >
-                Crear cuenta
-              </Link>
-              <Link
-                href="/entrar?volver=%2Fcomunidad"
-                className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-800 ring-1 ring-brand-200 transition hover:bg-brand-50 active:bg-brand-50"
-              >
-                Entrar
-              </Link>
-            </div>
-          </div>
+          /* El requisito de tener cuenta va como nota al pie y no como un
+             cartel con dos botones grandes. Es una condición mecánica, no lo
+             que esta página tiene que decirle a nadie: quien llega viene a
+             leer, y se entera de que hay que registrarse cuando le nazcan
+             ganas de escribir. Ver la skill `redaccion-producto`. */
+          <p className="text-sm text-muted">
+            Para escribir aquí hace falta una cuenta.{" "}
+            <Link
+              href="/registro?volver=%2Fcomunidad"
+              className="font-medium text-brand-700 underline underline-offset-4"
+            >
+              Crea la tuya
+            </Link>{" "}
+            en un minuto, o{" "}
+            <Link
+              href="/entrar?volver=%2Fcomunidad"
+              className="font-medium text-brand-700 underline underline-offset-4"
+            >
+              entra
+            </Link>{" "}
+            si ya la tienes.
+          </p>
         )}
 
         {posts.length === 0 ? (
-          /* Vacío con una propuesta, no un cartel de «no hay nada». Quien llega
-             a un muro sin entradas y lee «sin publicaciones» se va; quien lee
-             que puede ser el primero, a veces escribe. */
+          /* Vacío con una invitación, no un cartel de «no hay nada». Quien
+             llega a un muro y lee «sin publicaciones» se va. */
           <div className="mt-10 rounded-xl bg-sand p-10 text-center">
             <MessagesSquare className="mx-auto size-9 text-brand-600" />
             <h2 className="mt-4 font-display text-xl text-ink">
               Todavía no hay nada por aquí
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-              Sé el primero en contar algo. Lo que publiques abre la sección para
-              los que vengan detrás.
+              Anímate a escribir lo primero.
             </p>
           </div>
         ) : (

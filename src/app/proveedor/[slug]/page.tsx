@@ -149,8 +149,8 @@ export default async function ProveedorPage(
             </p>
             <p className="mt-2 text-sm text-muted">
               {provider.evaluacionVerificada
-                ? "Evaluación verificada: seis dimensiones con evidencia revisada por el equipo."
-                : "Todavía sin evaluación verificada. El puntaje se muestra igual, y no condiciona lo que puede publicar."}
+                ? "Nuestro equipo revisó la evidencia de las seis dimensiones."
+                : "Este puntaje es su autoevaluación: todavía no lo ha revisado nuestro equipo."}
             </p>
             <div
               className="mt-4 h-2 overflow-hidden rounded-full bg-sand"

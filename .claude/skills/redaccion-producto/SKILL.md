@@ -1,15 +1,79 @@
 ---
 name: redaccion-producto
-description: Cómo se escribe el texto que lee un usuario o un proveedor en Seregenera — qué se nombra, qué sobra y cómo se cita una ley sin volver el sitio colombiano. Úsala antes de escribir o cambiar cualquier texto visible: un título de sección, una tarjeta de beneficio, un mensaje de confirmación, una etiqueta de formulario, un correo o una descripción de metadatos.
+description: Cómo se escribe el texto que lee un usuario o un proveedor en Seregenera — el tono (hablarle a la persona, no describir la sección), qué sobra, dónde va un requisito mecánico y cómo se cita una ley sin volver el sitio colombiano. Úsala antes de escribir o cambiar cualquier texto visible: un título de sección, un encabezado, una tarjeta, un mensaje de confirmación, un estado vacío, una etiqueta de formulario, un correo o una descripción de metadatos. Y si alguien dice que un texto suena «robótico», «frío» o «de manual», empieza por aquí.
 ---
 
 # Redacción de producto
 
-Estas reglas salieron de una revisión del 2026-09-19 en la que la mitad de las
-observaciones eran de texto, no de código. El patrón era siempre el mismo, así
-que aquí está escrito una vez.
+Estas reglas salieron de dos revisiones del 2026-09-19 en las que casi todas las
+observaciones eran de texto, no de código.
 
-## Regla 1 — Nombra lo que hay, no lo que falta
+**Léelas en orden.** La primera versión de esta skill tenía solo de la 2 en
+adelante, y el texto que se escribió siguiendo esas reglas volvió a fallar — por
+sonar a robot. La regla 1 es la que faltaba, y es la que manda.
+
+## Regla 1 — Háblale a la persona, no describas la sección
+
+Un texto de producto **se le dice a alguien**. No es la entrada de un catálogo ni
+la descripción de un módulo.
+
+Así quedó `/comunidad` la primera vez:
+
+> **Lo que cuenta quien ya lo hizo**
+> Compradores y proveedores comparten aquí lo que les funcionó, lo que no, y lo
+> que está pasando en el sector. Escribe quien tenga cuenta.
+
+Está bien construido y no dice nada en negativo, así que pasa las reglas de
+abajo. Y suena a robot. Tres motivos concretos:
+
+1. **Habla de la gente en tercera persona** («compradores y proveedores
+   comparten») en vez de hablarle a quien está leyendo. Quien lee es uno de
+   ellos.
+2. **Describe la sección en vez de invitar a usarla.** «Aquí se comparte X» es
+   una ficha técnica; «¿te funcionó algo? cuéntalo» es una invitación.
+3. **Sentencia.** «Escribe quien tenga cuenta» tiene forma de aforismo para
+   decir un requisito administrativo.
+
+Cómo se arregla:
+
+| Síntoma | Antídoto |
+|---|---|
+| Tercera persona genérica («los proveedores pueden…») | Segunda persona («puedes…», «tu ficha…») |
+| Describe qué es la sección | Invita a hacer algo en ella; una pregunta directa funciona |
+| Frase con forma de lema o de máxima | Dilo como se lo dirías a alguien de frente |
+| Enumera lo que contiene | Nombra lo que la persona va a conseguir |
+
+**La prueba:** léelo en voz alta como si se lo dijeras a un hotelero al otro lado
+del mostrador. Si sonaría raro dicho así, está mal escrito.
+
+## Regla 1b — El requisito mecánico va en letra pequeña, junto a la acción
+
+«Hace falta una cuenta», «el pago se coordina por transferencia», «el código
+llega en un minuto». Son ciertos y hay que decirlos. **No son lo que la página
+tiene que comunicar**, así que no compiten con ello: van en `text-xs text-muted`,
+debajo de la acción a la que se refieren, y **con el enlace para resolverlos**.
+
+Un requisito sin su enlace es un obstáculo; con su enlace es un paso.
+
+`FormularioRegistro` ya lo hacía bien antes de todo esto —el párrafo del código
+de seis dígitos, al pie y en `text-xs`—, y es el patrón a copiar.
+
+## Regla 1c — Si una frase no cambia lo que alguien hace o entiende, bórrala
+
+En el estado vacío de `/comunidad` decía:
+
+> Sé el primero en contar algo. **Lo que publiques abre la sección para los que
+> vengan detrás.**
+
+La segunda frase es aire: suena importante y no informa de nada. Nadie decide
+distinto por haberla leído. Se borró, y lo que quedó dice lo mismo.
+
+El aire suele entrar disfrazado de justificación de diseño: «son tres y no diez a
+propósito: un escalón tiene que significar algo», «no se compran, no se piden y
+no se negocian». Eso es el razonamiento del equipo, y su sitio es un comentario
+en el código o un hito — **no la pantalla**.
+
+## Regla 2 — Nombra lo que hay, no lo que falta
 
 **Si una frase se puede sustituir por «no te hacemos X» sin perder información,
 sobra.**
@@ -42,7 +106,7 @@ siempre es gratis, en cualquier nivel» o «solo se cobra comisión sobre una ve
 cerrada» acotan una expectativa de dinero. La diferencia es que informan de una
 condición real, no describen un trámite ausente.
 
-## Regla 2 — Una pantalla de confirmación tiene un solo trabajo: el siguiente paso
+## Regla 3 — Una pantalla de confirmación tiene un solo trabajo: el siguiente paso
 
 No explicar el modelo de negocio, no tranquilizar sobre lo que no va a pasar.
 Qué quedó hecho, en una frase, y a dónde ir ahora.
@@ -50,7 +114,7 @@ Qué quedó hecho, en una frase, y a dónde ir ahora.
 Se aplica a `Listo` de `src/app/vender/application-form.tsx` y a
 `src/app/registro/listo/page.tsx`.
 
-## Regla 3 — El formulario pregunta lo que no sabe
+## Regla 4 — El formulario pregunta lo que no sabe
 
 Si hay sesión abierta, el sitio ya sabe el nombre, el correo y el teléfono. Un
 campo que vuelve a pedirlos comunica que el registro anterior no sirvió de nada.
@@ -69,7 +133,7 @@ equivocada aunque el dato fuera el correcto; la pregunta es «nombre del
 representante legal». Antes de escribir una etiqueta, pregúntate de qué entidad
 es ese atributo.
 
-## Regla 4 — Ninguna ley concreta sin el país delante
+## Regla 5 — Ninguna ley concreta sin el país delante
 
 La cláusula de autorización de datos decía «conforme a la Ley 1581 de 2012». Esa
 es la ley **colombiana**, en un formulario que acepta proveedores de dieciocho
@@ -96,7 +160,7 @@ documento, ni una ley, ni una división administrativa («departamento» es
 «provincia», «región» o «estado» según dónde estés). Colombia es el mercado de
 hoy y por eso va primero en las listas; no es el único.
 
-## Regla 5 — No prometas puntos por algo que no se puede hacer
+## Regla 6 — No prometas puntos por algo que no se puede hacer
 
 `articulo_publicado` y `articulo_destacado` vivieron un tiempo en
 `otorgar_experiencia()` y en `src/lib/niveles.ts` sin que existiera la Comunidad.
@@ -119,6 +183,12 @@ que es el gemelo de la base.
 
 ## Antes de cerrar
 
+Lee el texto en voz alta primero. Después la lista.
+
+- [ ] Le habla a quien lee, en segunda persona, en vez de describir la sección
+- [ ] Ninguna frase tiene forma de lema, de máxima o de justificación de diseño
+- [ ] Los requisitos mecánicos van en letra pequeña, junto a la acción y con su enlace
+- [ ] Ninguna frase se puede borrar sin que se pierda nada
 - [ ] Ninguna frase describe un trámite que no ocurre
 - [ ] Ninguna ley, moneda o documento asume un país
 - [ ] Ningún formulario pregunta algo que la sesión ya sabe sin prellenarlo

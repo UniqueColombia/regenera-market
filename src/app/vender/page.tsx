@@ -92,13 +92,13 @@ const REQUISITOS = [
     icon: LineChart,
     titulo: "Sostener lo que declares",
     cuerpo:
-      "Publicar es libre; afirmar es responsabilidad tuya. Si dices que tu empaque es compostable o que tu taller emplea a la comunidad, tienes que poder demostrarlo cuando alguien pregunte. Lo que no se sostiene se retira.",
+      "Si dices que tu empaque es compostable o que tu taller emplea a la comunidad, ten a mano con qué demostrarlo: un comprador corporativo te lo va a pedir para su reporte. Una afirmación que no puedas sostener se retira de tu ficha.",
   },
   {
     icon: Store,
     titulo: "Despachar lo que prometes",
     cuerpo:
-      "En el plazo que publicaste. Un pedido que no llega le cuesta el cliente al marketplace entero, no solo a ti — y es lo único que de verdad hace que a alguien se le suspenda la ficha.",
+      "En el plazo que publicaste. Si algo se retrasa, avísanos y lo coordinamos con el comprador; incumplir en silencio y de forma repetida es lo que hace que se suspenda una ficha.",
   },
 ];
 
@@ -145,9 +145,10 @@ export default async function VenderPage() {
         titulo="Vende lo que produces al turismo de toda América Latina"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
-          Cooperativas, talleres, consejos comunitarios y empresas que producen
-          de forma regenerativa. Te registras, publicas el mismo día y solo pagas
-          cuando vendes.
+          Si produces de forma regenerativa —seas una cooperativa, un taller
+          familiar, un consejo comunitario o una empresa—, aquí tienes dónde
+          vender. Te registras, publicas el mismo día y solo pagas cuando
+          vendes.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a
@@ -171,8 +172,8 @@ export default async function VenderPage() {
             Qué incluye vender en Seregenera
           </h2>
           <p className="mt-2 max-w-2xl text-muted">
-            Seis servicios, todos sin costo fijo. Lo único que se cobra es la
-            comisión de una venta cerrada.
+            Todo esto va incluido y sin costo fijo: lo único que se cobra es la
+            comisión cuando cierras una venta.
           </p>
         </Revelar>
         <ul className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -201,9 +202,9 @@ export default async function VenderPage() {
               Cuanto más vendes, menos te cobramos
             </h2>
             <p className="mt-3 max-w-2xl text-brand-100">
-              Todos entran como Semilla. La experiencia se gana publicando,
-              entregando pedidos, respondiendo cotizaciones, recibiendo buenas
-              reseñas y aportando en la Comunidad.
+              Empiezas como Semilla y ganas experiencia publicando, entregando
+              pedidos, respondiendo cotizaciones, recibiendo buenas reseñas y
+              aportando en la Comunidad.
             </p>
           </Revelar>
 
@@ -284,8 +285,7 @@ export default async function VenderPage() {
           <Revelar>
             <h2 className="font-display text-3xl text-ink">Qué pedimos</h2>
             <p className="mt-2 max-w-2xl text-muted">
-              Cuatro condiciones, todas sobre tu organización y sobre lo que
-              vendes.
+              Antes de publicar, revisa que puedas cumplir estas cuatro.
             </p>
           </Revelar>
 
