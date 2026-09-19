@@ -58,6 +58,7 @@ agente del otro.
 | `outputs/` | Entregables generados (el Excel de prospectos). **No se versiona** | Humanos |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
 | `plantillas-correo/` | Copia de referencia de los correos que manda Supabase. Su HTML vive en el panel, no en el repo | Humanos |
+| `src/lib/legal.ts` · `src/lib/rutas.ts` | Datos de la sociedad y qué rutas son públicas. Los leen el pie, las páginas legales, `robots.txt` y el sitemap | Agentes |
 | `public/img/` | Imágenes del sitio ya optimizadas: marca, secciones, ofertas. `marca/` se regenera con `scripts/generar-marca.sh`, no se edita | — |
 | `tools/img-originales/` | Originales pesados de las imágenes. **No se versiona** | Humanos |
 | `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear, prospectar proveedores, optimizar imágenes, generar la marca | Humanos y hooks |
@@ -82,6 +83,7 @@ pueden pedir a mano con `/<nombre>`.
 | `componentizacion` | Creas un archivo en `src/components/`, dudas entre Server y Client Component, o una página pasa de ~150 líneas de JSX |
 | `diseno-visual` | Escribes clases de Tailwind, eliges un color, maquetas una página o ajustas el aspecto de un componente |
 | `prospeccion-proveedores` | Tocas `scripts/prospectar.mts`, conectas una fuente de datos de empresas, o alguien propone usar LinkedIn o un scraper para conseguir proveedores |
+| `seo-y-legal` | Creas una página en `src/app/`, agregas un dato personal a una tabla, conectas un servicio que trate datos de personas, o alguien pide «una auditoría del sitio» |
 
 Para agregar una skill: carpeta nueva en `.claude/skills/`, un `SKILL.md` con
 frontmatter `name` + `description`, y una fila en esta tabla. Nada más.

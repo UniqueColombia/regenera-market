@@ -18,11 +18,13 @@ import { getSesion } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { mostrarTelefono } from "@/lib/telefono";
 import { NIVELES, comisionEnPorcentaje } from "@/lib/niveles";
+import { publica } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Vende en Seregenera",
   description:
     "Registra tu empresa, cooperativa o comunidad y publica hoy mismo productos, experiencias y servicios regenerativos para hoteles, glampings, restaurantes y operadores de Colombia y América Latina. Publicar es gratis: solo se cobra comisión cuando vendes.",
+  ...publica("/vender"),
 };
 
 /**

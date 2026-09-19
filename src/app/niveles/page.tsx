@@ -5,6 +5,7 @@ import { HeroBanner } from "@/components/hero-banner";
 import { Revelar } from "@/components/revelar";
 import { TierBadge } from "@/components/tier-badge";
 import { EXPERIENCIA, NIVELES, comisionEnPorcentaje } from "@/lib/niveles";
+import { publica } from "@/lib/seo";
 
 /**
  * Cómo funcionan los niveles, para el proveedor.
@@ -27,6 +28,7 @@ export const metadata: Metadata = {
   title: "Niveles de proveedor",
   description:
     "Semilla, Raíz y Bosque: cómo se gana el nivel en Seregenera con puntos de experiencia, qué suma cada cosa y cuánta comisión se cobra en cada uno. Publicar siempre es gratis.",
+  ...publica("/niveles"),
 };
 
 /**

@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { KeyRound, ShieldCheck, UserRound } from "lucide-react";
+import { Building2, KeyRound, ShieldCheck, UserRound } from "lucide-react";
 import { Dispositivos, type DispositivoVisible } from "./dispositivos";
+import { guardarFoto, quitarFoto } from "./actions";
+import { ProgresoNivel } from "@/components/progreso-nivel";
+import { SelectorImagen } from "@/components/selector-imagen";
 import { getSesion, requireUser } from "@/lib/auth";
+import { getMiEmpresa } from "@/lib/repo";
 import { createClient } from "@/lib/supabase/server";
 import { hashDispositivo, leerIdDispositivo } from "@/lib/dispositivos";
 import { mostrarTelefono } from "@/lib/telefono";
@@ -22,6 +26,10 @@ export const dynamic = "force-dynamic";
  * Son el mismo dato escrito dos veces —el trigger `handle_new_user` lo copia—,
  * pero `profiles` es el que puede leer el resto de la aplicación por RLS, y el
  * que un día editará esta misma pantalla.
+ *
+ * La foto vive solo en `profiles.avatar_url` (migración 0008) y no se duplica en
+ * los metadatos: el encabezado no la pinta, y duplicar un dato que hay que
+ * mantener en dos sitios se paga el día que alguien actualiza uno solo.
  */
 export default async function CuentaPage() {
   const user = await requireUser("/cuenta");
@@ -30,7 +38,7 @@ export default async function CuentaPage() {
 
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("full_name, phone")
+    .select("full_name, phone, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -42,6 +50,12 @@ export default async function CuentaPage() {
     .from("trusted_devices")
     .select("id, label, last_seen_at, created_at, device_hash")
     .order("last_seen_at", { ascending: false });
+
+  // `getMiEmpresa()` sale de `provider_members` y pasa por RLS: quien no
+  // gestione ninguna recibe `undefined` y el bloque del nivel no se pinta. No se
+  // mira `sesion.esProveedor` — el rol dice que alguien vende, no de qué
+  // empresa, y son dos preguntas distintas.
+  const empresa = await getMiEmpresa();
 
   const idActual = await leerIdDispositivo();
   const hashActual = idActual ? hashDispositivo(idActual) : null;
@@ -65,6 +79,17 @@ export default async function CuentaPage() {
       <h1 className="mt-3 font-display text-3xl text-ink">
         {perfil?.full_name || sesion?.nombre}
       </h1>
+
+      <div className="mt-6 rounded-xl bg-white p-5 ring-1 ring-hairline">
+        <SelectorImagen
+          nombre={perfil?.full_name || sesion?.nombre || "Tu cuenta"}
+          imagenUrl={perfil?.avatar_url ?? undefined}
+          forma="redonda"
+          guardar={guardarFoto}
+          quitar={quitarFoto}
+          ayuda="Te identifica en lo que publicas en la Comunidad. La recortamos a cuadrado desde el centro."
+        />
+      </div>
 
       <dl className="mt-6 grid gap-3 rounded-xl bg-white p-5 ring-1 ring-hairline sm:grid-cols-2">
         <div>
@@ -97,6 +122,23 @@ export default async function CuentaPage() {
           <ShieldCheck className="size-4" />
           Ir al panel de administración
         </Link>
+      )}
+
+      {empresa && (
+        <section className="mt-10">
+          <h2 className="font-display text-xl text-ink">Tu empresa</h2>
+          <div className="mt-3 rounded-xl bg-white p-6 ring-1 ring-hairline">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-2 font-display text-lg text-ink">
+                <Building2 className="size-4 text-brand-600" aria-hidden />
+                {empresa.name}
+              </p>
+            </div>
+            <div className="mt-4">
+              <ProgresoNivel puntos={empresa.experiencePoints} compacto />
+            </div>
+          </div>
+        </section>
       )}
 
       <section className="mt-10">

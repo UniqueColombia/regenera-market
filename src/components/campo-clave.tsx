@@ -80,7 +80,17 @@ export function CampoClave({
           value={valor}
           onChange={(e) => setValor(e.target.value)}
           aria-invalid={error ? true : undefined}
-          aria-describedby={fuerza && valor ? `${id}-fuerza` : undefined}
+          // El error manda sobre el medidor de fuerza. `aria-invalid` avisa de
+          // que hay un problema, pero sin `aria-describedby` apuntando al
+          // mensaje, quien usa lector de pantalla oye «entrada no válida» y no
+          // oye por qué — que es justo el dato que necesita para arreglarlo.
+          aria-describedby={
+            error
+              ? `${id}-error`
+              : fuerza && valor
+                ? `${id}-fuerza`
+                : undefined
+          }
           className={`w-full rounded-lg border bg-white px-3 py-2 pr-11 text-sm outline-none transition focus:border-brand-500 ${
             error ? "border-red-500" : "border-control"
           }`}
@@ -129,7 +139,11 @@ export function CampoClave({
         <p className="mt-1 text-xs text-muted">{ayuda}</p>
       )}
 
-      {error && <p className="mt-1 text-xs text-red-700">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="mt-1 text-xs text-red-700">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
