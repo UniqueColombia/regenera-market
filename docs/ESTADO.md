@@ -5,33 +5,29 @@ medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
 - **Corte:** 2026-09-19
-- **Producción:** `v0.5.0` en `main` → **https://regenera-market.vercel.app**
+- **Producción:** `v0.6.0` en `main` → **https://regenera-market.vercel.app**
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**.
 
-> ## ⛔ Lo primero: la migración `0007` no está aplicada
+> ## ⚠️ Lo primero que hay que probar en producción: reaccionar en la Comunidad
 >
-> **Se aplica ANTES de desplegar, no después.** El código de la rama
-> `feat/js-comunidad-y-arreglos-de-beta` consulta `community_posts`, una tabla
-> que todavía no existe: al revés, `/comunidad`, la portada y `/admin/comunidad`
-> responden error. Es el mismo orden obligatorio que tuvo la `0006`.
->
-> Por el editor SQL del panel de Supabase, con
-> `supabase/migrations/0007_comunidad.sql`. Desde que corra es inmutable como
-> las seis anteriores.
+> **La `0007` la aplicó Jesús el 2026-09-19**, por el editor SQL del panel y
+> antes de desplegar, que era el orden obligatorio. Desde que corrió es
+> inmutable como las seis anteriores.
 >
 > ```sql
-> -- 2 = las dos tablas existen. Es lo que hay que ver al aplicarla.
+> -- 2 = las dos tablas existen
 > select count(*) from information_schema.tables
 >  where table_name in ('community_posts', 'community_reactions');
 > ```
 >
-> Y lo que hay que probar en cuanto esté: **reaccionar y quitar la reacción**.
-> Si `reaction_count` se queda en cero, la marca `app.derivados` de la sección 4
-> no está haciendo su trabajo y el trigger de derivados está deshaciendo su
-> propio incremento — falla en silencio, sin error en ninguna parte.
+> Lo que **nadie ha probado todavía** es el camino que más fácil falla en
+> silencio: **reacciona a una publicación y quita la reacción**. Si el contador
+> no se mueve, la marca `app.derivados` de la sección 4 de la migración no está
+> haciendo su trabajo y el trigger de derivados deshace su propio incremento.
+> No hay error en ninguna parte: el número simplemente se queda en cero.
 
-> ## El 2026-09-19: existe la Comunidad, y el registro dejó de pedir la clave dos veces
+> ## El 2026-09-19 entró el release `v0.6.0`: existe la Comunidad, y el registro dejó de pedir la clave dos veces
 >
 > Una revisión de uso dejó ocho observaciones; siete eran arreglos y una era una
 > sección entera que faltaba. Todo está en
@@ -55,6 +51,11 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   así que por debajo de 640 px la única opción era salir.
 > - **Tres skills nuevas o ampliadas**: `redaccion-producto`, `acceso-y-registro`
 >   y una sección de paridad móvil en `diseno-visual`.
+> - **Se reescribieron los textos de medio sitio.** Dos rondas de observaciones:
+>   la primera quitó las frases que decían lo que *no* pasa; la segunda, las que
+>   describían la sección en tercera persona en vez de hablarle a quien lee. De
+>   paso cayeron seis textos que además eran **falsos desde la `0006`**, porque
+>   seguían diciendo que el nivel sale de la evaluación de sostenibilidad.
 
 > ## El 2026-09-17 entró el release `v0.5.0`: el proveedor entra solo
 >
@@ -224,12 +225,12 @@ y el nivel se gana vendiendo, no esperando a que alguien apruebe su evaluación
 | Que alguien sea admin | ✅ Jesús e Ivan, con `scripts/crear-admin.mts` |
 | Contraseña + segundo factor por dispositivo | ✅ en producción desde `v0.4.0` |
 | Las seis pantallas de `/admin` | ✅ en producción; falta `/admin/evaluaciones` |
-| La séptima, `/admin/comunidad` | 🟡 escrita, **a la espera de la `0007`** |
+| La séptima, `/admin/comunidad` | ✅ en producción desde `v0.6.0` |
 | Órdenes y postulaciones en Postgres | ✅ en producción |
 | Latido diario contra la pausa de Supabase | ✅ corriendo, 12:10 UTC |
 | `0006_niveles_por_experiencia_y_alta_directa.sql` | ✅ **aplicada** el 2026-09-17, inmutable |
-| `0007_comunidad.sql` | ❌ **sin aplicar**. Va antes del despliegue — ver el bloque de arriba |
-| Comunidad: `/comunidad`, la sección de la portada y `/admin/comunidad` | 🟡 escrito y compilando, **a la espera de la `0007`** |
+| `0007_comunidad.sql` | ✅ **aplicada** el 2026-09-19, inmutable |
+| Comunidad: `/comunidad`, la sección de la portada y `/admin/comunidad` | ✅ en producción desde `v0.6.0`; **sin probar con datos reales** |
 | Niveles por experiencia y comisión por nivel (12/10/8 %) | ✅ en producción desde `v0.5.0` |
 | Alta directa del proveedor (`postular_proveedor()`) | ✅ en producción; con sesión, postular crea la empresa en el acto |
 | `/niveles` y la ficha con nivel y sello separados | ✅ en producción |
@@ -366,20 +367,64 @@ password*. La que se usó para aplicar las migraciones pasó por un chat.
 
 ## Lo que sigue, por orden
 
-### 0. Cerrar lo que quedó a medias del `v0.5.0`
+### 0. Cerrar lo que quedó a medias de los `v0.5.0` y `v0.6.0`
 
-1. ✅ **La `0006` está aplicada** desde el 2026-09-17, antes del despliegue.
+**Esta es la lista con la que se retoma.** Ordenada por lo que bloquea a lo que
+no; los cuatro primeros no son código.
+
+| # | Qué | Quién | Bloquea |
+|---|---|---|---|
+| 1 | Las cinco `SMTP_*` en Vercel | Ivan | Que alguien reciba su correo |
+| 2 | Probar el alta de proveedor en producción | Cualquiera | Abrir a proveedores reales |
+| 3 | Probar la Comunidad en producción | Cualquiera | Confiar en el contador |
+| 4 | El OK de Ivan a la comisión 12/10/8 % | Ivan | Nada técnico. Es negocio |
+| 5 | Paginar `/comunidad` | Agente | Nada hoy. Sí con volumen |
+| 6 | `/admin/evaluaciones` | Agente | Aprobar evaluaciones sin SQL |
+
+1. ✅ **Las `0006` y `0007` están aplicadas**, el 2026-09-17 y el 2026-09-19,
+   las dos antes de su despliegue.
 2. **Las cinco `SMTP_*` en Vercel** (Production, y de paso Preview). Las mismas
    credenciales que ya tiene Supabase en Authentication → SMTP Settings. Sin
    ellas nadie recibe el correo de respaldo de su postulación, y no hay ningún
-   error que lo delate: se escribe en la consola del servidor y ya.
+   error que lo delate: se escribe en la consola del servidor y ya. **Viene
+   arrastrándose desde el `v0.5.0`.**
 3. **Probar el alta de punta a punta, en producción**: entrar con una cuenta de
    prueba, mandar el formulario de `/vender` y comprobar que la empresa aparece
    en `/proveedores` con nivel Semilla y que llega el correo. **Nadie lo ha hecho
    todavía**: el camino de `postular_proveedor()` se revisó línea a línea, no se
    ejecutó. Si algo falla, es el primer sitio donde mirar.
-4. **Contarle a Ivan lo de la comisión** — 12 / 10 / 8 % salió a producción sin
+4. **Probar la Comunidad en producción**, en este orden:
+   1. Publicar con sesión a título personal → sale en `/comunidad` y en la
+      portada.
+   2. Publicar firmando con una empresa → `providers.experience_points` sube 30
+      y `experience_events` gana su fila.
+   3. **Reaccionar y quitar la reacción** → el contador sube y baja. Es la que
+      importa: falla en silencio (ver el aviso del principio).
+   4. Con otra cuenta, intentar firmar con una empresa ajena → lo niega
+      `community_posts_insert`.
+   5. Ocultar una publicación desde `/admin/comunidad` → desaparece del muro.
+   6. Registrarse de cero → se aterriza en `/registro/listo`, no en
+      `/cuenta/clave`.
+   7. A 375 px, con sesión → el menú del teléfono lleva a «Tu cuenta».
+5. **Contarle a Ivan lo de la comisión** — 12 / 10 / 8 % salió a producción sin
    su visto bueno, para no frenar el lanzamiento.
+
+### 0b. Lo que dejó abierto la Comunidad
+
+Ninguno bloquea nada hoy. Están aquí para que no se pierdan.
+
+- **Paginar `/comunidad`.** Hoy trae 30 publicaciones y el panel 200, sin
+  cursor. Con volumen real hace falta uno por `created_at`.
+- **Sin imágenes en las publicaciones**, por lo mismo que las ofertas: subir
+  archivos está fuera de la beta. Es lo primero que se va a pedir.
+- **A nadie le llega un aviso cuando se publica algo.** `/admin/comunidad` hay
+  que ir a mirarlo. Si el muro se llena, esto pasa a ser lo primero.
+- **Sin denuncia de una publicación.** Moderar depende de que un administrador
+  la vea; un lector que encuentre algo fuera de sitio no tiene cómo avisar.
+- **`articulo_publicado` no tiene tope.** Los demás eventos repetibles sí
+  (10 ofertas al mes, 3 certificaciones). Publicar cien entradas distintas suma
+  cien veces 30 puntos, y eso es comisión. El tope va en
+  `otorgar_experiencia()`, junto a los otros dos, el día que alguien lo intente.
 
 ### 1. Abrir a proveedores reales
 
