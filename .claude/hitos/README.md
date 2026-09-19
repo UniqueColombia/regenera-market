@@ -28,3 +28,4 @@ referencie al anterior.
 | 2026-09-13 | [El acceso pasa a contraseña con segundo factor, y el panel de administración deja de ser una sola pantalla](2026-09-13-clave-con-segundo-factor-y-panel-admin.md) | Jesús Seiler | 1 y 2 — cierre del Bloque 3 |
 | 2026-09-13 | [Dos políticas de `0001` se llamaban la una a la otra, y nadie podía saberlo](2026-09-13-recursion-entre-politicas-de-ordenes.md) | Jesús Seiler | 1 y 2 — corrección |
 | 2026-09-17 | [El proveedor entra solo, y el nivel se gana con actividad](2026-09-17-niveles-por-experiencia-y-alta-directa.md) | Jesús Seiler | 1 y 2 — alta directa y niveles |
+| 2026-09-19 | [La Comunidad existe, y el registro deja de pedir la contraseña dos veces](2026-09-19-comunidad-y-ocho-observaciones-de-beta.md) | Jesús Seiler | 1 y 2 — Comunidad y correcciones |

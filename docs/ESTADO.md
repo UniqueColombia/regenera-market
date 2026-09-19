@@ -4,10 +4,57 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-17
+- **Corte:** 2026-09-19
 - **Producción:** `v0.5.0` en `main` → **https://regenera-market.vercel.app**
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**.
+
+> ## ⛔ Lo primero: la migración `0007` no está aplicada
+>
+> **Se aplica ANTES de desplegar, no después.** El código de la rama
+> `feat/js-comunidad-y-arreglos-de-beta` consulta `community_posts`, una tabla
+> que todavía no existe: al revés, `/comunidad`, la portada y `/admin/comunidad`
+> responden error. Es el mismo orden obligatorio que tuvo la `0006`.
+>
+> Por el editor SQL del panel de Supabase, con
+> `supabase/migrations/0007_comunidad.sql`. Desde que corra es inmutable como
+> las seis anteriores.
+>
+> ```sql
+> -- 2 = las dos tablas existen. Es lo que hay que ver al aplicarla.
+> select count(*) from information_schema.tables
+>  where table_name in ('community_posts', 'community_reactions');
+> ```
+>
+> Y lo que hay que probar en cuanto esté: **reaccionar y quitar la reacción**.
+> Si `reaction_count` se queda en cero, la marca `app.derivados` de la sección 4
+> no está haciendo su trabajo y el trigger de derivados está deshaciendo su
+> propio incremento — falla en silencio, sin error en ninguna parte.
+
+> ## El 2026-09-19: existe la Comunidad, y el registro dejó de pedir la clave dos veces
+>
+> Una revisión de uso dejó ocho observaciones; siete eran arreglos y una era una
+> sección entera que faltaba. Todo está en
+> [el hito](../.claude/hitos/2026-09-19-comunidad-y-ocho-observaciones-de-beta.md).
+>
+> Lo que conviene saber sin abrirlo:
+>
+> - **`/comunidad`**: muro donde publica cualquiera con cuenta, a título personal
+>   o firmando con una empresa que gestione. Solo lo que firma una empresa suma
+>   experiencia. Se modera desde `/admin/comunidad`, que es la **séptima**
+>   pantalla del panel.
+> - **`articulo_publicado` (30) y `articulo_destacado` (80) dejaron de ser
+>   teoría.** Estaban en `otorgar_experiencia()` desde la `0006` sin tener dónde
+>   ocurrir, y `/niveles` los escondía con una lista `AUN_NO` que ya no existe.
+> - **El registro termina en `/registro/listo`**, no en `/cuenta/clave`. Quien
+>   acaba de elegir contraseña no debe volver a elegirla. `/entrar` no cambió:
+>   ahí `necesitaClave` sigue haciendo lo que debe.
+> - **La cláusula de datos de `/vender` ya no es colombiana.** Redacción general
+>   más la norma del país elegido, desde `PAISES[].proteccionDatos`.
+> - **En el móvil ya se llega a la cuenta.** `MenuUsuario` es `hidden sm:block`,
+>   así que por debajo de 640 px la única opción era salir.
+> - **Tres skills nuevas o ampliadas**: `redaccion-producto`, `acceso-y-registro`
+>   y una sección de paridad móvil en `diseno-visual`.
 
 > ## El 2026-09-17 entró el release `v0.5.0`: el proveedor entra solo
 >
@@ -177,9 +224,12 @@ y el nivel se gana vendiendo, no esperando a que alguien apruebe su evaluación
 | Que alguien sea admin | ✅ Jesús e Ivan, con `scripts/crear-admin.mts` |
 | Contraseña + segundo factor por dispositivo | ✅ en producción desde `v0.4.0` |
 | Las seis pantallas de `/admin` | ✅ en producción; falta `/admin/evaluaciones` |
+| La séptima, `/admin/comunidad` | 🟡 escrita, **a la espera de la `0007`** |
 | Órdenes y postulaciones en Postgres | ✅ en producción |
 | Latido diario contra la pausa de Supabase | ✅ corriendo, 12:10 UTC |
 | `0006_niveles_por_experiencia_y_alta_directa.sql` | ✅ **aplicada** el 2026-09-17, inmutable |
+| `0007_comunidad.sql` | ❌ **sin aplicar**. Va antes del despliegue — ver el bloque de arriba |
+| Comunidad: `/comunidad`, la sección de la portada y `/admin/comunidad` | 🟡 escrito y compilando, **a la espera de la `0007`** |
 | Niveles por experiencia y comisión por nivel (12/10/8 %) | ✅ en producción desde `v0.5.0` |
 | Alta directa del proveedor (`postular_proveedor()`) | ✅ en producción; con sesión, postular crea la empresa en el acto |
 | `/niveles` y la ficha con nivel y sello separados | ✅ en producción |
