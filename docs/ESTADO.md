@@ -9,22 +9,32 @@ qué hacer, empieza aquí y no en el ROADMAP.
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**.
 
-> ## ⚠️ Antes de desplegar: comprueba `NEXT_PUBLIC_SITE_URL` en Vercel
+> ## Los despliegues de vista previa responden 500, y no es de esta tanda
 >
-> De esa variable salen **el sitemap, el `robots.txt`, las URLs canónicas y las
-> imágenes de Open Graph**, todos nuevos en esta tanda. Si falta en el entorno
-> Production, el sitio le dice al mundo que vive en `localhost:3000` y ningún
-> buscador lo indexa. No falla nada visible: las páginas se ven bien.
->
-> Se comprueba en un segundo, con el sitio ya desplegado:
+> **Production está bien.** `NEXT_PUBLIC_SITE_URL` está puesta —comprobado el
+> 2026-09-19: la portada de producción resuelve `og:image` contra
+> `https://regenera-market.vercel.app` y no contra `localhost`—, así que el
+> sitemap, el `robots.txt` y las canónicas que entran con esta tanda van a salir
+> con el dominio correcto. Después de desplegar conviene verlo en claro:
 >
 > ```bash
 > curl -s https://regenera-market.vercel.app/robots.txt | grep -E "Host|Sitemap"
-> # Tiene que imprimir el dominio real. Si dice localhost, falta la variable.
 > ```
 >
-> Después, dos cosas que no se hacen solas: **registrar el sitio en Google
-> Search Console** y mandarle `/sitemap.xml`.
+> **El entorno Preview es otra historia.** Se descubrió al revisar el despliegue
+> del PR #51: las páginas que consultan la base responden **500** y
+> `/robots.txt` declara `Host: http://localhost:3000`. O sea que Preview no
+> tiene ni las variables de Supabase ni `NEXT_PUBLIC_SITE_URL`.
+>
+> No lo causó esta tanda —producción, con el mismo código anterior, responde
+> 200— y lleva ahí desde que existen las variables, pero hasta ahora nadie
+> miraba un preview. La consecuencia práctica es que **el despliegue de vista
+> previa de un PR no sirve para revisar nada que toque datos**, que es casi
+> todo: quien revise un PR tiene que levantarlo en local.
+>
+> Se arregla copiando las cuatro variables al entorno Preview desde el panel de
+> Vercel. Lo tiene que hacer Ivan, que es quien administra el proyecto: la
+> cuenta de Jesús no lo ve desde la API.
 
 > ## La migración `0008` está aplicada
 >

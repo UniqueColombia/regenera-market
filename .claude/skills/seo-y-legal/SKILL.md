@@ -141,9 +141,14 @@ alguien diga «me salió este código» y que eso baste.
 ## Las trampas que ya se pisaron
 
 - **`NEXT_PUBLIC_SITE_URL` manda sobre el SEO entero.** Sitemap, `robots.txt`,
-  canónicas y las imágenes de Open Graph salen de ahí. Si falta en Vercel, el
-  sitio le dice al mundo que vive en `localhost:3000`. Se comprueba mirando
-  `/robots.txt` en producción, que imprime el dominio en claro.
+  canónicas y las imágenes de Open Graph salen de ahí. Si falta, el sitio le
+  dice al mundo que vive en `localhost:3000` **y no falla nada visible**: las
+  páginas se ven bien. Se comprueba mirando `/robots.txt`, que imprime el
+  dominio en claro, o el `og:image` de la portada.
+
+  Comprobado el 2026-09-19: **está en Production y no en Preview**. Por eso el
+  despliegue de vista previa de un PR declara `localhost` — y por eso no sirve
+  para revisar el SEO de un cambio. Se revisa en local o después de desplegar.
 - **Bloquear «la IA» en bloque es tirar piedras al propio tejado.** Los robots de
   entrenamiento y los de búsqueda son dos grupos distintos: los primeros se
   llevan el contenido sin devolver nada, los segundos traen visitas citando la
