@@ -2,16 +2,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
+  BadgeCheck,
   Banknote,
   FileCheck2,
+  FileText,
   Globe2,
   LineChart,
   Store,
   TrendingDown,
 } from "lucide-react";
-import { ApplicationForm } from "./application-form";
+import { ApplicationForm, type DatosConocidos } from "./application-form";
 import { HeroBanner } from "@/components/hero-banner";
 import { Revelar } from "@/components/revelar";
+import { getSesion } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { mostrarTelefono } from "@/lib/telefono";
 import { NIVELES, comisionEnPorcentaje } from "@/lib/niveles";
 
 export const metadata: Metadata = {
@@ -20,28 +25,53 @@ export const metadata: Metadata = {
     "Registra tu empresa, cooperativa o comunidad y publica hoy mismo productos, experiencias y servicios regenerativos para hoteles, glampings, restaurantes y operadores de Colombia y América Latina. Publicar es gratis: solo se cobra comisión cuando vendes.",
 };
 
+/**
+ * Qué servicios presta Seregenera a un proveedor.
+ *
+ * **Cada tarjeta nombra algo que la plataforma hace**, no algo que no hace. La
+ * primera decía «Publicas hoy, no cuando te aprobemos», y debajo explicaba que
+ * no hay comité, ni cinco días hábiles, ni un correo que nunca llega. Todo eso
+ * es verdad, y ninguna de esas frases dice qué recibe quien se registra: quien
+ * llega a esta página quiere saber qué le dan, no de qué se libra.
+ *
+ * La regla, que vale para el resto de la página: si una frase se puede
+ * sustituir por «no te hacemos X» sin perder información, sobra. Está en la
+ * skill `redaccion-producto`.
+ */
 const BENEFICIOS = [
   {
     icon: Store,
-    titulo: "Publicas hoy, no cuando te aprobemos",
+    titulo: "Tu catálogo publicado y buscable",
     cuerpo:
-      "Te registras y tu ficha existe. No hay comité, ni cinco días hábiles, ni un correo que nunca llega. Si lo que vendes no encaja, se retira después — y eso pasa poquísimas veces.",
+      "Una ficha por cada producto, experiencia o servicio, con fotos, precio mayorista y tiempo de entrega. Aparece en el catálogo, en el buscador y en los filtros por vertical y por territorio.",
   },
   {
     icon: Banknote,
-    titulo: "Gratis hasta que vendas",
-    cuerpo: `Sin mensualidad, sin cobro por destacar y sin límite de publicaciones. Seregenera retiene ${comisionEnPorcentaje(NIVELES[0].comision)} % sobre cada venta cerrada y el resto se te dispersa.`,
+    titulo: "Cobro y dispersión de cada pedido",
+    cuerpo: `Seregenera le cobra al comprador, retiene la comisión de esa venta y te dispersa el resto. Cada pedido llega con su referencia y su estado. Sin mensualidad, sin cobro por destacar y sin límite de publicaciones.`,
   },
   {
     icon: TrendingDown,
-    titulo: "La comisión baja según tu nivel",
-    cuerpo: `Entregar pedidos, recibir buenas reseñas y completar tu evaluación suman experiencia. Con experiencia subes de nivel, y cada nivel te baja la comisión hasta ${comisionEnPorcentaje(NIVELES[NIVELES.length - 1].comision)} %.`,
+    titulo: "Comisión que baja con tu nivel",
+    cuerpo: `Empiezas en ${comisionEnPorcentaje(NIVELES[0].comision)} %. Publicar, entregar pedidos, responder cotizaciones, recibir buenas reseñas y escribir en la Comunidad suman experiencia, y con ella el nivel baja la comisión hasta ${comisionEnPorcentaje(NIVELES[NIVELES.length - 1].comision)} %.`,
   },
   {
     icon: LineChart,
-    titulo: "Tu impacto se vuelve argumento de venta",
+    titulo: "Ficha de impacto por unidad",
     cuerpo:
-      "Cada ficha muestra el CO₂, el agua y los residuos que evita tu producto. Es lo que convence al comprador corporativo que necesita sustentar su reporte.",
+      "Calculamos y mostramos el CO₂, el agua y los residuos que evita cada producto tuyo. Es lo que necesita el comprador corporativo para sustentar su reporte de sostenibilidad.",
+  },
+  {
+    icon: FileText,
+    titulo: "Cotizaciones de compradores grandes",
+    cuerpo:
+      "Un hotel que necesita volumen o algo a medida te lo pide desde tu ficha. Llega como cotización, con qué quiere y para cuándo, y respondes con tu precio.",
+  },
+  {
+    icon: BadgeCheck,
+    titulo: "Evaluación de sostenibilidad y su sello",
+    cuerpo:
+      "Seis dimensiones con evidencia documental que revisa nuestro equipo. Aprobarla pone el sello en tu ficha y es, con diferencia, lo que más experiencia suma.",
   },
 ];
 
@@ -62,17 +92,50 @@ const REQUISITOS = [
     icon: LineChart,
     titulo: "Sostener lo que declares",
     cuerpo:
-      "Publicar es libre; afirmar es responsabilidad tuya. Si dices que tu empaque es compostable o que tu taller emplea a la comunidad, tienes que poder demostrarlo cuando alguien pregunte. Lo que no se sostiene se retira.",
+      "Si dices que tu empaque es compostable o que tu taller emplea a la comunidad, ten a mano con qué demostrarlo: un comprador corporativo te lo va a pedir para su reporte. Una afirmación que no puedas sostener se retira de tu ficha.",
   },
   {
     icon: Store,
     titulo: "Despachar lo que prometes",
     cuerpo:
-      "En el plazo que publicaste. Un pedido que no llega le cuesta el cliente al marketplace entero, no solo a ti — y es lo único que de verdad hace que a alguien se le suspenda la ficha.",
+      "En el plazo que publicaste. Si algo se retrasa, avísanos y lo coordinamos con el comprador; incumplir en silencio y de forma repetida es lo que hace que se suspenda una ficha.",
   },
 ];
 
-export default function VenderPage() {
+/**
+ * El formulario ya no vuelve a preguntar lo que la sesión sabe.
+ *
+ * `profiles` solo lo puede leer su dueño (`profiles_own`), así que esta consulta
+ * devuelve el perfil de quien mira o nada — no hace falta filtrar por id, y no
+ * filtrarlo es lo que hace que la política sea la que decide.
+ *
+ * El teléfono se guarda en E.164 (+573001234567) y se muestra formateado: meter
+ * el crudo en un campo de texto que la persona va a leer es enseñarle la tripa
+ * del sistema.
+ */
+async function datosConocidos(): Promise<DatosConocidos> {
+  const sesion = await getSesion();
+  if (!sesion) return {};
+
+  const db = await createClient();
+  const { data: perfil } = await db
+    .from("profiles")
+    .select("full_name, phone")
+    .maybeSingle();
+
+  return {
+    contactName: perfil?.full_name || sesion.nombre,
+    email: sesion.email,
+    phone: mostrarTelefono(perfil?.phone) || undefined,
+  };
+}
+
+export const dynamic = "force-dynamic";
+
+export default async function VenderPage() {
+  const sesion = await getSesion();
+  const conocidos = await datosConocidos();
+
   return (
     <div>
       <HeroBanner
@@ -82,9 +145,10 @@ export default function VenderPage() {
         titulo="Vende lo que produces al turismo de toda América Latina"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
-          Cooperativas, talleres, consejos comunitarios y empresas que producen
-          de forma regenerativa. Te registras, publicas el mismo día y solo pagas
-          cuando vendes.
+          Si produces de forma regenerativa —seas una cooperativa, un taller
+          familiar, un consejo comunitario o una empresa—, aquí tienes dónde
+          vender. Te registras, publicas el mismo día y solo pagas cuando
+          vendes.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a
@@ -104,9 +168,15 @@ export default function VenderPage() {
 
       <section className="container-page py-14">
         <Revelar>
-          <h2 className="font-display text-3xl text-ink">Qué te damos</h2>
+          <h2 className="font-display text-3xl text-ink">
+            Qué incluye vender en Seregenera
+          </h2>
+          <p className="mt-2 max-w-2xl text-muted">
+            Todo esto va incluido y sin costo fijo: lo único que se cobra es la
+            comisión cuando cierras una venta.
+          </p>
         </Revelar>
-        <ul className="mt-8 grid gap-4 md:grid-cols-2">
+        <ul className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {BENEFICIOS.map((b, i) => (
             <Revelar as="li" key={b.titulo} retraso={i * 70}>
               <div className="h-full rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/5">
@@ -132,9 +202,9 @@ export default function VenderPage() {
               Cuanto más vendes, menos te cobramos
             </h2>
             <p className="mt-3 max-w-2xl text-brand-100">
-              Todos entran como Semilla. La experiencia se gana publicando,
-              entregando pedidos y recibiendo buenas reseñas — no comprándola ni
-              esperando a que alguien la apruebe.
+              Empiezas como Semilla y ganas experiencia publicando, entregando
+              pedidos, respondiendo cotizaciones, recibiendo buenas reseñas y
+              aportando en la Comunidad.
             </p>
           </Revelar>
 
@@ -215,8 +285,7 @@ export default function VenderPage() {
           <Revelar>
             <h2 className="font-display text-3xl text-ink">Qué pedimos</h2>
             <p className="mt-2 max-w-2xl text-muted">
-              Cuatro cosas, y ninguna es un trámite nuestro. No hay evaluación
-              previa, ni visita, ni puntaje que aprobar antes de publicar.
+              Antes de publicar, revisa que puedas cumplir estas cuatro.
             </p>
           </Revelar>
 
@@ -243,27 +312,28 @@ export default function VenderPage() {
       {/* ------------------------------------------------------------------ */}
       <section id="postular" className="container-page py-14">
         <div className="mx-auto max-w-2xl">
-          <h2 className="font-display text-3xl text-ink">
-            Crea tu cuenta de proveedor
-          </h2>
+          <h2 className="font-display text-3xl text-ink">Registra tu empresa</h2>
           <p className="mt-2 text-muted">
-            Son tres pasos y unos dos minutos. Si tienes sesión abierta, al
-            terminar ya tienes ficha y puedes publicar.
+            Tres pasos y unos dos minutos: los datos de la organización, quién la
+            representa y qué vende. Con la sesión abierta, al terminar ya tienes
+            ficha y puedes publicar.
           </p>
-          <p className="mt-3 text-sm text-muted">
-            ¿Todavía no tienes cuenta?{" "}
-            <Link
-              href="/registro"
-              className="font-medium text-brand-700 underline underline-offset-4"
-            >
-              Créala primero
-            </Link>{" "}
-            y tu empresa queda activa en el acto. También puedes llenar el
-            formulario sin cuenta: guardamos tu postulación y te escribimos para
-            que la actives.
-          </p>
+          {!sesion && (
+            <p className="mt-3 text-sm text-muted">
+              ¿Todavía no tienes cuenta?{" "}
+              <Link
+                href="/registro?volver=%2Fvender"
+                className="font-medium text-brand-700 underline underline-offset-4"
+              >
+                Créala primero
+              </Link>{" "}
+              y tu empresa queda activa en el acto. También puedes llenar el
+              formulario sin cuenta: guardamos la postulación y te escribimos
+              para que la actives.
+            </p>
+          )}
           <div className="mt-8">
-            <ApplicationForm />
+            <ApplicationForm conocidos={conocidos} />
           </div>
         </div>
       </section>

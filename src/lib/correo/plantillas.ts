@@ -169,7 +169,7 @@ export function correoPostulacionRecibida(d: DatosPostulacion): Mensaje {
     ? seccion(
         h1(`Ya estás dentro, ${d.contacto.split(" ")[0] || ""}`.trim()) +
           p(
-            `<strong style="color:${TINTA};">${empresa}</strong> ya tiene su ficha en Seregenera y su nivel <strong style="color:${TINTA};">Semilla</strong>. No hay nada que esperar: puedes publicar lo que vendes desde hoy.`,
+            `<strong style="color:${TINTA};">${empresa}</strong> ya tiene su ficha en Seregenera y entra con nivel <strong style="color:${TINTA};">Semilla</strong>. Desde hoy puedes publicar lo que vendes.`,
           ),
       ) +
       bloqueSiguientesPasos([
@@ -184,7 +184,7 @@ export function correoPostulacionRecibida(d: DatosPostulacion): Mensaje {
       separador() +
       seccion(
         p(
-          `Publicar es gratis y no hay mensualidad. Seregenera retiene una comisión solo cuando vendes, y esa comisión <strong style="color:${TINTA};">baja con tu nivel</strong>: 12 % en Semilla, 10 % en Raíz y 8 % en Bosque. El nivel se gana vendiendo y entregando, no esperando. <a href="${url}/niveles" style="color:${VERDE};">Cómo funcionan los niveles</a>.`,
+          `Publicar es gratis y no hay mensualidad. Seregenera retiene una comisión solo cuando vendes, y esa comisión <strong style="color:${TINTA};">baja con tu nivel</strong>: 12 % en Semilla, 10 % en Raíz y 8 % en Bosque. El nivel te sube según lo que vendas y entregues. <a href="${url}/niveles" style="color:${VERDE};">Cómo funcionan los niveles</a>.`,
         ),
       )
     : seccion(
@@ -193,7 +193,7 @@ export function correoPostulacionRecibida(d: DatosPostulacion): Mensaje {
             `Guardamos lo que nos contaste de <strong style="color:${TINTA};">${empresa}</strong>, ${nombre}. Falta un solo paso para que puedas publicar, y lo puedes dar ahora mismo.`,
           ) +
           p(
-            `<strong style="color:${TINTA};">Crea tu cuenta con este mismo correo</strong> (${escapar(d.correo)}) y tu empresa queda activa en el acto, con su ficha y su nivel Semilla. No revisamos ni aprobamos nada: publicar es gratis y la comisión solo se cobra cuando vendes.`,
+            `<strong style="color:${TINTA};">Crea tu cuenta con este mismo correo</strong> (${escapar(d.correo)}) y tu empresa queda activa en el acto, con su ficha y su nivel Semilla. Publicar es gratis y la comisión solo se cobra cuando vendes.`,
           ),
       ) +
       boton(`${url}/registro`, "Crear mi cuenta") +
@@ -247,8 +247,8 @@ function textoActivada(d: DatosPostulacion, url: string): string {
   return [
     `Ya estás dentro, ${d.contacto.split(" ")[0] || ""}`.trim(),
     "",
-    `${d.empresa} ya tiene su ficha en Seregenera y su nivel Semilla.`,
-    "No hay nada que esperar: puedes publicar lo que vendes desde hoy.",
+    `${d.empresa} ya tiene su ficha en Seregenera y entra con nivel Semilla.`,
+    "Desde hoy puedes publicar lo que vendes.",
     "",
     "Siguientes pasos:",
     "1. Completa tu perfil (logo, descripción, ubicación) — 80 puntos.",
@@ -258,7 +258,8 @@ function textoActivada(d: DatosPostulacion, url: string): string {
     d.slug ? `Tu ficha: ${url}/proveedor/${d.slug}` : `Tu cuenta: ${url}/cuenta`,
     "",
     "Publicar es gratis. La comisión solo se cobra cuando vendes, y baja con tu",
-    "nivel: 12 % en Semilla, 10 % en Raíz, 8 % en Bosque.",
+    "nivel: 12 % en Semilla, 10 % en Raíz, 8 % en Bosque. El nivel te sube",
+    "según lo que vendas y entregues.",
     `Cómo funcionan los niveles: ${url}/niveles`,
     "",
     "— Seregenera",
@@ -277,8 +278,7 @@ function textoSinActivar(d: DatosPostulacion, url: string): string {
     "",
     `Crear cuenta: ${url}/registro`,
     "",
-    "No revisamos ni aprobamos nada: publicar es gratis y la comisión solo se",
-    "cobra cuando vendes.",
+    "Publicar es gratis y la comisión solo se cobra cuando vendes.",
     "",
     "— Seregenera",
   ].join("\n");

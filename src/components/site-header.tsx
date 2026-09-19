@@ -23,6 +23,7 @@ import { VERTICALS } from "@/lib/taxonomy";
 const NAV = [
   { href: "/catalogo", label: "Catálogo" },
   { href: "/proveedores", label: "Proveedores" },
+  { href: "/comunidad", label: "Comunidad" },
   { href: "/verificacion", label: "Verificación" },
 ];
 
@@ -207,38 +208,74 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
                 </FilaMovil>
               </li>
             ))}
-            <li>
-              <FilaMovil href="/vender" activo={pathname === "/vender"}>
-                Portal de proveedores
-              </FilaMovil>
-            </li>
-            {sesion?.esAdmin && (
-              <li>
-                <FilaMovil href="/admin" activo={pathname.startsWith("/admin")}>
-                  Administración
-                </FilaMovil>
-              </li>
-            )}
+            {/* --------------------------------------------------------------
+                La cuenta, en el teléfono.
+
+                `MenuUsuario` es `hidden sm:block`, así que por debajo de 640 px
+                el desplegable de la cuenta no existe: la única opción que tenía
+                quien entraba desde un móvil era **salir**. No podía ver su
+                perfil ni llegar a su empresa.
+
+                La regla que se saltaba: toda acción del menú de escritorio
+                tiene que existir en el de móvil. No se arregla enseñando el
+                desplegable en pantallas pequeñas —un menú flotante encima de
+                otro menú abierto— sino repitiendo aquí sus filas, que es lo que
+                el resto de este menú ya hacía con la navegación.
+                -------------------------------------------------------------- */}
             {sesion ? (
-              <li>
-                {/* Formulario y no enlace: cerrar sesión con un GET lo puede
-                    disparar un prefetch o la imagen de un tercero. */}
-                <form action={cerrarSesion}>
-                  <button
-                    type="submit"
-                    className="flex w-full items-center gap-3 py-3 text-left text-sm text-muted transition-colors hover:text-brand-700 active:text-brand-700"
-                  >
-                    <span aria-hidden className="h-4 w-0.5" />
-                    Salir ({sesion.nombre})
-                  </button>
-                </form>
-              </li>
+              <>
+                <li className="pt-1">
+                  <p className="truncate pt-2 text-xs text-muted">
+                    {sesion.email}
+                  </p>
+                </li>
+                <li>
+                  <FilaMovil href="/cuenta" activo={pathname === "/cuenta"}>
+                    Tu cuenta
+                  </FilaMovil>
+                </li>
+                <li>
+                  <FilaMovil href="/vender" activo={pathname === "/vender"}>
+                    {sesion.esProveedor ? "Mi empresa" : "Vender en Seregenera"}
+                  </FilaMovil>
+                </li>
+                {sesion.esAdmin && (
+                  <li>
+                    <FilaMovil
+                      href="/admin"
+                      activo={pathname.startsWith("/admin")}
+                    >
+                      Administración
+                    </FilaMovil>
+                  </li>
+                )}
+                <li>
+                  {/* Formulario y no enlace: cerrar sesión con un GET lo puede
+                      disparar un prefetch o la imagen de un tercero. */}
+                  <form action={cerrarSesion}>
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-3 py-3 text-left text-sm text-muted transition-colors hover:text-red-700 active:text-red-700"
+                    >
+                      <span aria-hidden className="h-4 w-0.5" />
+                      Salir ({sesion.nombre})
+                    </button>
+                  </form>
+                </li>
+              </>
             ) : (
-              <li>
-                <FilaMovil href="/entrar" activo={pathname === "/entrar"}>
-                  Entrar o crear cuenta
-                </FilaMovil>
-              </li>
+              <>
+                <li>
+                  <FilaMovil href="/vender" activo={pathname === "/vender"}>
+                    Portal de proveedores
+                  </FilaMovil>
+                </li>
+                <li>
+                  <FilaMovil href="/entrar" activo={pathname === "/entrar"}>
+                    Entrar o crear cuenta
+                  </FilaMovil>
+                </li>
+              </>
             )}
           </ul>
         </nav>
