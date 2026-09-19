@@ -5,9 +5,11 @@ import { headers } from "next/headers";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { enviarCorreo } from "@/lib/correo";
+import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 import { correoPostulacionRecibida } from "@/lib/correo/plantillas";
 import { IDS_TIPO_ORGANIZACION, NOMBRES_PAIS, paisPorNombre } from "@/lib/paises";
 import { VERTICALS } from "@/lib/taxonomy";
+import { LIMITES } from "./limites";
 
 /**
  * Postulación de proveedor.
@@ -59,24 +61,45 @@ const CATEGORIAS = VERTICALS.map((v) => v.id) as [string, ...string[]];
  */
 const MINIMO_MS = 3000;
 
+/** «se pasa de 160 caracteres». El mismo molde para todos, para no inventar ocho frases. */
+function tope(campo: keyof typeof LIMITES, que: string): string {
+  return `${que} se pasa de ${LIMITES[campo]} caracteres`;
+}
+
 const PostulacionSchema = z.object({
-  name: z.string().trim().min(2, "Escribe el nombre de tu empresa").max(160),
-  contactName: z.string().trim().min(3, "Escribe tu nombre completo").max(120),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Escribe el nombre de tu empresa")
+    .max(LIMITES.name, tope("name", "El nombre")),
+  contactName: z
+    .string()
+    .trim()
+    .min(3, "Escribe tu nombre completo")
+    .max(LIMITES.contactName, tope("contactName", "El nombre")),
   email: z.email("Revisa el correo"),
-  phone: z.string().trim().min(7, "Escribe un teléfono de contacto").max(40),
+  phone: z
+    .string()
+    .trim()
+    .min(7, "Escribe un teléfono de contacto")
+    .max(LIMITES.phone, tope("phone", "El teléfono")),
   country: z.enum(NOMBRES_PAIS, "Elige tu país"),
   department: z
     .string()
     .trim()
     .min(2, "Escribe tu departamento, provincia o región")
-    .max(80),
-  city: z.string().trim().min(2, "Escribe la ciudad o municipio").max(80),
+    .max(LIMITES.department, tope("department", "El departamento")),
+  city: z
+    .string()
+    .trim()
+    .min(2, "Escribe la ciudad o municipio")
+    .max(LIMITES.city, tope("city", "La ciudad")),
   orgType: z.enum(IDS_TIPO_ORGANIZACION, "Elige qué tipo de organización eres"),
   taxId: z
     .string()
     .trim()
     .min(4, "Escribe tu identificación tributaria")
-    .max(40),
+    .max(LIMITES.taxId, tope("taxId", "La identificación")),
 
   /**
    * Dirección web. **Se limita a http y https a propósito.**
@@ -98,14 +121,24 @@ const PostulacionSchema = z.object({
         ),
       z.literal(""),
     ])
+    .refine(
+      (u) => u.length <= LIMITES.website,
+      tope("website", "La dirección web"),
+    )
     .optional(),
 
-  categories: z.array(z.enum(CATEGORIAS)).max(5).optional(),
+  categories: z
+    .array(z.enum(CATEGORIAS))
+    .max(5, "Elige como máximo cinco categorías")
+    .optional(),
   description: z
     .string()
     .trim()
     .min(120, "Cuéntanos un poco más: al menos 120 caracteres")
-    .max(2000),
+    .max(
+      LIMITES.description,
+      `Cuéntalo en menos de ${LIMITES.description.toLocaleString("es-CO")} caracteres. Lo que sobre va mejor en tu ficha.`,
+    ),
 
   /** Ley 1581 de 2012. Sin esto no se puede guardar el dato de una persona. */
   consent: z.literal("on", "Tienes que autorizar el tratamiento de tus datos"),
@@ -131,9 +164,33 @@ export type ResultadoPostulacion =
     }
   | { ok: false; errors: Record<string, string> };
 
+/**
+ * Lo que ve una persona cuando manda el formulario.
+ *
+ * **Todo lo de dentro va envuelto en un `try`**, y eso no es cinturón y
+ * tirantes: hasta ahora, cualquier excepción inesperada en este camino —una
+ * plantilla de correo que tropieza, un fallo de red al hablar con Supabase—
+ * salía de la acción, llegaba al límite de error y mandaba a la persona a una
+ * pantalla de fallo genérica. Desde fuera se veía como «da error al registrar
+ * la empresa» y **no quedaba ningún hilo** entre esa pantalla y la línea del
+ * registro que explicaba por qué.
+ *
+ * Ahora cualquier excepción se convierte en un mensaje con código: el mismo que
+ * queda escrito en el registro del servidor. Quien lo reporta dice seis
+ * caracteres; quien lo busca lo encuentra.
+ */
 export async function submitApplication(
   form: unknown,
 ): Promise<ResultadoPostulacion> {
+  try {
+    return await postular(form);
+  } catch (e) {
+    const codigo = registrarFallo("postular", e);
+    return { ok: false, errors: { form: mensajeDeFallo(codigo) } };
+  }
+}
+
+async function postular(form: unknown): Promise<ResultadoPostulacion> {
   const parsed = PostulacionSchema.safeParse(form);
   if (!parsed.success) {
     const errors: Record<string, string> = {};
@@ -196,14 +253,20 @@ export async function submitApplication(
     }
     // No se devuelve `error.message`: puede traer nombres de columnas y de
     // políticas, que es información gratis para quien esté probando el
-    // formulario desde fuera.
-    console.error(`[postular] ${error.message}`);
-    return {
-      ok: false,
-      errors: {
-        form: "No pudimos registrar tu postulación. Inténtalo de nuevo en un minuto.",
-      },
-    };
+    // formulario desde fuera. Lo que sí se devuelve es el código con el que ese
+    // mensaje se encuentra en el registro.
+    //
+    // `orgType`, `pais` y el tamaño de la descripción se apuntan porque son lo
+    // que hace falta para reproducirlo. El nombre, el correo y el teléfono no:
+    // son de una persona identificable y los registros los lee más gente y
+    // viven más que la postulación.
+    const codigo = registrarFallo("postular-rpc", error, {
+      orgType: d.orgType,
+      pais: d.country,
+      largoDescripcion: d.description.length,
+      conSesion: Boolean(usuario),
+    });
+    return { ok: false, errors: { form: mensajeDeFallo(codigo) } };
   }
 
   const resultado = (data ?? {}) as {
@@ -212,20 +275,43 @@ export async function submitApplication(
   };
   const activada = Boolean(resultado.activado);
 
-  // El correo va después de que la postulación esté guardada, y su fallo no
-  // deshace nada: la empresa ya existe. Regla de `nueva-integracion`.
-  const envio = await enviarCorreo(
-    correoPostulacionRecibida({
-      empresa: d.name,
-      contacto: d.contactName,
-      correo: d.email,
-      activada,
-      slug: resultado.provider_slug,
-    }),
+  // Queda apuntado que el alta salió bien, y con qué. Es la otra mitad de poder
+  // diagnosticar esto: sin esta línea, un registro con un fallo posterior no
+  // dice si la empresa llegó a crearse o no — que es la primera pregunta que
+  // hay que contestar cuando alguien dice «me dio error».
+  console.info(
+    `[postular] alta ok activada=${activada} slug=${resultado.provider_slug ?? "—"}`,
   );
 
-  if (!envio.ok) {
-    console.error(`[postular] respaldo no enviado (${envio.via}): ${envio.error}`);
+  /**
+   * El correo de respaldo, **fuera del camino crítico**.
+   *
+   * A partir de aquí la empresa ya existe y la transacción está confirmada. Si
+   * algo falla ahora —la plantilla, el SMTP, un tiempo agotado— lo que NO puede
+   * pasar es que esta función devuelva un error: la persona volvería a mandar
+   * el formulario creyendo que no se guardó nada, y esta vez chocaría con el
+   * límite de postulaciones por correo. El error se apunta y se sigue.
+   *
+   * Es la regla de `nueva-integracion` llevada hasta el final: el fallo de un
+   * servicio externo no es un error de nuestra aplicación.
+   */
+  let correoEnviado = false;
+  try {
+    const envio = await enviarCorreo(
+      correoPostulacionRecibida({
+        empresa: d.name,
+        contacto: d.contactName,
+        correo: d.email,
+        activada,
+        slug: resultado.provider_slug,
+      }),
+    );
+    correoEnviado = envio.ok;
+    if (!envio.ok) {
+      console.error(`[postular] respaldo no enviado (${envio.via}): ${envio.error}`);
+    }
+  } catch (e) {
+    registrarFallo("postular-correo", e, { activada });
   }
 
   // Se registra quién postuló solo para poder rastrear un abuso en los registros
@@ -241,6 +327,6 @@ export async function submitApplication(
     ok: true,
     activada,
     slug: resultado.provider_slug,
-    correoEnviado: envio.ok,
+    correoEnviado,
   };
 }
