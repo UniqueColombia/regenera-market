@@ -257,3 +257,40 @@ export interface AdminUsuario {
   emailConfirmedAt?: string;
   createdAt: string;
 }
+
+/**
+ * Una publicación de la Comunidad.
+ *
+ * Vive en `community_posts` (migración 0007). La firma un usuario y,
+ * opcionalmente, **también** la empresa que gestiona: por eso hay `authorName`
+ * y además un bloque `provider`. La tarjeta dice «Ana, de Cooperativa X», que
+ * no es ni lo uno ni lo otro.
+ *
+ * `authorName` está congelado en la fila y no se lee de `profiles`: esa tabla
+ * solo la puede leer su dueño, así que un visitante sin cuenta no vería ningún
+ * nombre. El porqué completo está en la cabecera de la columna, en la migración.
+ */
+export interface CommunityPost {
+  id: string;
+  title: string;
+  body: string;
+  topic: CommunityTopic;
+  authorId: string;
+  authorName: string;
+  /** La empresa que firma, si se publicó en su nombre. */
+  provider?: {
+    id: string;
+    slug: string;
+    name: string;
+    logoUrl?: string;
+    tier: Tier;
+  };
+  featured: boolean;
+  reactionCount: number;
+  /** ¿Quien está mirando ya reaccionó? `false` para quien no tiene sesión. */
+  reacted: boolean;
+  createdAt: string;
+}
+
+/** De qué va una publicación. Espeja el `check` de `community_posts.topic`. */
+export type CommunityTopic = "experiencia" | "noticia" | "practica" | "pregunta";

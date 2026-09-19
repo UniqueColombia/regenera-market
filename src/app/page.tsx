@@ -1,10 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Search, ShieldCheck, Sprout, Store } from "lucide-react";
+import {
+  ArrowRight,
+  MessagesSquare,
+  Search,
+  ShieldCheck,
+  Sprout,
+  Store,
+} from "lucide-react";
 import { HeroBanner } from "@/components/hero-banner";
 import { ListingCard } from "@/components/listing-card";
+import { TarjetaPublicacion } from "@/components/tarjeta-publicacion";
 import { TierBadge } from "@/components/tier-badge";
-import { getFeaturedListings, getMarketplaceStats, getProviderById } from "@/lib/repo";
+import { getSesion } from "@/lib/auth";
+import {
+  getCommunityPosts,
+  getFeaturedListings,
+  getMarketplaceStats,
+  getProviderById,
+} from "@/lib/repo";
 import { VERTICALS } from "@/lib/taxonomy";
 import { NIVELES } from "@/lib/niveles";
 
@@ -19,10 +33,13 @@ import { NIVELES } from "@/lib/niveles";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [featured, stats] = await Promise.all([
+  const [featured, stats, posts, sesion] = await Promise.all([
     getFeaturedListings(6),
     getMarketplaceStats(),
+    getCommunityPosts(3),
+    getSesion(),
   ]);
+  const haySesion = Boolean(sesion);
   const providers = await Promise.all(
     featured.map((l) => getProviderById(l.providerId)),
   );
@@ -205,6 +222,50 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Comunidad                                                           */}
+      {/*                                                                     */}
+      {/* Van tres y no seis: esto es un asomo a la sección, no la sección.    */}
+      {/* Si no hay ninguna publicación todavía, el bloque entero desaparece   */}
+      {/* — una portada con un hueco que dice «sin publicaciones» se lee como  */}
+      {/* un sitio abandonado, que es lo contrario de lo que hace una          */}
+      {/* comunidad recién abierta.                                           */}
+      {/* ------------------------------------------------------------------ */}
+      {posts.length > 0 && (
+        <section className="container-page py-16">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
+                <MessagesSquare className="size-4" />
+                Comunidad
+              </p>
+              <h2 className="mt-3 font-display text-3xl text-ink">
+                Lo que cuenta quien ya lo hizo
+              </h2>
+              <p className="mt-2 max-w-2xl text-muted">
+                Compradores y proveedores comparten lo que les funcionó y lo que
+                está pasando en el sector. Con cuenta, publicas tú también.
+              </p>
+            </div>
+            <Link
+              href="/comunidad"
+              className="flex items-center gap-1 text-sm font-semibold text-brand-700 hover:underline"
+            >
+              Ver la Comunidad
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+
+          <ul className="mt-8 grid gap-5 md:grid-cols-3">
+            {posts.map((post) => (
+              <li key={post.id}>
+                <TarjetaPublicacion post={post} haySesion={haySesion} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="container-page py-16">
         <div className="grid gap-5 md:grid-cols-2">
