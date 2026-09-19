@@ -9,6 +9,40 @@ qué hacer, empieza aquí y no en el ROADMAP.
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**.
 
+> ## ⚠️ La `0009` está escrita y sin aplicar (y se puede aplicar cuando sea)
+>
+> Es la primera migración de este repositorio que **no** obliga a un orden:
+> solo reemplaza el cuerpo de `postular_proveedor()` y no toca ninguna tabla,
+> dato ni política. Antes o después de desplegar, da igual.
+>
+> Lo que cambia: **el límite de tres postulaciones por correo al día deja de
+> aplicar a quien tiene sesión**. Contaba por correo sin mirar si había cuenta,
+> y producía una trampa que se reportó el 2026-09-19 — alguien intenta dar de
+> alta su empresa, algo falla, reintenta, y al cuarto intento se queda sin poder
+> registrarla hasta el día siguiente. Con sesión el tope no protege de nada: la
+> función ya impide que una persona cree dos empresas.
+>
+> ```sql
+> -- Devuelve también provider_id desde esta migración
+> select pg_get_function_result(oid) from pg_proc where proname = 'postular_proveedor';
+> ```
+
+> ## Si alguien reporta «me dio error», ahora hay con qué buscarlo
+>
+> Desde el 2026-09-20, un fallo inesperado en el alta de una empresa enseña un
+> **código de seis caracteres** en pantalla y escribe ese mismo código en los
+> registros del servidor, con el motivo y la traza. Antes no había ningún hilo
+> entre lo que veía la persona y lo que decía el registro.
+>
+> Cuando llegue un reporte así: pide el código y búscalo en los registros de
+> Vercel. Las líneas empiezan por `[postular]`, `[postular-rpc]`,
+> `[postular-correo]` o `[empresa-imagen]`.
+>
+> **La causa del reporte original sigue sin identificarse**: no se pudo
+> reproducir leyendo el código, y el camino entero está recorrido en
+> [el hito](../.claude/hitos/2026-09-20-alta-de-empresa-diagnosticable.md). Lo
+> que hay ahora es con qué cazarla la próxima vez.
+
 > ## Los despliegues de vista previa responden 500, y no es de esta tanda
 >
 > **Production está bien.** `NEXT_PUBLIC_SITE_URL` está puesta —comprobado el
