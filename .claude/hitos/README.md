@@ -32,3 +32,4 @@ referencie al anterior.
 | 2026-09-19 | [El release `v0.6.0` sale a producción con la `0007` ya aplicada](2026-09-19-release-v0-6-0-la-comunidad-en-produccion.md) | Jesús Seiler | 1 y 2 — Comunidad en producción |
 | 2026-09-19 | [Cinco reacciones, fotos que sube su dueño, y el nivel se puede mirar](2026-09-19-reacciones-fotos-y-nivel-propio.md) | Jesús Seiler | 1 y 2 — Comunidad, perfiles y niveles |
 | 2026-09-19 | [Auditoría de 23 puntos: lo legal, lo que ve un buscador y lo que se ve cuando algo falla](2026-09-19-auditoria-seo-legal-y-errores.md) | Jesús Seiler | 1 y 2 — SEO, legal y errores |
+| 2026-09-20 | [El alta de una empresa deja rastro cuando falla, y trae sus dos imágenes](2026-09-20-alta-de-empresa-diagnosticable.md) | Jesús Seiler | 1 y 2 — corrección y perfil de empresa |
