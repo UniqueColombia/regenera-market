@@ -6,11 +6,13 @@ import { ProviderAvatar } from "@/components/provider-avatar";
 import { TierBadge } from "@/components/tier-badge";
 import { getApprovedProviders, getListingsByProvider } from "@/lib/repo";
 import { certLabel, TRAIT_LABEL } from "@/lib/taxonomy";
+import { publica } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Proveedores aliados",
   description:
     "Las empresas, cooperativas y comunidades que producen lo que se vende en Seregenera, con su nivel de proveedor y su evaluación de sostenibilidad.",
+  ...publica("/proveedores"),
 };
 
 /**

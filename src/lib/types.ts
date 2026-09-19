@@ -7,6 +7,8 @@
  * no ensuciar el tipo base.
  */
 
+import type { ReaccionId } from "./comunidad";
+
 export type ListingKind = "product" | "experience" | "service";
 
 /** Verticales de negocio a las que sirve una oferta (taxonomía del menú). */
@@ -277,6 +279,15 @@ export interface CommunityPost {
   topic: CommunityTopic;
   authorId: string;
   authorName: string;
+  /**
+   * Foto de quien escribió, en vivo desde `profiles`.
+   *
+   * A diferencia de `authorName`, esta NO está congelada en la fila: quien se
+   * cambia la foto espera que cambie en todas partes. La trae
+   * `avatares_publicos()`, que devuelve solo la foto y nunca el resto del
+   * perfil — ver la sección 4.b de la migración 0008.
+   */
+  authorAvatarUrl?: string;
   /** La empresa que firma, si se publicó en su nombre. */
   provider?: {
     id: string;
@@ -286,9 +297,17 @@ export interface CommunityPost {
     tier: Tier;
   };
   featured: boolean;
+  /** La suma de las cinco. Es por lo que se ordena el muro. */
   reactionCount: number;
-  /** ¿Quien está mirando ya reaccionó? `false` para quien no tiene sesión. */
-  reacted: boolean;
+  /** Cuántas de cada una. Las que valen cero no vienen. */
+  reactions: Partial<Record<ReaccionId, number>>;
+  /**
+   * Cuáles marcó quien está mirando. Vacío para quien no tiene sesión.
+   *
+   * Es una lista y no un booleano desde la migración 0008: una persona puede
+   * marcar varias reacciones en la misma publicación.
+   */
+  misReacciones: ReaccionId[];
   createdAt: string;
 }
 

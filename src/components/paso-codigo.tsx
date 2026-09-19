@@ -116,14 +116,27 @@ export function PasoCodigo({
           // teclearlo si alguien sube el ajuste del panel.
           maxLength={14}
           aria-invalid={errors.token ? true : undefined}
+          aria-describedby={errors.token ? "codigo-error" : undefined}
           className={`w-full rounded-lg border bg-white px-3 py-3 text-center font-display text-2xl tracking-[0.4em] tabular-nums outline-none transition focus:border-brand-500 ${
             errors.token ? "border-red-500" : "border-control"
           }`}
         />
-        {errors.token && <p className="mt-1 text-xs text-red-700">{errors.token}</p>}
+        {errors.token && (
+          <p id="codigo-error" className="mt-1 text-xs text-red-700">
+            {errors.token}
+          </p>
+        )}
       </div>
 
-      {errors.form && <p className="mt-3 text-sm text-red-700">{errors.form}</p>}
+      {/* `role="alert"` porque este mensaje aparece **después** de enviar, sin
+          que el foco se mueva: sin él, quien usa lector de pantalla se queda
+          esperando una respuesta que ya llegó. Es el mismo patrón que el resto
+          de los formularios del sitio. */}
+      {errors.form && (
+        <p role="alert" className="mt-3 text-sm text-red-700">
+          {errors.form}
+        </p>
+      )}
 
       <button
         type="submit"

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -8,6 +9,7 @@ import {
   Sprout,
   Store,
 } from "lucide-react";
+import { DatosDelSitio } from "@/components/datos-estructurados";
 import { HeroBanner } from "@/components/hero-banner";
 import { ListingCard } from "@/components/listing-card";
 import { TarjetaPublicacion } from "@/components/tarjeta-publicacion";
@@ -21,6 +23,20 @@ import {
 } from "@/lib/repo";
 import { VERTICALS } from "@/lib/taxonomy";
 import { NIVELES } from "@/lib/niveles";
+import { descripcion, publica } from "@/lib/seo";
+
+/**
+ * La portada es la única página que no hereda su título del `template` del
+ * layout: «Seregenera | Seregenera» no le dice nada a nadie. El `default` del
+ * layout ya trae el título completo, así que aquí solo se declara lo que el
+ * layout no puede saber — la canónica y la descripción propia.
+ */
+export const metadata: Metadata = {
+  description: descripcion(
+    "Encuentra proveedores verificados de productos, experiencias y servicios regenerativos para tu hotel, restaurante o agencia. Comparas impacto, no solo precio.",
+  ),
+  ...publica("/"),
+};
 
 /**
  * Nunca se prerenderiza en el build.
@@ -46,6 +62,12 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* Quiénes somos y qué es este sitio, para un buscador. Va aquí y no en
+          el layout: repetir `Organization` en las treinta rutas obliga al
+          rastreador a reconciliar treinta declaraciones de la misma entidad, y
+          la portada es la página canónica de la organización. */}
+      <DatosDelSitio />
+
       {/* El recorte se ancla al 78 % del ancho porque en un teléfono el bloque
           es más alto que ancho y object-cover descarta cerca del 70 %: con el
           centro por defecto, el rancho y la pareja —que están a la derecha— se

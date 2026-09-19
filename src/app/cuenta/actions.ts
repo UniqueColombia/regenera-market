@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth";
+import { getUser, requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
+import type { ResultadoImagenUI } from "@/components/selector-imagen";
 import { createEphemeralClient } from "@/lib/supabase/efimero";
 import { validarClave } from "@/lib/password";
 import { asegurarIdDispositivo, describirDispositivo, recordarDispositivo } from "@/lib/dispositivos";
@@ -11,7 +13,8 @@ import { asegurarIdDispositivo, describirDispositivo, recordarDispositivo } from
 /**
  * Lo que una persona puede hacer con su propia cuenta.
  *
- * Hoy: ponerse contraseña, cambiarla, y retirar la confianza de un dispositivo.
+ * Hoy: ponerse contraseña, cambiarla, retirar la confianza de un dispositivo y
+ * poner o quitar su foto de perfil.
  */
 
 const ClaveSchema = z
@@ -138,5 +141,86 @@ export async function olvidarDispositivo(id: string): Promise<ResultadoClave> {
   }
 
   revalidatePath("/cuenta");
+  return { ok: true };
+}
+
+/**
+ * La foto de perfil.
+ *
+ * Tres comprobaciones, en este orden y ninguna de adorno:
+ *
+ * 1. **Quién es.** Sin sesión no hay carpeta donde escribir.
+ * 2. **Qué mandó.** `revisarImagen()` mira tipo y peso. El navegador ya recortó
+ *    y comprimió, pero eso es comodidad, no una barrera: el `FormData` se puede
+ *    mandar a mano.
+ * 3. **Dónde va.** `getAlmacen()` decide el almacén y la ruta empieza por el id
+ *    del usuario — que es lo que comparan las políticas de `storage.objects`
+ *    con `auth.uid()`. O sea que la base lo vuelve a comprobar todo.
+ *
+ * Se revalidan las tres rutas donde la foto se ve: la cuenta, el muro de la
+ * Comunidad y la portada, que también pinta publicaciones. Si aparece una
+ * cuarta, va aquí.
+ */
+export async function guardarFoto(datos: FormData): Promise<ResultadoImagenUI> {
+  const user = await getUser();
+  if (!user) {
+    return { ok: false, error: "Tu sesión se cerró. Entra otra vez." };
+  }
+
+  const revisada = revisarImagen(datos.get("imagen"));
+  if (!revisada.ok) return { ok: false, error: revisada.error };
+
+  const guardada = await getAlmacen().guardar(
+    "avatares",
+    user.id,
+    revisada.archivo,
+    revisada.tipo,
+  );
+  if (!guardada.ok) return guardada;
+
+  const resultado = await escribirAvatar(user.id, guardada.url);
+  return resultado.ok ? { ok: true, url: guardada.url } : resultado;
+}
+
+/**
+ * Quitar la foto y volver al monograma de iniciales.
+ *
+ * **Solo borra la columna, no el archivo.** Storage cobra por lo que ocupa y
+ * esto son kilobytes, así que el archivo huérfano no es el problema: el
+ * problema sería que borrarlo fallara a mitad y la columna quedara apuntando a
+ * una URL muerta, que se ve como una imagen rota. La próxima foto que suba esa
+ * persona sobrescribe el archivo, porque la ruta es siempre la misma.
+ */
+export async function quitarFoto(): Promise<ResultadoImagenUI> {
+  const user = await getUser();
+  if (!user) {
+    return { ok: false, error: "Tu sesión se cerró. Entra otra vez." };
+  }
+  const resultado = await escribirAvatar(user.id, null);
+  return resultado.ok ? { ok: true, url: "" } : resultado;
+}
+
+async function escribirAvatar(
+  userId: string,
+  url: string | null,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  // `.select()` y no confiar en que no haya error: RLS no lanza al negar,
+  // devuelve cero filas. Sin esto, una política mal puesta se vería como un
+  // guardado correcto que no guarda nada.
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ avatar_url: url })
+    .eq("id", userId)
+    .select("id");
+
+  if (error || !data || data.length === 0) {
+    if (error) console.error(`[cuenta] foto: ${error.message}`);
+    return { ok: false, error: "No pudimos guardar tu foto. Inténtalo otra vez." };
+  }
+
+  revalidatePath("/cuenta");
+  revalidatePath("/comunidad");
+  revalidatePath("/");
   return { ok: true };
 }

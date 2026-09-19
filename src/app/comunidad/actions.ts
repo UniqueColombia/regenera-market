@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { esReaccion } from "@/lib/comunidad";
 
 /**
  * Publicar en la Comunidad y reaccionar a lo publicado.
@@ -52,6 +53,8 @@ const PublicacionSchema = z.object({
   /** Vacío = publica a título personal. */
   providerId: z.union([z.uuid(), z.literal("")]).optional(),
 });
+
+export type ResultadoReaccion = { ok: true } | { ok: false; error: string };
 
 export type ResultadoPublicacion =
   | { ok: true }
@@ -107,39 +110,75 @@ export async function publicar(datos: unknown): Promise<ResultadoPublicacion> {
 }
 
 /**
- * Marca o desmarca «me sirve».
+ * Marca o quita una de las cinco reacciones.
  *
- * Es un alternador y no dos acciones porque el botón es uno solo. El estado real
- * lo decide la clave primaria `(post_id, user_id)`: si la fila existe se borra,
- * si no existe se inserta. El contador lo lleva un trigger, nunca esta función
- * — ver la sección 4 de la migración 0007.
+ * ## Qué se arregló aquí, y qué no era el problema
+ *
+ * La versión anterior devolvía `{ ok: boolean }` y **nadie lo miraba**: el
+ * botón hacía `await alternarReaccion(...)` y seguía. Con eso, cualquier fallo
+ * —sesión caducada, RLS negando, la red— se veía exactamente igual que el éxito:
+ * el número subía un instante por el optimismo del cliente y volvía a su sitio
+ * al llegar la respuesta del servidor. Sin error en ninguna parte. Es el
+ * síntoma que se reportó como «le da clic otro usuario y no se suma», y por eso
+ * ahora el resultado dice qué pasó y el botón lo enseña.
+ *
+ * Lo segundo era la otra mitad: un `insert` que chocaba con la clave primaria se
+ * trataba como éxito. Sigue tratándose como éxito —un doble toque desde un
+ * teléfono con mala señal no es un error del usuario— pero ya no puede dejar el
+ * contador quieto, porque desde la migración 0008 el contador **se recuenta**
+ * desde las filas en vez de sumarse de uno en uno.
+ *
+ * ## Sigue siendo un alternador
+ *
+ * El estado real lo decide la clave primaria `(post_id, user_id, kind)`: si la
+ * fila existe se borra, si no existe se inserta. El contador lo lleva un
+ * trigger, nunca esta función — sección 3 de la migración 0008.
  */
 export async function alternarReaccion(
   postId: string,
-  reaccionado: boolean,
-): Promise<{ ok: boolean }> {
+  tipo: string,
+  marcada: boolean,
+): Promise<ResultadoReaccion> {
   const usuario = await getUser();
-  if (!usuario) return { ok: false };
+  if (!usuario) {
+    return { ok: false, error: "Tu sesión se cerró. Entra otra vez para reaccionar." };
+  }
+
+  // El tipo viene del navegador. Sin esta comprobación, un valor inventado
+  // llegaría hasta el `check` de Postgres, que respondería con el texto de una
+  // restricción — información gratis sobre el esquema para quien esté probando.
+  if (!esReaccion(tipo)) {
+    return { ok: false, error: "Esa reacción no existe." };
+  }
 
   const db = await createClient();
 
-  if (reaccionado) {
+  if (marcada) {
     // Sin `.eq("user_id", …)`: `community_reactions_delete_own` ya limita el
     // borrado a las propias. Escribir el filtro aquí sería pedirle al código que
     // garantice lo que garantiza la base.
     const { error } = await db
       .from("community_reactions")
       .delete()
-      .eq("post_id", postId);
-    if (error) return { ok: false };
+      .eq("post_id", postId)
+      .eq("kind", tipo);
+    if (error) {
+      console.error(`[comunidad] quitar reacción: ${error.message}`);
+      return { ok: false, error: "No pudimos quitar tu reacción. Inténtalo otra vez." };
+    }
   } else {
     const { error } = await db
       .from("community_reactions")
-      .insert({ post_id: postId, user_id: usuario.id });
-    // Una reacción repetida choca contra la clave primaria. No es un error del
-    // usuario —es un doble toque en un teléfono con mala señal— y se trata como
-    // éxito: el estado final es el que quería.
-    if (error && !error.message.includes("duplicate")) return { ok: false };
+      // `ignoreDuplicates`: si ya estaba marcada, el estado final es el que la
+      // persona quería. No es un error y no se le cuenta como tal.
+      .upsert(
+        { post_id: postId, user_id: usuario.id, kind: tipo },
+        { onConflict: "post_id,user_id,kind", ignoreDuplicates: true },
+      );
+    if (error) {
+      console.error(`[comunidad] marcar reacción: ${error.message}`);
+      return { ok: false, error: "No pudimos guardar tu reacción. Inténtalo otra vez." };
+    }
   }
 
   revalidarMuro();

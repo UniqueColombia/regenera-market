@@ -12,11 +12,13 @@ import {
   VERTICALS,
 } from "@/lib/taxonomy";
 import type { ListingFilters, ListingKind, Tier, Vertical } from "@/lib/types";
+import { publica } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Catálogo",
   description:
     "Productos, experiencias y servicios regenerativos de proveedores verificados, filtrables por vertical turística, categoría, departamento y nivel de proveedor.",
+  ...publica("/catalogo"),
 };
 
 /**

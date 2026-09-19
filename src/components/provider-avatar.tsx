@@ -1,20 +1,32 @@
 import Image from "next/image";
 
 /**
- * Marca visual de un proveedor.
+ * Marca visual de un proveedor o de una persona.
  *
- * Si subió logo, se muestra. Si no —que es el caso de todos hoy— se dibuja un
- * monograma: sus iniciales sobre un degradado estable derivado del nombre, con
- * el mismo criterio que `listing-media.tsx` usa para las ofertas sin foto.
+ * Si subió imagen, se muestra. Si no, se dibuja un monograma: sus iniciales
+ * sobre un degradado estable derivado del nombre, con el mismo criterio que
+ * `listing-media.tsx` usa para las ofertas sin foto.
  *
  * No se les generan logos con IA a propósito. Los proveedores de `src/data/`
  * son de demostración y se reemplazan por reales en el primer lote de
  * onboarding: inventarle una identidad gráfica a una asociación campesina que
- * sí podría existir crea un problema, no resuelve uno. El día que suban su
- * logo de verdad, `logoUrl` deja de estar vacío y esto desaparece solo.
+ * sí podría existir crea un problema, no resuelve uno. Desde la migración 0008
+ * cada empresa sube el suyo desde `/cuenta/empresa`, y cuando lo hace esto
+ * desaparece solo.
  *
- * `object-contain` y no `cover` para el logo real: recortar un logo apaisado
- * para meterlo en una caja cuadrada lo mutila.
+ * ## La forma dice de qué es la imagen
+ *
+ * Redonda para una persona, cuadrada con esquinas suaves para una empresa. Es
+ * la convención de casi toda la web y la gente la lee sin pensarla: en una
+ * tarjeta de la Comunidad firmada por una empresa, el avatar cuadrado es de la
+ * empresa y el nombre de debajo es de quien escribió.
+ *
+ * ## `contain` para un logo, `cover` para una foto
+ *
+ * Recortar un logo apaisado para meterlo en una caja cuadrada lo mutila, así
+ * que el logo se encaja entero. Una foto de perfil es al revés: ya viene
+ * recortada a cuadrado por `selector-imagen.tsx` y tiene que llenar el círculo,
+ * porque una cara con franjas blancas a los lados se ve rota.
  */
 
 const GRADIENTS = [
@@ -45,22 +57,28 @@ export function ProviderAvatar({
   name,
   logoUrl,
   className = "size-12",
+  forma = "cuadrada",
 }: {
   name: string;
   logoUrl?: string;
   className?: string;
+  /** `redonda` para una persona, `cuadrada` para una empresa. */
+  forma?: "cuadrada" | "redonda";
 }) {
+  const redonda = forma === "redonda";
+  const radio = redonda ? "rounded-full" : "rounded-xl";
+
   if (logoUrl) {
     return (
       <div
-        className={`relative shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-hairline ${className}`}
+        className={`relative shrink-0 overflow-hidden ${radio} bg-white ring-1 ring-hairline ${className}`}
       >
         <Image
           src={logoUrl}
-          alt={`Logo de ${name}`}
+          alt={redonda ? `Foto de ${name}` : `Logo de ${name}`}
           fill
           sizes="96px"
-          className="object-contain p-1"
+          className={redonda ? "object-cover" : "object-contain p-1"}
         />
       </div>
     );
@@ -72,7 +90,7 @@ export function ProviderAvatar({
     <div
       role="img"
       aria-label={name}
-      className={`shrink-0 rounded-xl bg-gradient-to-br ${gradient} grid place-items-center font-display font-semibold text-white ${className}`}
+      className={`shrink-0 ${radio} bg-gradient-to-br ${gradient} grid place-items-center font-display font-semibold text-white ${className}`}
     >
       {iniciales(name)}
     </div>

@@ -9,23 +9,119 @@ qué hacer, empieza aquí y no en el ROADMAP.
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**.
 
-> ## ⚠️ Lo primero que hay que probar en producción: reaccionar en la Comunidad
+> ## Los despliegues de vista previa responden 500, y no es de esta tanda
 >
-> **La `0007` la aplicó Jesús el 2026-09-19**, por el editor SQL del panel y
-> antes de desplegar, que era el orden obligatorio. Desde que corrió es
-> inmutable como las seis anteriores.
+> **Production está bien.** `NEXT_PUBLIC_SITE_URL` está puesta —comprobado el
+> 2026-09-19: la portada de producción resuelve `og:image` contra
+> `https://regenera-market.vercel.app` y no contra `localhost`—, así que el
+> sitemap, el `robots.txt` y las canónicas que entran con esta tanda van a salir
+> con el dominio correcto. Después de desplegar conviene verlo en claro:
 >
-> ```sql
-> -- 2 = las dos tablas existen
-> select count(*) from information_schema.tables
->  where table_name in ('community_posts', 'community_reactions');
+> ```bash
+> curl -s https://regenera-market.vercel.app/robots.txt | grep -E "Host|Sitemap"
 > ```
 >
-> Lo que **nadie ha probado todavía** es el camino que más fácil falla en
-> silencio: **reacciona a una publicación y quita la reacción**. Si el contador
-> no se mueve, la marca `app.derivados` de la sección 4 de la migración no está
-> haciendo su trabajo y el trigger de derivados deshace su propio incremento.
-> No hay error en ninguna parte: el número simplemente se queda en cero.
+> **El entorno Preview es otra historia.** Se descubrió al revisar el despliegue
+> del PR #51: las páginas que consultan la base responden **500** y
+> `/robots.txt` declara `Host: http://localhost:3000`. O sea que Preview no
+> tiene ni las variables de Supabase ni `NEXT_PUBLIC_SITE_URL`.
+>
+> No lo causó esta tanda —producción, con el mismo código anterior, responde
+> 200— y lleva ahí desde que existen las variables, pero hasta ahora nadie
+> miraba un preview. La consecuencia práctica es que **el despliegue de vista
+> previa de un PR no sirve para revisar nada que toque datos**, que es casi
+> todo: quien revise un PR tiene que levantarlo en local.
+>
+> Se arregla copiando las cuatro variables al entorno Preview desde el panel de
+> Vercel. Lo tiene que hacer Ivan, que es quien administra el proyecto: la
+> cuenta de Jesús no lo ve desde la API.
+
+> ## La migración `0008` está aplicada
+>
+> **La aplicó Jesús el 2026-09-19**, por el editor SQL del panel y antes de
+> desplegar, que era el orden obligatorio. Desde que corrió es inmutable como
+> las siete anteriores.
+>
+> ```sql
+> -- 2 = los dos buckets existen y son públicos
+> select count(*) from storage.buckets
+>  where id in ('avatares', 'logos') and public;
+>
+> -- 0 filas = ningún contador de reacciones miente
+> select p.id, p.reaction_count, count(r.*) as real
+>   from community_posts p
+>   left join community_reactions r on r.post_id = p.id
+>  group by p.id, p.reaction_count
+> having p.reaction_count <> count(r.*);
+> ```
+>
+> Con eso **queda cerrada la auditoría del contador de reacciones** que este
+> archivo tenía abierta. La respuesta no fue comprobarlo una vez: el contador
+> dejó de llevarse a `+1` / `-1` y ahora se recuenta desde las filas, así que no
+> puede separarse de la verdad más de una transacción. Si la segunda consulta
+> devuelve filas alguna vez, entonces sí hay algo que mirar.
+>
+> Lo que sigue sin comprobar nadie, y solo se comprueba a mano: **subir una foto
+> de perfil desde un teléfono**. El recorte ocurre en el navegador
+> (`src/components/selector-imagen.tsx`) y Safari viejo ignora WebP en
+> `toBlob`; hay una rama que reintenta en JPEG que nadie ha ejecutado.
+
+> ## El 2026-09-19, también: el sitio ya tiene lo legal y lo que un buscador necesita
+>
+> Auditoría de 23 puntos. Once ya estaban bien —alt, favicon, Open Graph, idioma,
+> un solo `<h1>` por página, errores en los formularios, paquete de JavaScript
+> sano, cero mapas de código publicados— y doce se construyeron. Todo en
+> [el hito](../.claude/hitos/2026-09-19-auditoria-seo-legal-y-errores.md), y lo
+> que hay que hacer en cada página nueva a partir de ahora, en la skill
+> `seo-y-legal`.
+>
+> Lo que conviene saber sin abrirlo:
+>
+> - **`/privacidad` y `/terminos`** existen, enlazadas desde el pie. Están
+>   escritas desde el esquema real, no desde una plantilla. **Las tiene que
+>   revisar un abogado** antes de que esto sea una beta abierta, y falta el NIT
+>   y la dirección física de la sociedad — anotados como pendientes en
+>   `src/lib/legal.ts` y **no inventados**.
+> - **`robots.txt`, `sitemap.xml` y `/llms.txt` se generan**, no son archivos.
+>   El sitemap sale de la base: hoy 41 URLs.
+> - **Se bloquean los robots de entrenamiento de IA y se dejan pasar los de
+>   búsqueda.** Son dos grupos distintos: los primeros no devuelven nada, los
+>   segundos traen visitas citando la fuente. El porqué está en
+>   `src/app/robots.ts`.
+> - **Hay aviso de cookies**, con el consentimiento versionado y guardado en una
+>   cookie —no en `localStorage`— para que lo pueda leer el servidor el día que
+>   haya analítica. Hoy no hay ninguna, y el aviso lo dice.
+> - **Hay 404 y dos límites de error.** Antes no había ninguno: una ruta
+>   inexistente daba la pantalla por defecto de Next.
+> - **Datos estructurados** en portada, ficha de oferta y ficha de proveedor.
+
+> ## El 2026-09-19, en la misma tanda: cinco reacciones, fotos, y un agujero de privilegios cerrado
+>
+> Sin desplegar todavía. Lo que trae, y lo que conviene saber sin abrir
+> [el hito](../.claude/hitos/2026-09-19-reacciones-fotos-y-nivel-propio.md):
+>
+> - **Las reacciones pasan de una a cinco** y se pueden marcar varias a la vez.
+>   La semilla se queda y las que ya existían siguen siendo suyas.
+> - **Cada persona pone su foto en `/cuenta` y cada empresa su logo en
+>   `/cuenta/empresa`.** Se guardan en Supabase Storage por
+>   `src/lib/almacenamiento.ts`, que es una interfaz con su implementación
+>   detrás — **el plan es mudarlo al VPS propio cuando cierre el MVP**, y ese
+>   día se escribe una implementación más y se cambia una línea.
+> - **`/cuenta/empresa` es nueva**: el proveedor ve su nivel, cuánto le falta
+>   para el siguiente, cuánto bajaría su comisión y **de dónde salió cada
+>   punto**. Hasta ahora el nivel decidía la comisión y no había dónde mirarlo.
+> - **`perfil_completo` (80 puntos) deja de ser teoría**, como pasó con los dos
+>   de la Comunidad en la tanda anterior: existía en `otorgar_experiencia()`
+>   desde la `0006` y no había forma de dispararlo. Ahora lo otorga un trigger
+>   cuando la ficha tiene logo, titular, descripción y contacto.
+> - **Un proveedor ya no puede subirse el nivel él solo.** `providers_member_update`
+>   (de la `0001`) deja a cualquier miembro actualizar **cualquier** columna de
+>   su empresa, y desde la `0006` eso incluye `experience_points`, del que sale
+>   el nivel y por tanto la comisión: con la clave anon —pública por diseño— y
+>   una sesión normal se pasaba del 12 % al 8 %. Nunca se explotó porque ninguna
+>   ruta escribía en `providers` desde una sesión de proveedor; esta tanda
+>   estrena la primera, así que se cerró antes. Lo cierra un trigger, no una
+>   política: una política de Postgres no distingue columnas.
 
 > ## El 2026-09-19 entró el release `v0.6.0`: existe la Comunidad, y el registro dejó de pedir la clave dos veces
 >
