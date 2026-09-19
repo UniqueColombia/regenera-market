@@ -4,6 +4,14 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Sprout } from "lucide-react";
 import { submitApplication } from "./actions";
+import { LIMITES, MINIMO_DESCRIPCION } from "./limites";
+import {
+  guardarLogo,
+  guardarPortada,
+  quitarLogo,
+  quitarPortada,
+} from "@/app/cuenta/empresa/actions";
+import { SelectorImagen } from "@/components/selector-imagen";
 import { PAISES, TIPOS_ORGANIZACION, paisPorNombre } from "@/lib/paises";
 import { VERTICALS } from "@/lib/taxonomy";
 
@@ -82,10 +90,13 @@ export function ApplicationForm({
   const [paso, setPaso] = useState(0);
   const [pais, setPais] = useState(PAISES[0].nombre);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  /** Cuántos caracteres lleva la descripción. Solo para el contador que se ve. */
+  const [largo, setLargo] = useState(0);
   const [hecho, setHecho] = useState<{
     activada: boolean;
     slug?: string;
     correoEnviado: boolean;
+    empresa: string;
   } | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -157,6 +168,10 @@ export function ApplicationForm({
           activada: resultado.activada,
           slug: resultado.slug,
           correoEnviado: resultado.correoEnviado,
+          // Del formulario y no de la respuesta: es lo que la persona acaba de
+          // escribir, y sirve para las iniciales del monograma mientras no
+          // haya logo.
+          empresa: String(fd.get("name") ?? "Tu empresa"),
         });
         return;
       }
@@ -356,16 +371,35 @@ export function ApplicationForm({
             data-paso={2}
             rows={6}
             required
-            minLength={120}
-            maxLength={2000}
+            minLength={MINIMO_DESCRIPCION}
+            maxLength={LIMITES.description}
+            onChange={(e) => setLargo(e.currentTarget.value.trim().length)}
             placeholder="Qué vendes, de qué está hecho, quién lo produce y qué deja en el territorio. Este texto es el que va a leer un hotel en tu ficha, así que escríbelo para él."
             aria-invalid={errors.description ? true : undefined}
+            aria-describedby="description-ayuda"
             className={`w-full rounded-lg border px-3 py-2 text-sm leading-relaxed outline-none transition focus:border-brand-500 ${
               errors.description ? "border-red-600" : "border-control"
             }`}
           />
-          <p className="mt-1 text-xs text-muted">
-            Mínimo 120 caracteres. Es el primer párrafo de tu ficha pública.
+          {/* El contador dice lo que falta mientras falta, y cuánto queda
+              cuando ya sobra el mínimo. Antes el campo solo decía «mínimo 120»
+              y no había forma de saber por dónde ibas: se escribía a ciegas y
+              el error llegaba al enviar. */}
+          <p
+            id="description-ayuda"
+            className="mt-1 flex flex-wrap justify-between gap-2 text-xs text-muted"
+          >
+            <span>Es el primer párrafo de tu ficha pública.</span>
+            <span className="tabular-nums">
+              {largo < MINIMO_DESCRIPCION ? (
+                <>faltan {MINIMO_DESCRIPCION - largo} caracteres</>
+              ) : (
+                <>
+                  {largo.toLocaleString("es-CO")} de{" "}
+                  {LIMITES.description.toLocaleString("es-CO")}
+                </>
+              )}
+            </span>
           </p>
           {errors.description && (
             <p className="mt-1 text-xs font-medium text-red-700">
@@ -501,14 +535,31 @@ function Progreso({ paso }: { paso: number }) {
  * confirmación tiene un solo trabajo: el siguiente paso. Ver la skill
  * `redaccion-producto`.
  */
+/**
+ * La pantalla que sustituye al formulario cuando el alta sale bien.
+ *
+ * **Aquí es donde se suben el logo y la portada**, y no en un paso más del
+ * formulario. El motivo es de seguridad y no de diseño: la carpeta de Storage
+ * donde van esas imágenes **es el id de la empresa**, y la política que autoriza
+ * la subida comprueba que quien escribe gestione esa empresa
+ * (`manages_provider()`). Antes de que la empresa exista no hay carpeta ni hay
+ * nada que comprobar, así que la subida tendría que ir a un sitio provisional y
+ * moverse después — más piezas, y una de ellas escribible por alguien que
+ * todavía no es proveedor.
+ *
+ * Puesto aquí es además el momento en que apetece hacerlo: la ficha acaba de
+ * nacer y está vacía. Quien lo deje para luego lo tiene en `/cuenta/empresa`.
+ */
 function Listo({
   activada,
   slug,
   correoEnviado,
+  empresa,
 }: {
   activada: boolean;
   slug?: string;
   correoEnviado: boolean;
+  empresa: string;
 }) {
   return (
     <div className="animate-desplegar rounded-xl bg-brand-50 p-8 text-center ring-1 ring-brand-200 motion-reduce:animate-none">
@@ -574,6 +625,47 @@ function Listo({
           Te mandamos una copia de todo esto por correo.
         </p>
       )}
+
+      {activada && (
+        <div className="mt-8 space-y-3 border-t border-brand-200 pt-6 text-left">
+          <div>
+            <h4 className="font-display text-lg text-brand-900">
+              Ponle cara a tu ficha
+            </h4>
+            <p className="mt-1 text-sm text-brand-800">
+              Las dos se guardan solas al elegirlas, y las puedes cambiar cuando
+              quieras desde tu cuenta.
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+            <h5 className="font-display text-base text-ink">Tu logo</h5>
+            <div className="mt-4">
+              <SelectorImagen
+                nombre={empresa}
+                forma="cuadrada"
+                guardar={guardarLogo}
+                quitar={quitarLogo}
+                ayuda="Te identifica en el catálogo, en tu ficha y en lo que publiques en la Comunidad. Se recorta a cuadrado desde el centro."
+              />
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+            <h5 className="font-display text-base text-ink">La portada</h5>
+            <div className="mt-4">
+              <SelectorImagen
+                nombre={empresa}
+                forma="apaisada"
+                proporcion="apaisada"
+                guardar={guardarPortada}
+                quitar={quitarPortada}
+                ayuda="La foto grande que se ve al abrir tu ficha, detrás de tu nombre. Mejor tu taller, tu cultivo o tu equipo trabajando que un montaje con texto: encima va el título y no se leerían los dos."
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -607,6 +699,17 @@ function Campo({
   defaultValue?: string;
 }) {
   const idAyuda = ayuda ? `${name}-ayuda` : undefined;
+  const idError = error ? `${name}-error` : undefined;
+  /**
+   * El tope sale de `LIMITES`, que es el mismo que comprueba zod en el
+   * servidor. Con el `maxLength` puesto, el navegador **impide** pasarse en vez
+   * de dejar escribir y rechazar después — que es lo que hacía que alguien
+   * pegara un texto largo y recibiera un error por algo que ya no podía ver.
+   *
+   * No sustituye a la comprobación del servidor: un `maxLength` se quita con la
+   * consola del navegador en dos segundos.
+   */
+  const tope = name in LIMITES ? LIMITES[name as keyof typeof LIMITES] : undefined;
   return (
     <div>
       <label htmlFor={name} className="mb-1 block text-xs font-medium text-muted">
@@ -621,8 +724,11 @@ function Campo({
         required={required}
         placeholder={placeholder}
         autoComplete={autoComplete}
+        maxLength={tope}
         aria-invalid={error ? true : undefined}
-        aria-describedby={idAyuda}
+        // El error manda sobre la ayuda: si hay las dos, lo que hace falta oír
+        // es qué está mal, no la explicación del campo.
+        aria-describedby={idError ?? idAyuda}
         className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-brand-500 ${
           error ? "border-red-600" : "border-control"
         }`}
@@ -632,7 +738,11 @@ function Campo({
           {ayuda}
         </p>
       )}
-      {error && <p className="mt-1 text-xs font-medium text-red-700">{error}</p>}
+      {error && (
+        <p id={idError} className="mt-1 text-xs font-medium text-red-700">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
