@@ -46,11 +46,21 @@ export default async function ProveedorPage(
 
   const listings = await getListingsByProvider(provider.id);
 
-  // La portada del proveedor es la foto de su propia oferta, no una imagen
-  // aparte: siempre muestra algo que esa empresa vende de verdad y se mantiene
-  // sola cuando el catálogo cambia. Si todavía no tiene ninguna con foto, cae
-  // al retrato genérico de proveedores.
+  // La portada, en tres escalones y en este orden:
+  //
+  //   1. La que subió la empresa desde `/cuenta/empresa`. Es suya y decidió
+  //      cómo encuadrarla, así que manda sobre todo lo demás.
+  //   2. La foto de una de sus ofertas. Es el respaldo que había antes de que
+  //      se pudiera subir una: siempre muestra algo que esa empresa vende de
+  //      verdad y se mantiene solo cuando el catálogo cambia.
+  //   3. El retrato genérico de proveedores.
+  //
+  // Los tres escalones existen para que **no haya ficha sin imagen en ningún
+  // momento**: una ficha con un hueco gris arriba se lee como rota, no como
+  // pendiente. Es la misma razón por la que no hay `placeholder.svg` en el
+  // catálogo (skill `diseno-visual`).
   const portada =
+    provider.coverUrl ??
     listings.find((l) => l.images[0]?.startsWith("/"))?.images[0] ??
     "/img/secciones/hero-proveedores.webp";
 

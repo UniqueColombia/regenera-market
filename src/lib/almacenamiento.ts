@@ -29,6 +29,16 @@ import { isSupabaseConfigured } from "./supabase/config";
 /** Los dos sitios donde se guarda algo. Espejan los buckets de la migración 0008. */
 export type Bucket = "avatares" | "logos";
 
+/**
+ * Qué imagen es, dentro de la carpeta de su dueño.
+ *
+ * Una empresa tiene dos —su logo y la portada de su ficha— y las dos viven en
+ * `logos/<provider_id>/`. **Lo que la política de Storage comprueba es la
+ * primera carpeta de la ruta**, así que dos archivos distintos en la misma
+ * carpeta no necesitan ni bucket ni política nueva. Ver la migración 0009.
+ */
+export type Pieza = "imagen" | "portada";
+
 export type ResultadoImagen =
   | { ok: true; url: string }
   | { ok: false; error: string };
@@ -51,6 +61,7 @@ export interface AlmacenDeImagenes {
     duenio: string,
     archivo: Blob,
     tipo: string,
+    pieza?: Pieza,
   ): Promise<ResultadoImagen>;
 }
 
@@ -85,6 +96,7 @@ class AlmacenSupabase implements AlmacenDeImagenes {
     duenio: string,
     archivo: Blob,
     tipo: string,
+    pieza: Pieza = "imagen",
   ): Promise<ResultadoImagen> {
     // El cliente de sesión, no el de servicio: así la subida pasa por las
     // políticas de `storage.objects` de la migración 0008. Es defensa en
@@ -92,7 +104,7 @@ class AlmacenSupabase implements AlmacenDeImagenes {
     // comprobar. Con el cliente de servicio, un fallo de la comprobación de
     // arriba dejaría a cualquiera escribiendo en la carpeta de otro.
     const db = await createClient();
-    const ruta = `${duenio}/${nombreDeArchivo(tipo)}`;
+    const ruta = `${duenio}/${nombreDeArchivo(tipo, pieza)}`;
 
     const { error } = await db.storage.from(bucket).upload(ruta, archivo, {
       // Reemplaza la anterior en vez de acumular una foto por cambio. Exige la
@@ -121,10 +133,19 @@ class AlmacenSupabase implements AlmacenDeImagenes {
   }
 }
 
-/** `image/webp` → `imagen.webp`. Un solo archivo por dueño: el anterior se reemplaza. */
-function nombreDeArchivo(tipo: string): string {
+/**
+ * `image/webp` → `imagen.webp`. Un archivo por pieza y dueño: el anterior se
+ * reemplaza, así que subir una foto nueva no deja la vieja ocupando sitio.
+ *
+ * **La extensión sale del tipo y no del archivo original**, porque el original
+ * ya no existe: lo que llega aquí es lo que el navegador reconvirtió. Si el
+ * tipo cambia entre una subida y la siguiente —de WebP a JPEG, que es lo que
+ * pasa en un Safari viejo— quedan dos archivos y la URL guardada apunta al
+ * último. El anterior queda huérfano, pesa kilobytes y nadie lo sirve.
+ */
+function nombreDeArchivo(tipo: string, pieza: Pieza): string {
   const extension = tipo === "image/png" ? "png" : tipo === "image/jpeg" ? "jpg" : "webp";
-  return `imagen.${extension}`;
+  return `${pieza}.${extension}`;
 }
 
 /**

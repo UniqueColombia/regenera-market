@@ -5,15 +5,21 @@ import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
 import { getMiEmpresa } from "@/lib/repo";
+import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 import type { ResultadoImagenUI } from "@/components/selector-imagen";
 
 /**
  * Lo que puede hacer con su empresa quien la gestiona.
  *
- * Hoy solo el logo. Es poco a propósito: el resto de la ficha —descripción,
- * ubicación, datos de contacto— se creó con la postulación y todavía se corrige
- * desde administración. Cuando haya formulario para eso, va aquí y sigue estas
- * mismas reglas.
+ * Hoy las dos imágenes de su ficha: el logo y la portada. El resto
+ * —descripción, ubicación, datos de contacto— se creó con la postulación y
+ * todavía se corrige desde administración. Cuando haya formulario para eso, va
+ * aquí y sigue estas mismas reglas.
+ *
+ * **Las dos van al mismo bucket, `logos`, en la carpeta de la empresa.** Lo que
+ * la política de Storage comprueba es la primera carpeta de la ruta, así que
+ * dos archivos distintos ahí dentro no necesitan bucket ni política nueva — ver
+ * la migración 0009.
  *
  * ## Quién es «quien la gestiona»
  *
@@ -36,6 +42,38 @@ import type { ResultadoImagenUI } from "@/components/selector-imagen";
  */
 
 export async function guardarLogo(datos: FormData): Promise<ResultadoImagenUI> {
+  return guardarImagenDeEmpresa(datos, "logo_url", "imagen");
+}
+
+/** Quitar el logo y volver al monograma. No borra el archivo — ver `quitarFoto()`. */
+export async function quitarLogo(): Promise<ResultadoImagenUI> {
+  return borrarImagenDeEmpresa("logo_url");
+}
+
+/**
+ * La portada de la ficha pública: la foto grande que se ve al abrirla.
+ *
+ * Si no hay ninguna, la ficha usa la foto de una de sus ofertas — o sea que
+ * quitarla no deja un hueco, cambia a un respaldo que siempre existe.
+ */
+export async function guardarPortada(datos: FormData): Promise<ResultadoImagenUI> {
+  return guardarImagenDeEmpresa(datos, "cover_url", "portada");
+}
+
+export async function quitarPortada(): Promise<ResultadoImagenUI> {
+  return borrarImagenDeEmpresa("cover_url");
+}
+
+/**
+ * Las dos son la misma operación con dos parámetros, y por eso comparten
+ * cuerpo: duplicarlo sería duplicar también las tres comprobaciones de quién es
+ * quién, que es lo que nunca conviene tener escrito dos veces.
+ */
+async function guardarImagenDeEmpresa(
+  datos: FormData,
+  columna: "logo_url" | "cover_url",
+  pieza: "imagen" | "portada",
+): Promise<ResultadoImagenUI> {
   const empresa = await miEmpresa();
   if (!empresa.ok) return empresa;
 
@@ -47,19 +85,26 @@ export async function guardarLogo(datos: FormData): Promise<ResultadoImagenUI> {
     empresa.id,
     revisada.archivo,
     revisada.tipo,
+    pieza,
   );
   if (!guardada.ok) return guardada;
 
-  const escrito = await escribirLogo(empresa.id, empresa.slug, guardada.url);
+  const escrito = await escribirImagen(
+    empresa.id,
+    empresa.slug,
+    columna,
+    guardada.url,
+  );
   return escrito.ok ? { ok: true, url: guardada.url } : escrito;
 }
 
-/** Quitar el logo y volver al monograma. No borra el archivo — ver `quitarFoto()`. */
-export async function quitarLogo(): Promise<ResultadoImagenUI> {
+async function borrarImagenDeEmpresa(
+  columna: "logo_url" | "cover_url",
+): Promise<ResultadoImagenUI> {
   const empresa = await miEmpresa();
   if (!empresa.ok) return empresa;
 
-  const escrito = await escribirLogo(empresa.id, empresa.slug, null);
+  const escrito = await escribirImagen(empresa.id, empresa.slug, columna, null);
   return escrito.ok ? { ok: true, url: "" } : escrito;
 }
 
@@ -79,9 +124,10 @@ async function miEmpresa(): Promise<
   return { ok: true, id: empresa.id, slug: empresa.slug };
 }
 
-async function escribirLogo(
+async function escribirImagen(
   providerId: string,
   slug: string,
+  columna: "logo_url" | "cover_url",
   url: string | null,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = await createClient();
@@ -89,13 +135,16 @@ async function escribirLogo(
   // una política mal puesta se vería como un guardado correcto que no guarda.
   const { data, error } = await db
     .from("providers")
-    .update({ logo_url: url })
+    .update({ [columna]: url })
     .eq("id", providerId)
     .select("id");
 
   if (error || !data || data.length === 0) {
-    if (error) console.error(`[empresa] logo: ${error.message}`);
-    return { ok: false, error: "No pudimos guardar el logo. Inténtalo otra vez." };
+    const codigo = registrarFallo("empresa-imagen", error ?? "sin filas", {
+      columna,
+      quitando: url === null,
+    });
+    return { ok: false, error: mensajeDeFallo(codigo) };
   }
 
   // El logo sale en cuatro sitios. La ficha pública y la lista de proveedores

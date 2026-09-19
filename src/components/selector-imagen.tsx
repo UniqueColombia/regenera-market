@@ -39,13 +39,30 @@ export type ResultadoImagenUI =
   | { ok: true; url: string }
   | { ok: false; error: string };
 
-/** El lado del cuadrado final. 512 se ve nítido en pantallas densas y pesa poco. */
-const LADO = 512;
+/**
+ * Cuánto mide el recorte de cada tipo de imagen.
+ *
+ * **El logo y la foto de perfil se recortan a cuadrado; la portada, a 16:9.**
+ * Una portada recortada a cuadrado y luego estirada en un banner apaisado se ve
+ * deformada, y el encuadre que la persona aprobó no es el que acaba viendo un
+ * comprador. Cada destino recorta con la forma con la que se va a mostrar.
+ *
+ * 512 de lado se ve nítido en pantallas densas y pesa poco. La portada va a
+ * 1600 × 900 porque se muestra a todo el ancho de la pantalla: a 512 se vería
+ * borrosa en un portátil, que es donde más se mira una ficha de proveedor.
+ */
+const MEDIDAS = {
+  cuadrada: { ancho: 512, alto: 512 },
+  apaisada: { ancho: 1600, alto: 900 },
+} as const;
+
+export type Proporcion = keyof typeof MEDIDAS;
 
 export function SelectorImagen({
   nombre,
   imagenUrl,
   forma,
+  proporcion = "cuadrada",
   guardar,
   quitar,
   ayuda,
@@ -53,7 +70,10 @@ export function SelectorImagen({
   /** Para las iniciales del monograma y el texto alternativo. */
   nombre: string;
   imagenUrl?: string;
-  forma: "cuadrada" | "redonda";
+  /** Cómo se dibuja la vista previa: redonda es una persona, cuadrada una empresa. */
+  forma: "cuadrada" | "redonda" | "apaisada";
+  /** Cómo se recorta el archivo. Una portada no se recorta a cuadrado. */
+  proporcion?: Proporcion;
   guardar: (datos: FormData) => Promise<ResultadoImagenUI>;
   quitar: () => Promise<ResultadoImagenUI>;
   /** La línea en letra pequeña de debajo. Cambia si es una persona o una empresa. */
@@ -79,7 +99,7 @@ export function SelectorImagen({
 
     let recortada: Blob;
     try {
-      recortada = await aCuadrado(archivo);
+      recortada = await recortar(archivo, proporcion);
     } catch {
       setError(
         "No pudimos leer esa imagen. Prueba con una foto en JPG, PNG o WebP.",
@@ -118,20 +138,50 @@ export function SelectorImagen({
 
   const actual = previa ?? imagenUrl;
 
+  const apaisada = forma === "apaisada";
+
   return (
-    <div className="flex flex-wrap items-center gap-5">
-      <div className="relative">
-        <ProviderAvatar
-          name={nombre}
-          logoUrl={actual}
-          forma={forma}
-          className="size-20 text-xl"
-        />
+    <div
+      className={
+        apaisada ? "space-y-4" : "flex flex-wrap items-center gap-5"
+      }
+    >
+      {/* La vista previa tiene la forma con la que se va a ver de verdad. Una
+          portada apaisada previsualizada en un cuadrado pequeño no enseña lo
+          único que hay que decidir aquí, que es el encuadre. */}
+      <div className={apaisada ? "relative" : "relative shrink-0"}>
+        {apaisada ? (
+          <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-xl bg-sand ring-1 ring-hairline">
+            {actual ? (
+              // `<img>` y no `next/image`: la vista previa local es un
+              // `blob:` que el optimizador de Next no puede buscar, y mezclar
+              // los dos caminos según de dónde venga la imagen es más frágil
+              // que servir 1600 px sin optimizar en una pantalla de ajustes.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={actual}
+                alt={`Portada de ${nombre}`}
+                className="size-full object-cover"
+              />
+            ) : (
+              <span className="grid size-full place-items-center px-4 text-center text-xs text-muted">
+                Sin portada. Se usa una foto de lo que vendes.
+              </span>
+            )}
+          </div>
+        ) : (
+          <ProviderAvatar
+            name={nombre}
+            logoUrl={actual}
+            forma={forma}
+            className="size-20 text-xl"
+          />
+        )}
         {pendiente && (
           <span
             className={`absolute inset-0 grid place-items-center bg-ink/40 ${
               forma === "redonda" ? "rounded-full" : "rounded-xl"
-            }`}
+            } ${apaisada ? "max-w-md" : ""}`}
           >
             <Loader2 className="size-6 animate-spin text-white" aria-hidden />
           </span>
@@ -188,34 +238,46 @@ export function SelectorImagen({
 }
 
 /**
- * Recorta al cuadrado central y reduce a 512 px.
+ * Recorta desde el centro a la proporción pedida y reduce.
+ *
+ * El recorte es **el mayor rectángulo con esa proporción que cabe en la
+ * imagen**, centrado. Recortar por el centro acierta casi siempre —la gente
+ * encuadra lo importante en el medio— y la alternativa, un editor con marco
+ * arrastrable, es mucho más trabajo del que ahora mismo merece poner un logo.
  *
  * Sale en WebP, que es la mitad de peso que JPEG a la misma calidad. Safari
  * viejo devuelve PNG cuando se le pide WebP —`toBlob` no falla, ignora el tipo—
- * y un PNG de 512 px puede pasar del medio mega que acepta el servidor, así que
- * en ese caso se rehace en JPEG, que entiende todo el mundo desde siempre.
+ * y un PNG de 1600 px se pasa largo del medio mega que acepta el servidor, así
+ * que en ese caso se rehace en JPEG, que entiende todo el mundo desde siempre.
  */
-async function aCuadrado(archivo: File): Promise<Blob> {
+async function recortar(archivo: File, proporcion: Proporcion): Promise<Blob> {
   const bitmap = await createImageBitmap(archivo);
-  const lado = Math.min(bitmap.width, bitmap.height);
+  const { ancho, alto } = MEDIDAS[proporcion];
+  const relacion = ancho / alto;
+
+  // El recorte más grande con la proporción pedida que quepa dentro: se limita
+  // por el ancho o por el alto según cuál sobre.
+  const sobraAncho = bitmap.width / bitmap.height > relacion;
+  const rw = sobraAncho ? bitmap.height * relacion : bitmap.width;
+  const rh = sobraAncho ? bitmap.height : bitmap.width / relacion;
 
   const lienzo = document.createElement("canvas");
-  lienzo.width = LADO;
-  lienzo.height = LADO;
+  lienzo.width = ancho;
+  lienzo.height = alto;
 
   const ctx = lienzo.getContext("2d");
   if (!ctx) throw new Error("sin canvas");
 
   ctx.drawImage(
     bitmap,
-    (bitmap.width - lado) / 2,
-    (bitmap.height - lado) / 2,
-    lado,
-    lado,
+    (bitmap.width - rw) / 2,
+    (bitmap.height - rh) / 2,
+    rw,
+    rh,
     0,
     0,
-    LADO,
-    LADO,
+    ancho,
+    alto,
   );
   bitmap.close();
 
