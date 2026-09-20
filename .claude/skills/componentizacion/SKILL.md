@@ -78,6 +78,47 @@ npm run build && npx next start -p 3123 &
 curl -s http://localhost:3123/la-ruta | grep -o 'maxLength="[0-9]*"'
 ```
 
+### Un `.refine()` de zod no puede lanzar nunca
+
+En **Zod 4 los `.refine()` se ejecutan aunque la validación anterior haya
+fallado**: no cortan la cadena como hacía Zod 3. O sea que tu refinamiento
+recibe valores que ya sabes que son inválidos, y si asume que son válidos,
+explota.
+
+Y una excepción dentro de un refinamiento **sale de `safeParse`**. No se
+convierte en un error de validación: se propaga, la acción lanza, y lo que era
+«revisa este campo» se vuelve una pantalla de error.
+
+Pasó en `/vender` entre el cierre del XSS del campo `website` y el 2026-09-20:
+
+```ts
+z.url().refine((u) => /^https?:$/.test(new URL(u).protocol), "…")
+```
+
+Con el campo vacío, `z.url()` fallaba, el refinamiento corría igual con `""`, y
+`new URL("")` lanzaba `TypeError: Invalid URL`. **Nadie que dejara el campo web
+en blanco podía dar de alta su empresa** — que en este marketplace es la
+mayoría—, y el síntoma no apuntaba a nada: error genérico y ni una fila en la
+base.
+
+Las dos formas de escribirlo bien:
+
+```ts
+// Comprobar sobre la cadena, con algo que no pueda fallar
+.refine((u) => typeof u !== "string" || /^https?:\/\//i.test(u), "…")
+
+// O, si de verdad hace falta construir algo, que el fallo sea un `false`
+.refine((u) => { try { return esValido(u); } catch { return false; } }, "…")
+```
+
+El `typeof u !== "string"` de delante no es paranoia: es el caso en que la
+validación de arriba **ya** falló, y el error que corresponde es el de arriba,
+no este.
+
+Cómo se caza, si vuelve a pasar algo así: una ruta temporal que llame a la
+acción con el payload exacto y devuelva `e.stack`. Es lo que identificó este
+fallo en dos minutos después de tres intentos de encontrarlo leyendo.
+
 ### Una acción que falla tiene que dejar un hilo
 
 Una Server Action que lanza manda a la persona a `error.tsx` y no deja **nada**
