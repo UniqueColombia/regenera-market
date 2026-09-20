@@ -27,21 +27,45 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > select pg_get_function_result(oid) from pg_proc where proname = 'postular_proveedor';
 > ```
 
-> ## Si alguien reporta «me dio error», ahora hay con qué buscarlo
+> ## Resuelto: el alta de empresa fallaba para quien no tuviera página web
 >
-> Desde el 2026-09-20, un fallo inesperado en el alta de una empresa enseña un
-> **código de seis caracteres** en pantalla y escribe ese mismo código en los
-> registros del servidor, con el motivo y la traza. Antes no había ningún hilo
-> entre lo que veía la persona y lo que decía el registro.
+> **La causa estaba en la validación, no en la base.** El campo de página web
+> tenía un `.refine()` que construía `new URL(u)`, y en Zod 4 los refinamientos
+> se ejecutan aunque la validación anterior haya fallado. Con el campo vacío,
+> `new URL("")` lanzaba, la excepción salía de `safeParse` y la acción reventaba
+> antes de tocar la base — sin dejar ni una fila.
+>
+> **Le pasaba solo a quien dejaba el campo en blanco**, que en este marketplace
+> es la mayoría. El alta del 2026-09-18 que sí funcionó llevaba página web, y
+> por eso parecía que el camino estaba probado.
+>
+> Corregido y comprobado ejecutando la acción real de punta a punta. El detalle,
+> y **cómo se cazó en tres pasos después de tres intentos fallidos leyendo el
+> código**, en
+> [el hito](../.claude/hitos/2026-09-20-la-causa-era-un-refine-que-lanzaba.md).
+> La regla que queda —un `.refine()` no puede lanzar nunca— está en la skill
+> `componentizacion`.
+
+> ## Si alguien reporta «me dio error», hay con qué buscarlo
+>
+> Un fallo inesperado en el alta de una empresa enseña un **código de seis
+> caracteres** en pantalla y escribe ese mismo código en los registros del
+> servidor, con el motivo y la traza.
 >
 > Cuando llegue un reporte así: pide el código y búscalo en los registros de
 > Vercel. Las líneas empiezan por `[postular]`, `[postular-rpc]`,
 > `[postular-correo]` o `[empresa-imagen]`.
 >
-> **La causa del reporte original sigue sin identificarse**: no se pudo
-> reproducir leyendo el código, y el camino entero está recorrido en
-> [el hito](../.claude/hitos/2026-09-20-alta-de-empresa-diagnosticable.md). Lo
-> que hay ahora es con qué cazarla la próxima vez.
+> **Y si no aparece nada en los registros, o hace falta acotar dónde falló**,
+> estos tres pasos son los que funcionaron el 2026-09-20:
+>
+> 1. ¿Llegó a la base? `select ... from provider_applications where created_at >
+>    now() - interval '1 day'`. Sin filas, el fallo es anterior a la base.
+> 2. ¿Salió la petición? Los registros de peticiones de Supabase (panel →
+>    Logs → API) dicen si hubo un `POST /rest/v1/rpc/...`. Sin petición, la
+>    excepción es anterior a la llamada.
+> 3. ¿Cuál es? Una ruta temporal que llame a la acción con el payload exacto y
+>    devuelva `e.stack`. Se borra al terminar.
 
 > ## Los despliegues de vista previa responden 500, y no es de esta tanda
 >
