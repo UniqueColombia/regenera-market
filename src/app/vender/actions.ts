@@ -110,19 +110,42 @@ const PostulacionSchema = z.object({
    * proveedor: un XSS almacenado que se dispara cuando un administrador hace
    * clic en el sitio web de quien postuló. React escapa el **texto**, no el
    * protocolo de un `href`.
+   *
+   * ## Por qué la comprobación ya no construye una URL
+   *
+   * Aquí vivió, desde que se cerró ese XSS hasta el 2026-09-20, el fallo que
+   * impedía dar de alta una empresa a **cualquiera que dejara este campo
+   * vacío** — que en este marketplace es la mayoría.
+   *
+   * La comprobación era `new URL(u).protocol` dentro de un `.refine()`, y en
+   * Zod 4 **los `.refine()` se ejecutan aunque la validación anterior haya
+   * fallado**: no cortan la cadena como en Zod 3. Así que con `website: ""` el
+   * `z.url()` fallaba, el `.refine()` corría igual con la cadena vacía, y
+   * `new URL("")` lanzaba `TypeError: Invalid URL`.
+   *
+   * Una excepción dentro de un `.refine()` **sale de `safeParse`**: no se
+   * convierte en un error de validación, se propaga. El formulario entero
+   * reventaba antes de llegar a la base, y por eso el síntoma era «da error y
+   * no crea la empresa» sin ninguna fila en `provider_applications`.
+   *
+   * La regla que queda: **un `.refine()` no puede lanzar nunca**. Se comprueba
+   * con una expresión regular sobre la cadena, que no puede fallar, y se
+   * acepta explícitamente cualquier cosa que no sea texto —el caso en que la
+   * validación de arriba ya falló— porque el error que corresponde es el de
+   * arriba, no este.
    */
   website: z
     .union([
       z
         .url("Revisa la dirección web")
         .refine(
-          (u) => /^https?:$/.test(new URL(u).protocol),
+          (u) => typeof u !== "string" || /^https?:\/\//i.test(u),
           "La dirección tiene que empezar por http:// o https://",
         ),
       z.literal(""),
     ])
     .refine(
-      (u) => u.length <= LIMITES.website,
+      (u) => typeof u !== "string" || u.length <= LIMITES.website,
       tope("website", "La dirección web"),
     )
     .optional(),
