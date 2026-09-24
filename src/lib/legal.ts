@@ -26,12 +26,14 @@ export const CONTACTO = {
 /**
  * Desde cuándo rigen los términos y la política de privacidad.
  *
- * **Se mueve a mano, y esa es la gracia.** Un documento legal sin fecha no se
+ * **Se mueven a mano, y esa es la gracia.** Un documento legal sin fecha no se
  * puede citar: si cambian las condiciones, nadie puede demostrar cuáles aceptó.
- * Que haya que editar esta constante obliga a que cambiar el texto sea un acto
- * consciente, y deja el cambio a la vista en el diff.
+ * Que haya que editar estas constantes obliga a que cambiar el texto sea un
+ * acto consciente, y deja el cambio a la vista en el diff.
  *
- * Si algún día los dos documentos cambian por separado, se parte en dos
- * constantes. Hoy nacieron juntos.
+ * Nacieron juntas el 2026-09-19 en una sola constante. Se partieron el
+ * 2026-09-24, cuando la medición de uso cambió la política y no los términos:
+ * mover la fecha de un documento que no cambió es decir que cambió.
  */
-export const VIGENCIA_LEGAL = "2026-09-19";
+export const VIGENCIA_TERMINOS = "2026-09-19";
+export const VIGENCIA_PRIVACIDAD = "2026-09-24";

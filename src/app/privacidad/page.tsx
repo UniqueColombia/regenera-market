@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PaginaLegal } from "@/components/pagina-legal";
-import { CONTACTO, VIGENCIA_LEGAL } from "@/lib/legal";
+import { CONTACTO, VIGENCIA_PRIVACIDAD } from "@/lib/legal";
 import { descripcion, publica } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -42,7 +42,7 @@ export default function PrivacidadPage() {
     <PaginaLegal
       titulo="Política de privacidad y cookies"
       resumen="Qué datos tuyos guardamos, para qué, con quién los compartimos y cómo pedir que los corrijamos o los borremos."
-      vigenteDesde={VIGENCIA_LEGAL}
+      vigenteDesde={VIGENCIA_PRIVACIDAD}
       otro={{ href: "/terminos", label: "Leer los términos y condiciones →" }}
     >
       <h2 id="responsable">Quién responde por tus datos</h2>
@@ -141,6 +141,21 @@ export default function PrivacidadPage() {
               es lo que permite demostrar el consentimiento
             </td>
           </tr>
+          <tr>
+            <td>
+              Qué páginas visitas: la dirección de la página (sin lo que
+              buscaste), el sitio desde el que llegaste, si usas teléfono,
+              tableta o computador, y el país
+            </td>
+            <td>
+              Solo si aceptas la medición en el aviso de cookies
+            </td>
+            <td>
+              Saber qué partes del sitio sirven y cuáles no. Lo vemos sumado
+              —cuántas visitas tuvo cada página—, nunca como el recorrido de una
+              persona, y no se cruza con tu cuenta
+            </td>
+          </tr>
         </tbody>
       </table>
 
@@ -207,6 +222,10 @@ export default function PrivacidadPage() {
           <strong>Los dispositivos de confianza</strong> caducan solos y los
           puedes retirar antes desde tu cuenta.
         </li>
+        <li>
+          <strong>La medición de visitas</strong> se borra sola a los trece
+          meses.
+        </li>
       </ul>
 
       <h2 id="derechos">Qué puedes pedirnos</h2>
@@ -243,9 +262,10 @@ export default function PrivacidadPage() {
       <h2 id="cookies">Cookies: cuáles usamos y para qué</h2>
       <p>
         Una cookie es un archivo pequeño que el sitio deja en tu navegador para
-        reconocerte entre una página y la siguiente. Seregenera usa{" "}
-        <strong>solo las que necesita para funcionar</strong>. No hay cookies de
-        publicidad, ni de redes sociales, ni de seguimiento entre sitios.
+        reconocerte entre una página y la siguiente. Seregenera usa las que
+        necesita para funcionar y, <strong>solo si la aceptas</strong>, una más
+        para contar visitas. No hay cookies de publicidad, ni de redes sociales,
+        ni de seguimiento entre sitios.
       </p>
 
       <table>
@@ -284,6 +304,19 @@ export default function PrivacidadPage() {
             <td>Recordar qué decidiste en el aviso de cookies</td>
             <td>Un año</td>
           </tr>
+          <tr>
+            <td>
+              <code>sgr_visitante</code>
+              <br />
+              <em>solo si aceptas la medición</em>
+            </td>
+            <td>
+              Un número al azar que nos deja contar cuántas personas distintas
+              visitan el sitio sin contar dos veces a la misma. No lleva tu
+              nombre ni tu correo, y lo guardamos cifrado
+            </td>
+            <td>Un año, o hasta que retires el permiso</td>
+          </tr>
         </tbody>
       </table>
 
@@ -296,11 +329,21 @@ export default function PrivacidadPage() {
 
       <h3>Medición de uso</h3>
       <p>
-        Hoy <strong>no hay ninguna herramienta de analítica en el sitio</strong>.
-        Si algún día la hay, solo se activará si la autorizas en el aviso de
-        cookies, y esta página dirá cuál es antes de que empiece a funcionar.
-        Puedes cambiar tu decisión cuando quieras desde el enlace «Cookies» del
-        pie de página.
+        Si la aceptas, contamos qué páginas se visitan, desde qué sitio llega la
+        gente, con qué tipo de aparato y desde qué país. La medición es{" "}
+        <strong>nuestra</strong>: se guarda en nuestra propia base de datos y no
+        interviene ninguna herramienta de analítica de terceros, así que nadie
+        más la ve ni la usa para publicidad.
+      </p>
+      <p>
+        No guardamos tu dirección IP ni lo que escribes en el buscador, y no
+        medimos las páginas privadas: tu cuenta, tus órdenes y el panel de
+        administración.
+      </p>
+      <p>
+        Si no la aceptas, no se mide nada. Puedes cambiar tu decisión cuando
+        quieras desde el enlace «Cookies» del pie de página; si retiras el
+        permiso, borramos la cookie <code>sgr_visitante</code> de tu navegador.
       </p>
       <p>
         Bloquear las cookies necesarias desde tu navegador es posible, pero

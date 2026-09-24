@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PaginaLegal } from "@/components/pagina-legal";
-import { CONTACTO, VIGENCIA_LEGAL } from "@/lib/legal";
+import { CONTACTO, VIGENCIA_TERMINOS } from "@/lib/legal";
 import { COMISION_BASE, NIVELES, comisionEnPorcentaje } from "@/lib/niveles";
 import { descripcion, publica } from "@/lib/seo";
 
@@ -39,7 +39,7 @@ export default function TerminosPage() {
     <PaginaLegal
       titulo="Términos y condiciones"
       resumen="Qué papel cumple Seregenera cuando compras o vendes aquí, y a qué se compromete cada parte."
-      vigenteDesde={VIGENCIA_LEGAL}
+      vigenteDesde={VIGENCIA_TERMINOS}
       otro={{
         href: "/privacidad",
         label: "Leer la política de privacidad y cookies →",

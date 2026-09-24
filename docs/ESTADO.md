@@ -4,10 +4,35 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-19
-- **Producción:** `v0.6.0` en `main` → **https://regenera-market.vercel.app**
+- **Corte:** 2026-09-24
+- **Producción:** `v0.8.0` en `main` → **https://regenera-market.vercel.app**
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**.
+
+> ## ⚠️ La `0010` está escrita y sin aplicar: sin ella no hay analíticas
+>
+> Crea `page_views` y dos funciones: `registrar_visita()` y
+> `admin_analiticas()`. Solo agrega, así que **se puede aplicar antes o después
+> de desplegar**. Mientras falte, el sitio no se rompe: la medición falla en
+> silencio (en el registro aparece como `[medicion]`) y `/admin/analiticas`
+> dice que falta la migración.
+>
+> ```sql
+> -- ¿Está aplicada?
+> select to_regclass('public.page_views');   -- null = no
+> ```
+>
+> **El consentimiento de cookies subió a la versión 2**, así que todo el mundo
+> ve el aviso otra vez. Es intencional: el «sí» anterior era a una medición que
+> no existía. Las cifras de tráfico **solo cuentan a quien acepta**, y por eso
+> son un piso y no el total. El detalle está en
+> [el hito](../.claude/hitos/2026-09-24-analiticas-propias-y-comunidad-sin-caidas.md).
+
+> ## Resuelto: `/admin/comunidad` daba error (código `301622926`)
+>
+> `longDate()` recibía una marca de tiempo completa en vez de `AAAA-MM-DD` y
+> lanzaba `RangeError` en el servidor. Se corrigió en `src/lib/format.ts`, que
+> ahora acepta los dos formatos.
 
 > ## ⚠️ La `0009` está escrita y sin aplicar (y se puede aplicar cuando sea)
 >

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   ClipboardList,
   LayoutGrid,
   MessagesSquare,
@@ -20,7 +21,7 @@ import {
  * servidor. Si el layout entero llevara `"use client"`, la comprobación de rol
  * tendría que mudarse a otra parte y el panel completo viajaría al navegador.
  *
- * Barra desplazable en horizontal en móvil: siete pestañas no caben en 360 px, y
+ * Barra desplazable en horizontal en móvil: ocho pestañas no caben en 360 px, y
  * apilarlas empujaría el contenido media pantalla hacia abajo.
  */
 const SECCIONES = [
@@ -31,6 +32,7 @@ const SECCIONES = [
   { href: "/admin/ordenes", label: "Órdenes", icono: Receipt },
   { href: "/admin/comunidad", label: "Comunidad", icono: MessagesSquare },
   { href: "/admin/usuarios", label: "Usuarios", icono: Users },
+  { href: "/admin/analiticas", label: "Analíticas", icono: BarChart3 },
 ] as const;
 
 export function NavAdmin() {
