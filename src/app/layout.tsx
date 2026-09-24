@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Fraunces, Inter } from "next/font/google";
 import { AvisoCookies } from "@/components/aviso-cookies";
+import { MedicionUso } from "@/components/medicion-uso";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getSesion } from "@/lib/auth";
@@ -73,9 +74,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const sesion = await getSesion();
 
   // La decisión de cookies se lee en el servidor, no en un efecto del
-  // navegador. Dos razones: el aviso no parpadea para quien ya decidió, y el
-  // día que haya una herramienta de medición, **es aquí** donde se decide si su
-  // script se manda o no — apagarlo en el cliente llega tarde, porque ya viajó.
+  // navegador. Dos razones: el aviso no parpadea para quien ya decidió, y **es
+  // aquí** donde se decide si el código de medición se manda o no — apagarlo en
+  // el cliente llega tarde, porque ya viajó.
   const consentimiento = leerConsentimiento(
     (await cookies()).get(COOKIE_CONSENTIMIENTO)?.value,
   );
@@ -90,6 +91,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex-1">{children}</main>
         <SiteFooter />
         <AvisoCookies yaDecidido={consentimiento !== null} />
+        {consentimiento?.medicion && <MedicionUso />}
       </body>
     </html>
   );

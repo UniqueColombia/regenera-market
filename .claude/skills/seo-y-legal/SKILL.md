@@ -94,7 +94,8 @@ La lista de comprobación, cuando algo de eso cambia:
 - [ ] La tabla de «Qué recogemos y para qué» incluye el dato nuevo
 - [ ] Si es una cookie, está en la tabla de cookies con su duración
 - [ ] Si es un servicio externo, está en «Con quién los compartimos»
-- [ ] `VIGENCIA_LEGAL` en `src/lib/legal.ts` sube a la fecha del cambio
+- [ ] `VIGENCIA_PRIVACIDAD` en `src/lib/legal.ts` sube a la fecha del cambio
+      (`VIGENCIA_TERMINOS` solo si cambian los términos)
 - [ ] Si el cambio afecta a **para qué** se usan los datos, hay que avisar por
       correo antes de que aplique — lo promete la propia política
 
