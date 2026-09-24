@@ -19,12 +19,14 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >    cookie que nadie tiene todavía. No es un fallo: sin cookie de actividad, la
 >    sesión se trata como caducada. Quien lo vea aterriza en `/entrar` con el
 >    aviso puesto.
-> 2. **La migración `0011` está escrita y sin aplicar.** Da igual antes o después
->    de desplegar: no toca ninguna tabla, columna ni política. Mientras falte, los
->    límites de la Comunidad no existen y los puntos siguen al precio viejo.
+> 2. **La migración `0011` ya está aplicada** (Jesús, 2026-09-24). No obligaba a
+>    ningún orden: no toca ninguna tabla, columna ni política. Los límites de la
+>    Comunidad y los puntos nuevos ya rigen en la base, así que lo que queda es
+>    desplegar el código que los traduce a mensajes en español — hasta entonces,
+>    quien tope ve el error genérico.
 >
 > ```sql
-> -- ¿Está aplicada?  2 = sí
+> -- Comprobación, si hace falta repetirla: 2 = sí
 > select count(*) from pg_trigger
 >  where tgname in ('community_posts_ritmo', 'community_reactions_ritmo');
 > ```
@@ -40,16 +42,15 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > base real. El detalle está en
 > [el hito](../.claude/hitos/2026-09-24-sesion-que-caduca-limites-y-puntos-mas-caros.md).
 
-> ## ⚠️ La `0010` está escrita y sin aplicar: sin ella no hay analíticas
+> ## La migración `0010` está aplicada: ya hay analíticas
 >
-> Crea `page_views` y dos funciones: `registrar_visita()` y
-> `admin_analiticas()`. Solo agrega, así que **se puede aplicar antes o después
-> de desplegar**. Mientras falte, el sitio no se rompe: la medición falla en
-> silencio (en el registro aparece como `[medicion]`) y `/admin/analiticas`
-> dice que falta la migración.
+> **La aplicó Jesús el 2026-09-24.** Creó `page_views` y las dos funciones,
+> `registrar_visita()` y `admin_analiticas()`. Desde que corrió es inmutable como
+> las nueve anteriores, y `/admin/analiticas` ya mide de verdad en vez de avisar
+> de que falta la migración.
 >
 > ```sql
-> -- ¿Está aplicada?
+> -- Comprobación, si hace falta repetirla
 > select to_regclass('public.page_views');   -- null = no
 > ```
 >
@@ -65,11 +66,11 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > lanzaba `RangeError` en el servidor. Se corrigió en `src/lib/format.ts`, que
 > ahora acepta los dos formatos.
 
-> ## ⚠️ La `0009` está escrita y sin aplicar (y se puede aplicar cuando sea)
+> ## La migración `0009` está aplicada
 >
-> Es la primera migración de este repositorio que **no** obliga a un orden:
-> solo reemplaza el cuerpo de `postular_proveedor()` y no toca ninguna tabla,
-> dato ni política. Antes o después de desplegar, da igual.
+> **La aplicó Jesús el 2026-09-24.** Fue la primera de este repositorio que
+> **no** obligaba a un orden: solo reemplaza el cuerpo de `postular_proveedor()`
+> y no toca ninguna tabla, dato ni política.
 >
 > Lo que cambia: **el límite de tres postulaciones por correo al día deja de
 > aplicar a quien tiene sesión**. Contaba por correo sin mirar si había cuenta,
@@ -287,11 +288,13 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >  where proname in ('postular_proveedor', 'otorgar_experiencia');
 > ```
 >
-> **Salió sin el visto bueno de Ivan sobre la comisión.** Decisión de Jesús para
-> no frenar el lanzamiento: la tasa pasó de un 12 % fijo a 12 / 10 / 8 % según el
-> nivel, y eso es negocio, no código. Queda por confirmar con él. Cambiarla es
-> editar `NIVELES[].comision` en `src/lib/niveles.ts` y nada más — las órdenes ya
-> emitidas no se tocan, porque cada ítem guarda la tasa con la que se cobró.
+> **Salió sin el visto bueno de Ivan sobre la comisión, y ya lo tiene.** La tasa
+> pasó de un 12 % fijo a 12 / 10 / 8 % según el nivel, que es negocio y no
+> código; se lanzó sin confirmar para no frenar el release, y **Ivan lo confirmó
+> el 2026-09-24**. Queda cerrado: 12 / 10 / 8 % es la comisión acordada.
+> Cambiarla algún día es editar `NIVELES[].comision` en `src/lib/niveles.ts` y
+> nada más — las órdenes ya emitidas no se tocan, porque cada ítem guarda la tasa
+> con la que se cobró.
 >
 > **Lo único que quedó pendiente de esta tanda:** las cinco variables `SMTP_*` de
 > `.env.example` en Vercel. Sin ellas el alta funciona igual y el correo de
@@ -415,6 +418,13 @@ y el nivel se gana vendiendo, no esperando a que alguien apruebe su evaluación
 ([`docs/NIVELES.md`](NIVELES.md)). Queda una cosa de esa tanda sin poner: las
 `SMTP_*` en Vercel, sin las cuales nadie recibe el correo de su postulación.
 
+El 2026-09-24 se cerraron cuatro cosas que este archivo arrastraba desde hacía
+una semana: **las once migraciones están aplicadas** —ninguna escrita sin
+correr, por primera vez—, **el alta de proveedor y la Comunidad están probadas
+en producción con datos reales**, e **Ivan confirmó la comisión 12 / 10 / 8 %**.
+Lo que sigue abierto son las `SMTP_*` y desplegar la tanda de endurecimiento
+(`v0.9.0`).
+
 ---
 
 ## Lo que ya está
@@ -440,12 +450,14 @@ y el nivel se gana vendiendo, no esperando a que alguien apruebe su evaluación
 | Latido diario contra la pausa de Supabase | ✅ corriendo, 12:10 UTC |
 | `0006_niveles_por_experiencia_y_alta_directa.sql` | ✅ **aplicada** el 2026-09-17, inmutable |
 | `0007_comunidad.sql` | ✅ **aplicada** el 2026-09-19, inmutable |
-| Comunidad: `/comunidad`, la sección de la portada y `/admin/comunidad` | ✅ en producción desde `v0.6.0`; **sin probar con datos reales** |
+| Comunidad: `/comunidad`, la sección de la portada y `/admin/comunidad` | ✅ en producción desde `v0.6.0`, **probada con datos reales** el 2026-09-24 |
 | Niveles por experiencia y comisión por nivel (12/10/8 %) | ✅ en producción desde `v0.5.0` |
 | Alta directa del proveedor (`postular_proveedor()`) | ✅ en producción; con sesión, postular crea la empresa en el acto |
 | `/niveles` y la ficha con nivel y sello separados | ✅ en producción |
 | Correo transaccional de la aplicación (`src/lib/correo/`) | 🟡 desplegado, **sin credenciales**: faltan las `SMTP_*` en Vercel |
-| El OK de Ivan a la comisión por nivel | ❌ se lanzó sin él, a conciencia. Ver el bloque de arriba |
+| El OK de Ivan a la comisión por nivel | ✅ dado el 2026-09-24. Se había lanzado sin él, a conciencia |
+| Alta de proveedor probada de punta a punta en producción | ✅ el 2026-09-24 |
+| `0009`, `0010` y `0011` | ✅ **aplicadas** el 2026-09-24, inmutables |
 | `/admin/evaluaciones` | ❌ la quinta pantalla de `docs/BETA.md` |
 | Subir imágenes de una oferta | ❌ fuera de la beta a propósito |
 | Fechas con cupo de una experiencia desde el panel | ❌ solo por script |
@@ -453,7 +465,7 @@ y el nivel se gana vendiendo, no esperando a que alguien apruebe su evaluación
 | Panel de proveedor | ❌ **Bloque 4, sin empezar** |
 | Servidor propio (VPS) en vez de Vercel + Supabase | ❌ decidido, sin fecha |
 | Caducidad de sesión por inactividad (48 h) y tope de vida (30 días) | 🟡 escrito y probado en local, **sin desplegar**; falta `SESION_SECRETO` en Vercel |
-| Límites de ritmo en la Comunidad y puntos más caros | 🟡 migración `0011` escrita, **sin aplicar** |
+| Límites de ritmo en la Comunidad y puntos más caros | 🟡 migración `0011` **aplicada**; falta desplegar el código que traduce los topes a mensajes |
 | Límites por IP en entrar, registro, checkout, postular y `/api` | 🟡 escrito, **sin desplegar**. En memoria de cada instancia: frena a quien insiste, no a quien reparte |
 | Cabeceras de seguridad (CSP, HSTS, `frame-ancestors`, …) | 🟡 escrito y comprobado en local, **sin desplegar** |
 | `/legal` — políticas y términos en una página | 🟡 escrito, **sin desplegar** |
@@ -594,47 +606,39 @@ password*. La que se usó para aplicar las migraciones pasó por un chat.
 
 ## Lo que sigue, por orden
 
-### 0. Cerrar lo que quedó a medias de los `v0.5.0` y `v0.6.0`
+### 0. Lo que quedaba a medias de los `v0.5.0` y `v0.6.0`
 
-**Esta es la lista con la que se retoma.** Ordenada por lo que bloquea a lo que
-no; los cuatro primeros no son código.
+**Casi todo está cerrado.** De los seis puntos que arrastraba esta lista, cuatro
+se resolvieron el 2026-09-24 y quedan dos, ninguno de los cuales bloquea nada
+hoy.
 
 | # | Qué | Quién | Bloquea |
 |---|---|---|---|
 | 1 | Las cinco `SMTP_*` en Vercel | Ivan | Que alguien reciba su correo |
-| 2 | Probar el alta de proveedor en producción | Cualquiera | Abrir a proveedores reales |
-| 3 | Probar la Comunidad en producción | Cualquiera | Confiar en el contador |
-| 4 | El OK de Ivan a la comisión 12/10/8 % | Ivan | Nada técnico. Es negocio |
-| 5 | Paginar `/comunidad` | Agente | Nada hoy. Sí con volumen |
-| 6 | `/admin/evaluaciones` | Agente | Aprobar evaluaciones sin SQL |
+| 2 | Paginar `/comunidad` | Agente | Nada hoy. Sí con volumen |
+| 3 | `/admin/evaluaciones` | Agente | Aprobar evaluaciones sin SQL |
+| ✅ | Probar el alta de proveedor en producción | — | Hecho el 2026-09-24 |
+| ✅ | Probar la Comunidad en producción | — | Hecho el 2026-09-24 |
+| ✅ | El OK de Ivan a la comisión 12/10/8 % | — | Dado el 2026-09-24 |
 
-1. ✅ **Las `0006` y `0007` están aplicadas**, el 2026-09-17 y el 2026-09-19,
-   las dos antes de su despliegue.
+1. ✅ **Las once migraciones están aplicadas.** Las `0006` y `0007` el 2026-09-17
+   y el 2026-09-19, antes de su despliegue porque lo exigían; la `0008` el
+   2026-09-19; y las `0009`, `0010` y `0011` el 2026-09-24, que no exigían orden.
+   **No queda ninguna migración escrita sin aplicar**, que es la primera vez que
+   este archivo puede decir eso.
 2. **Las cinco `SMTP_*` en Vercel** (Production, y de paso Preview). Las mismas
    credenciales que ya tiene Supabase en Authentication → SMTP Settings. Sin
    ellas nadie recibe el correo de respaldo de su postulación, y no hay ningún
    error que lo delate: se escribe en la consola del servidor y ya. **Viene
-   arrastrándose desde el `v0.5.0`.**
-3. **Probar el alta de punta a punta, en producción**: entrar con una cuenta de
-   prueba, mandar el formulario de `/vender` y comprobar que la empresa aparece
-   en `/proveedores` con nivel Semilla y que llega el correo. **Nadie lo ha hecho
-   todavía**: el camino de `postular_proveedor()` se revisó línea a línea, no se
-   ejecutó. Si algo falla, es el primer sitio donde mirar.
-4. **Probar la Comunidad en producción**, en este orden:
-   1. Publicar con sesión a título personal → sale en `/comunidad` y en la
-      portada.
-   2. Publicar firmando con una empresa → `providers.experience_points` sube 30
-      y `experience_events` gana su fila.
-   3. **Reaccionar y quitar la reacción** → el contador sube y baja. Es la que
-      importa: falla en silencio (ver el aviso del principio).
-   4. Con otra cuenta, intentar firmar con una empresa ajena → lo niega
-      `community_posts_insert`.
-   5. Ocultar una publicación desde `/admin/comunidad` → desaparece del muro.
-   6. Registrarse de cero → se aterriza en `/registro/listo`, no en
-      `/cuenta/clave`.
-   7. A 375 px, con sesión → el menú del teléfono lleva a «Tu cuenta».
-5. **Contarle a Ivan lo de la comisión** — 12 / 10 / 8 % salió a producción sin
-   su visto bueno, para no frenar el lanzamiento.
+   arrastrándose desde el `v0.5.0`** y es lo único de esta lista que bloquea algo.
+3. ✅ **El alta de proveedor está probada de punta a punta en producción** —
+   Jesús, 2026-09-24. Era el camino que se había revisado línea a línea sin
+   ejecutarlo nunca.
+4. ✅ **La Comunidad está probada en producción** — Jesús, 2026-09-24. Incluida
+   la reacción y su retirada, que era la que importaba porque fallaba en
+   silencio. **El contador ya no es una promesa.**
+5. ✅ **Ivan confirmó la comisión** 12 / 10 / 8 % el 2026-09-24. Había salido a
+   producción sin su visto bueno para no frenar el lanzamiento.
 
 ### 0b. Lo que dejó abierto la Comunidad
 
@@ -648,7 +652,7 @@ Ninguno bloquea nada hoy. Están aquí para que no se pierdan.
   que ir a mirarlo. Si el muro se llena, esto pasa a ser lo primero.
 - **Sin denuncia de una publicación.** Moderar depende de que un administrador
   la vea; un lector que encuentre algo fuera de sitio no tiene cómo avisar.
-- ✅ **`articulo_publicado` ya tiene tope** (migración `0011`, sin aplicar): 4 al
+- ✅ **`articulo_publicado` ya tiene tope** (migración `0011`, aplicada): 4 al
   mes, y vale 10 puntos en vez de 30. De paso bajaron todos los demás valores y
   `cotizacion_respondida` también se topó. La tabla de antes y después está en
   [`docs/NIVELES.md`](NIVELES.md). **Los puntos ya otorgados no se
