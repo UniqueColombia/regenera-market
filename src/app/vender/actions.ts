@@ -9,6 +9,7 @@ import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 import { correoPostulacionRecibida } from "@/lib/correo/plantillas";
 import { IDS_TIPO_ORGANIZACION, NOMBRES_PAIS, paisPorNombre } from "@/lib/paises";
 import { VERTICALS } from "@/lib/taxonomy";
+import { dentroDelRitmo, origenDeLaPeticion } from "@/lib/ritmo";
 import { LIMITES } from "./limites";
 
 /**
@@ -238,6 +239,20 @@ async function postular(form: unknown): Promise<ResultadoPostulacion> {
     return {
       ok: false,
       errors: { form: "Tómate un momento más para revisar lo que escribiste." },
+    };
+  }
+
+  // Tercer freno, después del honeypot y de la trampa de tiempo. Los dos
+  // anteriores atrapan al robot ingenuo; este cuenta, y cuenta por IP en vez de
+  // por correo como hace `postular_proveedor()`. La diferencia importa: el tope
+  // de la base se salta cambiando de correo en cada envío, que es exactamente lo
+  // que hace un guion.
+  if (!dentroDelRitmo(`postular:${await origenDeLaPeticion()}`, 5, 3600)) {
+    return {
+      ok: false,
+      errors: {
+        form: "Recibimos varias postulaciones seguidas desde aquí. Espera un rato y vuelve a intentarlo.",
+      },
     };
   }
 

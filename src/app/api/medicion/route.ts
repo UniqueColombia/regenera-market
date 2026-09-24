@@ -8,6 +8,7 @@ import {
 } from "@/lib/consentimiento";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { dentroDelRitmo } from "@/lib/ritmo";
 
 /**
  * Una página vista, si quien la vio dio permiso.
@@ -85,6 +86,20 @@ export async function POST(request: NextRequest) {
 
   const ua = request.headers.get("user-agent") ?? "";
   if (!isSupabaseConfigured() || ROBOT.test(ua)) return sinContenido();
+
+  // Con permiso dado, esto escribe una fila en `page_views` por llamada, y la
+  // llamada la puede repetir cualquiera: es un `POST` sin sesión. Sesenta
+  // páginas vistas en diez minutos es más de lo que navega nadie, y el tope
+  // evita que una pestaña en bucle —o alguien probando— infle las cifras del
+  // panel, que es lo que las volvería inútiles.
+  //
+  // Se cuenta por IP y no por la cookie del visitante a propósito: la cookie la
+  // pone esta misma ruta, así que quien no la mande tendría barra libre.
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    request.headers.get("x-real-ip") ??
+    "local";
+  if (!dentroDelRitmo(`medicion:${ip}`, 60, 600)) return sinContenido();
 
   // `sendBeacon` manda texto plano; se lee como texto y con tope, para que un
   // cuerpo enorme no llegue a `JSON.parse`.
