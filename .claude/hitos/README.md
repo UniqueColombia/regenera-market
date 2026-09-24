@@ -35,3 +35,4 @@ referencie al anterior.
 | 2026-09-20 | [El alta de una empresa deja rastro cuando falla, y trae sus dos imágenes](2026-09-20-alta-de-empresa-diagnosticable.md) | Jesús Seiler | 1 y 2 — corrección y perfil de empresa |
 | 2026-09-20 | [La causa era un `.refine()` que lanzaba: nadie sin página web podía darse de alta](2026-09-20-la-causa-era-un-refine-que-lanzaba.md) | Jesús Seiler | 1 y 2 — corrección |
 | 2026-09-24 | [Analíticas propias con permiso previo, y `/admin/comunidad` deja de caerse](2026-09-24-analiticas-propias-y-comunidad-sin-caidas.md) | Jesús Seiler | 1 y 2 — corrección y medición |
+| 2026-09-24 | [La sesión caduca sola, la Comunidad tiene freno, y el nivel cuesta](2026-09-24-sesion-que-caduca-limites-y-puntos-mas-caros.md) | Jesús Seiler | 1 y 2 — endurecimiento de la beta |

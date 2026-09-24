@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { FormularioAcceso } from "./formulario-acceso";
 import { getUser } from "@/lib/auth";
+import { INACTIVIDAD_HORAS } from "@/lib/inactividad";
 
 export const metadata: Metadata = {
   title: "Entrar",
@@ -31,6 +32,10 @@ export default async function EntrarPage(props: PageProps<"/entrar">) {
   const sp = await props.searchParams;
   const volver = Array.isArray(sp.volver) ? sp.volver[0] : sp.volver;
   const error = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  // Lo pone `src/proxy.ts` al cortar una sesión que llevaba demasiado parada.
+  // Se avisa en vez de dejar a la persona preguntándose por qué está fuera: sin
+  // el aviso, el corte por inactividad se lee como «se cae la sesión sola».
+  const caducada = (Array.isArray(sp.caducada) ? sp.caducada[0] : sp.caducada) === "1";
 
   return (
     <div className="container-page max-w-md py-16">
@@ -38,6 +43,15 @@ export default async function EntrarPage(props: PageProps<"/entrar">) {
       <p className="mt-2 text-muted">
         Entra con tu correo y tu contraseña.
       </p>
+      {caducada && !error && (
+        <p
+          role="status"
+          className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 ring-1 ring-amber-100"
+        >
+          Cerramos tu sesión porque pasaron {INACTIVIDAD_HORAS} horas sin usarse.
+          Entra otra vez y sigues donde estabas.
+        </p>
+      )}
       {error && (
         <p
           role="alert"

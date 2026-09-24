@@ -4,10 +4,41 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-24
+- **Corte:** 2026-09-24 (segunda tanda del día)
 - **Producción:** `v0.8.0` en `main` → **https://regenera-market.vercel.app**
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**.
+
+> ## ⚠️ Sin desplegar: la sesión caduca, la Comunidad tiene freno y los puntos cuestan
+>
+> Es la tanda del 2026-09-24 por la tarde, y trae **dos cosas que se notan el
+> primer día**:
+>
+> 1. **Al desplegar, todo el mundo entra otra vez.** La sesión ahora caduca a las
+>    48 horas sin uso (y a los 30 días pase lo que pase), y el reloj lo lleva una
+>    cookie que nadie tiene todavía. No es un fallo: sin cookie de actividad, la
+>    sesión se trata como caducada. Quien lo vea aterriza en `/entrar` con el
+>    aviso puesto.
+> 2. **La migración `0011` está escrita y sin aplicar.** Da igual antes o después
+>    de desplegar: no toca ninguna tabla, columna ni política. Mientras falte, los
+>    límites de la Comunidad no existen y los puntos siguen al precio viejo.
+>
+> ```sql
+> -- ¿Está aplicada?  2 = sí
+> select count(*) from pg_trigger
+>  where tgname in ('community_posts_ritmo', 'community_reactions_ritmo');
+> ```
+>
+> **Falta poner `SESION_SECRETO` en Vercel** (Production, y de paso Preview).
+> Sin ella el corte por inactividad funciona igual, pero la cookie que lo lleva
+> va sin firmar y se puede falsificar. Ponerla o cambiarla cierra la sesión de
+> todos **una vez**. Se genera con `randomBytes(32).toString("hex")`.
+>
+> **Lo primero que hay que probar después de desplegar es entrar.** Si
+> `abrirVentanaDeActividad()` fallara, nadie podría: el síntoma sería un rebote a
+> `/entrar` justo después de acceder. Nadie ha hecho ese ciclo todavía contra la
+> base real. El detalle está en
+> [el hito](../.claude/hitos/2026-09-24-sesion-que-caduca-limites-y-puntos-mas-caros.md).
 
 > ## ⚠️ La `0010` está escrita y sin aplicar: sin ella no hay analíticas
 >
@@ -421,6 +452,11 @@ y el nivel se gana vendiendo, no esperando a que alguien apruebe su evaluación
 | Vercel Preview | ❌ faltan las tres de Supabase |
 | Panel de proveedor | ❌ **Bloque 4, sin empezar** |
 | Servidor propio (VPS) en vez de Vercel + Supabase | ❌ decidido, sin fecha |
+| Caducidad de sesión por inactividad (48 h) y tope de vida (30 días) | 🟡 escrito y probado en local, **sin desplegar**; falta `SESION_SECRETO` en Vercel |
+| Límites de ritmo en la Comunidad y puntos más caros | 🟡 migración `0011` escrita, **sin aplicar** |
+| Límites por IP en entrar, registro, checkout, postular y `/api` | 🟡 escrito, **sin desplegar**. En memoria de cada instancia: frena a quien insiste, no a quien reparte |
+| Cabeceras de seguridad (CSP, HSTS, `frame-ancestors`, …) | 🟡 escrito y comprobado en local, **sin desplegar** |
+| `/legal` — políticas y términos en una página | 🟡 escrito, **sin desplegar** |
 
 ---
 
@@ -519,6 +555,18 @@ Se hace en el panel, editando cada una de las tres y marcando *Preview* además 
 Production. `NEXT_PUBLIC_SITE_URL` se queda solo en Production. Ver arriba por
 qué el CLI no sirve para esto.
 
+**4b. `SESION_SECRETO`, con la que se firma el reloj de inactividad de la
+sesión.** En Production y en Preview, con el mismo valor o con dos distintos —
+da igual, no viajan entre entornos. **No bloquea nada:** sin ella la sesión
+caduca igual a las 48 horas, pero la cookie va sin firmar y quien copie las
+cookies de sesión de otro puede fabricársela. Ponerla cierra la sesión de todos
+una vez, y por eso conviene hacerlo en el mismo despliegue que estrena la
+caducidad, cuando de todos modos va a pasar.
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
 ### 🟡 Cualquiera, una sola vez
 
 **5. ✅ Resuelto el 2026-09-13: hay dos administradores.** Se hicieron con
@@ -600,10 +648,15 @@ Ninguno bloquea nada hoy. Están aquí para que no se pierdan.
   que ir a mirarlo. Si el muro se llena, esto pasa a ser lo primero.
 - **Sin denuncia de una publicación.** Moderar depende de que un administrador
   la vea; un lector que encuentre algo fuera de sitio no tiene cómo avisar.
-- **`articulo_publicado` no tiene tope.** Los demás eventos repetibles sí
-  (10 ofertas al mes, 3 certificaciones). Publicar cien entradas distintas suma
-  cien veces 30 puntos, y eso es comisión. El tope va en
-  `otorgar_experiencia()`, junto a los otros dos, el día que alguien lo intente.
+- ✅ **`articulo_publicado` ya tiene tope** (migración `0011`, sin aplicar): 4 al
+  mes, y vale 10 puntos en vez de 30. De paso bajaron todos los demás valores y
+  `cotizacion_respondida` también se topó. La tabla de antes y después está en
+  [`docs/NIVELES.md`](NIVELES.md). **Los puntos ya otorgados no se
+  recalcularon**, así que ningún proveedor cambia de nivel.
+- ✅ **El muro ya no se puede inundar** (misma migración): 30 segundos entre
+  publicaciones, 3 al día, 10 al mes y 60 reacciones por hora, impuestos por dos
+  triggers `before insert`. Los mensajes que ve quien topa están en
+  `src/app/comunidad/actions.ts`.
 
 ### 1. Abrir a proveedores reales
 
@@ -841,6 +894,17 @@ npm run build && npm run start
 curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/catalogo   # 200 = la base responde
 curl -s -o /dev/null -w "%{redirect_url}\n" localhost:3000/admin   # /entrar = el guardia funciona
 curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/niveles    # 200 = la tanda de niveles está desplegada
+curl -s -o /dev/null -w "%{http_code}" localhost:3000/legal        # 200 = la página de políticas está desplegada
+curl -sI localhost:3000/ | grep -i content-security-policy         # vacío = faltan las cabeceras de seguridad
+```
+
+Para comprobar que el corte por inactividad está vivo sin esperar dos días: una
+petición con cookie de sesión y **sin** la de actividad tiene que responder 307
+hacia `/entrar?caducada=1`. Basta con inventarse la cookie de sesión — no hace
+falta que sea válida, porque el corte ocurre antes de mirarla.
+
+```bash
+curl -s -o /dev/null -w "%{redirect_url}" -H "Accept: text/html"   -H "Cookie: sb-<ref>-auth-token=lo-que-sea" localhost:3000/cuenta
 ```
 
 Y si lo que quieres saber es qué tiene la **base**, eso no está en el

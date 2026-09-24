@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { abrirVentanaDeActividad } from "@/lib/sesion";
 
 /**
  * Canjea por sesión lo que traiga el enlace del correo.
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient();
 
-  const { error } = tokenHash
+  const { data, error } = tokenHash
     ? await supabase.auth.verifyOtp({
         token_hash: tokenHash,
         // Sin `type` no se puede verificar. `email` es el de los enlaces de
@@ -76,6 +77,21 @@ export async function GET(request: NextRequest) {
   if (error) {
     return NextResponse.redirect(`${origin}/entrar?error=codigo-invalido`);
   }
+
+  // Aquí acaba de nacer una sesión, así que arranca su reloj de inactividad. Es
+  // el único sitio fuera de `src/app/entrar/actions.ts` que abre una: sin esta
+  // línea, `src/proxy.ts` ve cookies de sesión sin ventana de actividad en la
+  // petición siguiente —la del redirect de abajo— y devuelve a `/entrar`. O
+  // sea: el enlace del correo dejaría de funcionar, en el acto y para todos.
+  //
+  // El id va dentro de la cookie y el proxy lo contrasta con la sesión, así que
+  // si el canje no devolviera usuario —no debería, pero el tipo lo admite— no se
+  // escribe nada y el corte hace su trabajo.
+  const usuario = data.user ?? data.session?.user;
+  if (!usuario) {
+    return NextResponse.redirect(`${origin}/entrar?error=codigo-invalido`);
+  }
+  await abrirVentanaDeActividad(usuario.id);
 
   return NextResponse.redirect(`${origin}${destino}`);
 }
