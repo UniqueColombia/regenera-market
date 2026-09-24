@@ -927,6 +927,106 @@ export async function getPostsForAdmin(): Promise<PostAdmin[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Medición de uso
+// ---------------------------------------------------------------------------
+
+/** Una fila de un ranking del panel: una página, un origen, un país… */
+export interface FilaAnalitica {
+  /** Vacío cuando no hay dato: visita directa, o país que Vercel no resolvió. */
+  clave: string;
+  visitas: number;
+  visitantes: number;
+}
+
+export interface Analiticas {
+  dias: number;
+  desde: string;
+  hasta: string;
+  visitas: number;
+  visitantes: number;
+  /** Las mismas cifras en el periodo anterior de igual largo, para comparar. */
+  visitasAntes: number;
+  visitantesAntes: number;
+  porDia: { dia: string; visitas: number; visitantes: number }[];
+  paginas: FilaAnalitica[];
+  origenes: FilaAnalitica[];
+  dispositivos: FilaAnalitica[];
+  paises: FilaAnalitica[];
+  negocio: {
+    cuentas: number;
+    postulaciones: number;
+    ordenes: number;
+    ordenesCop: number;
+    publicaciones: number;
+  };
+}
+
+/**
+ * El resumen del panel de analíticas, o `null` si falta la migración 0010.
+ *
+ * Todo lo agrega `admin_analiticas()` en Postgres: aquí no llega ni una fila de
+ * `page_views`. La función lleva su propio `is_admin()`, así que llamada por
+ * cualquier otro lanza `solo-admin` en vez de devolver cifras.
+ *
+ * El `null` existe para que el panel pueda decir «falta aplicar la 0010» en
+ * vez de caerse: la migración se aplica a mano y puede ir por detrás del
+ * despliegue. `42883` es la función inexistente en Postgres y `PGRST202` la
+ * misma cosa dicha por PostgREST.
+ */
+export async function getAnaliticas(dias: number): Promise<Analiticas | null> {
+  const db = await createClient();
+  const { data, error } = await db.rpc("admin_analiticas", { _dias: dias });
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") return null;
+    throw new Error(`getAnaliticas: ${error.message}`);
+  }
+
+  const d = data as {
+    dias: number;
+    desde: string;
+    hasta: string;
+    visitas: number;
+    visitantes: number;
+    visitas_antes: number;
+    visitantes_antes: number;
+    por_dia: { dia: string; visitas: number; visitantes: number }[];
+    paginas: FilaAnalitica[];
+    origenes: FilaAnalitica[];
+    dispositivos: FilaAnalitica[];
+    paises: FilaAnalitica[];
+    negocio: {
+      cuentas: number;
+      postulaciones: number;
+      ordenes: number;
+      ordenes_cop: number;
+      publicaciones: number;
+    };
+  };
+
+  return {
+    dias: d.dias,
+    desde: d.desde,
+    hasta: d.hasta,
+    visitas: d.visitas,
+    visitantes: d.visitantes,
+    visitasAntes: d.visitas_antes,
+    visitantesAntes: d.visitantes_antes,
+    porDia: d.por_dia,
+    paginas: d.paginas,
+    origenes: d.origenes,
+    dispositivos: d.dispositivos,
+    paises: d.paises,
+    negocio: {
+      cuentas: d.negocio.cuentas,
+      postulaciones: d.negocio.postulaciones,
+      ordenes: d.negocio.ordenes,
+      ordenesCop: d.negocio.ordenes_cop,
+      publicaciones: d.negocio.publicaciones,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Tu empresa
 // ---------------------------------------------------------------------------
 

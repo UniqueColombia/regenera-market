@@ -21,10 +21,25 @@ const DATE = new Intl.DateTimeFormat("es-CO", {
   month: "short",
 });
 
-/** Recibe "2026-09-05" y devuelve "vie, 5 sept". */
+/**
+ * El día de una fecha, forzado al mediodía UTC para que el cambio de zona
+ * horaria no lo corra.
+ *
+ * Acepta "2026-09-05" y también la marca de tiempo entera que devuelve Postgres
+ * ("2026-09-05T14:22:10.123+00:00"): se queda con los diez primeros caracteres.
+ * Antes solo aceptaba lo primero, y con lo segundo armaba una cadena imposible.
+ * En el navegador eso pintaba «Invalid Date»; en el servidor
+ * `Intl.DateTimeFormat.format()` lanza `RangeError` y tumba la página entera —
+ * así cayó `/admin/comunidad`. Recortar en cada llamada ya había fallado una vez;
+ * aquí no se puede olvidar.
+ */
+function mediodia(iso: string): Date {
+  return new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+}
+
+/** Recibe "2026-09-05" (o la marca de tiempo entera) y devuelve "vie, 5 sept". */
 export function shortDate(iso: string): string {
-  // Se fuerza el mediodía UTC para que el cambio de zona horaria no corra el día.
-  return DATE.format(new Date(`${iso}T12:00:00Z`));
+  return DATE.format(mediodia(iso));
 }
 
 const LONG_DATE = new Intl.DateTimeFormat("es-CO", {
@@ -33,8 +48,9 @@ const LONG_DATE = new Intl.DateTimeFormat("es-CO", {
   year: "numeric",
 });
 
+/** Recibe "2026-09-05" (o la marca de tiempo entera) y devuelve "5 de septiembre de 2026". */
 export function longDate(iso: string): string {
-  return LONG_DATE.format(new Date(`${iso}T12:00:00Z`));
+  return LONG_DATE.format(mediodia(iso));
 }
 
 /** "4 días" en vez de "96 horas". */
