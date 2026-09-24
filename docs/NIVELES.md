@@ -8,7 +8,8 @@ sitios que son gemelos y hay que mantener de acuerdo:
 
 | Dónde | Qué manda |
 |---|---|
-| `supabase/migrations/0006_niveles_por_experiencia_y_alta_directa.sql` | **Manda.** Umbrales, puntos por evento y topes |
+| `supabase/migrations/0006_niveles_por_experiencia_y_alta_directa.sql` | Los **umbrales**, y de dónde salió todo esto |
+| `supabase/migrations/0011_limites_y_puntos_mas_caros.sql` | **Manda** en los puntos por evento y en los topes: reemplaza `otorgar_experiencia()` |
 | `src/lib/niveles.ts` | El espejo en TypeScript, para poder explicarlo en pantalla sin una consulta extra |
 | `src/app/niveles/page.tsx` | La página pública. No tiene ni un número escrito a mano: todo sale de `niveles.ts` |
 
@@ -98,7 +99,7 @@ fue», eso es **otra señal**, no este número.
 | De dónde sale | `experience_points` | Evaluación aprobada por un administrador |
 | Qué columna | `providers.tier` | `providers.sustainability_verified_at` |
 | Qué mide | Oficio: publicar, entregar, cumplir | Sostenibilidad, con evidencia revisada |
-| Qué otorga | Menos comisión, mejor orden en el catálogo | El distintivo público y 300 puntos |
+| Qué otorga | Menos comisión, mejor orden en el catálogo | El distintivo público y 250 puntos |
 
 Se pueden tener por separado y **se muestran por separado a propósito**
 (`/proveedor/[slug]` tiene una tarjeta para cada uno). Un proveedor puede llegar
@@ -250,12 +251,68 @@ silencio es un formulario que miente.
 - **El proveedor no edita el resto de su ficha.** Descripción, titular, ubicación
   y contacto siguen saliendo de la postulación y corrigiéndose desde
   administración. Consecuencia práctica: una empresa cuya postulación viniera
-  corta **no puede llegar a los 80 puntos de `perfil_completo` hoy**, porque el
+  corta **no puede llegar a los 40 puntos de `perfil_completo` hoy**, porque el
   trigger exige titular y descripción con sustancia y no hay dónde escribirlos.
 - **`cotizacion_respondida` no lo dispara nadie todavía**: no hay pantalla de
   respuesta a cotización. Los puntos están definidos; el hecho que los otorga,
   no. Es el mismo caso que tuvieron `articulo_publicado` (resuelto por la `0007`)
   y `perfil_completo` (resuelto por la `0008`).
-- **El tope de `articulo_publicado` no existe.** Publicar cien entradas distintas
-  en la Comunidad daría cien veces 30 puntos. Si llega a ser un problema, el tope
-  va en `otorgar_experiencia()` junto al de ofertas, no en el trigger.
+- ✅ **El tope de `articulo_publicado` ya existe** (migración 0011): 4 al mes, y
+  la publicación vale 10 puntos en vez de 30. Lo que se cerró con eso está en la
+  sección siguiente.
+
+---
+
+## El recorte del 2026-09-24 (migración 0011)
+
+### Qué estaba roto
+
+La tabla original era demasiado generosa, y con la Comunidad en producción se
+volvió explotable sin mala intención: `articulo_publicado` daba **30 puntos sin
+tope**, así que nueve publicaciones en una tarde eran 270. Con el perfil completo
+(80) y diez ofertas (250) se llegaba a los 600 de Raíz **sin haberle vendido nada
+a nadie**. Raíz son dos puntos menos de comisión: el agujero no era de
+reputación, era de dinero.
+
+### El criterio
+
+**Lo que se hace solo vale menos; lo que exige que otro te compre vale más.**
+
+| clave | antes | ahora | tope |
+|---|---|---|---|
+| `perfil_completo` | 80 | **40** | una vez |
+| `oferta_publicada` | 25 | **10** | 5 al mes (antes 10) |
+| `primera_venta` | 150 | **120** | una vez |
+| `venta_entregada` | 50 | **40** | — |
+| `volumen_vendido` | 10 / 200.000 | 10 / **500.000** | 50 tramos por orden |
+| `resena_positiva` | 40 | **30** | — |
+| `cotizacion_respondida` | 15 | **5** | **10 al mes** (antes ninguno) |
+| `evaluacion_aprobada` | 300 | **250** | una vez |
+| `certificacion_verificada` | 100 | **80** | 3 en total |
+| `articulo_publicado` | 30 | **10** | **4 al mes** (antes ninguno) |
+| `articulo_destacado` | 80 | **50** | — |
+
+El mismo esfuerzo de antes —perfil, diez ofertas, nueve publicaciones— da ahora
+130 puntos en vez de 600, porque además los topes mensuales cortan a 5 ofertas y
+4 publicaciones.
+
+### Lo que NO se tocó, y por qué
+
+- **Los umbrales.** Raíz sigue en 600 y Bosque en 2.500. Subirlos habría hecho
+  **caer de nivel** a quien ya lo tiene, y el nivel es la comisión que esa
+  empresa tiene pactada de hecho. Lo que se encarece es ganar los puntos.
+- **Los puntos ya otorgados.** `experience_events` es el registro de lo que
+  pasó; reescribirlo sería mentir sobre el pasado. Quien ganó 30 por una
+  publicación de agosto los ganó. Ningún proveedor cambia de nivel con esta
+  migración.
+- **`articulo_destacado` se quedó sin tope**, y no es un olvido: lo pulsa el
+  equipo desde `/admin/comunidad`, así que el tope somos nosotros.
+
+### El otro lado del mismo problema
+
+Encarecer el evento no basta si el evento se puede repetir a máquina. La misma
+migración pone límites de ritmo en la Comunidad —30 segundos entre
+publicaciones, 3 al día, 10 al mes, 60 reacciones por hora— con dos triggers
+`before insert`. Están en la base y no en la Server Action por lo de siempre: la
+clave anon es pública, así que un límite escrito en TypeScript se salta con
+`curl`.

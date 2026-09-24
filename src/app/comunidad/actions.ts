@@ -26,7 +26,48 @@ import { esReaccion } from "@/lib/comunidad";
  * contar cómo le fue aporta tanto como quien vende. Publicar en nombre de una
  * empresa sí exige gestionarla, pero eso no es un rol: es `provider_members`, y
  * lo comprueba `community_posts_insert` con `manages_provider()`.
+ *
+ * ## Los límites tampoco están aquí
+ *
+ * Cuánto se puede publicar y cuántas veces se puede reaccionar lo imponen dos
+ * triggers de la migración 0011, por la misma razón que todo lo demás: la clave
+ * anon es pública, así que un límite escrito en este archivo se salta con
+ * `curl`. Lo que sí está aquí es **traducirlos**: la base lanza
+ * `limite-diario`, y quien publica tiene que leer «ya publicaste tres veces
+ * hoy», no un error de Postgres.
  */
+
+/**
+ * Lo que lanza la base cuando alguien se pasa de la raya, en español.
+ *
+ * Las claves son los mensajes exactos de las excepciones de
+ * `community_posts_limites()` y `community_reactions_limites()`. Si cambias una
+ * allá, cambia aquí — si no coinciden, el usuario ve el mensaje genérico y
+ * nunca se entera de que el problema era un tope.
+ *
+ * Los números están escritos en el texto y no interpolados desde ninguna
+ * constante: la constante viviría en TypeScript y el tope real vive en
+ * Postgres, así que serían dos fuentes de verdad con la misma pinta. Mejor una
+ * frase que hay que cambiar a mano en el mismo PR que cambia la migración.
+ */
+const LIMITES: Record<string, string> = {
+  "limite-ritmo":
+    "Espera unos segundos antes de publicar otra vez.",
+  "limite-diario":
+    "Ya publicaste tres veces hoy. Vuelve mañana y sigue contando lo que haces.",
+  "limite-mensual":
+    "Llegaste a diez publicaciones este mes. El muro se reparte entre todos: vuelve el mes que viene.",
+  "limite-reacciones":
+    "Vas muy rápido reaccionando. Espera un momento y sigue.",
+};
+
+/** La frase que toca, o `null` si el error no era un tope. */
+function motivoDeTope(mensaje: string): string | null {
+  for (const [clave, texto] of Object.entries(LIMITES)) {
+    if (mensaje.includes(clave)) return texto;
+  }
+  return null;
+}
 
 const TEMAS = ["experiencia", "noticia", "practica", "pregunta"] as const;
 
@@ -94,6 +135,9 @@ export async function publicar(datos: unknown): Promise<ResultadoPublicacion> {
   });
 
   if (error) {
+    const tope = motivoDeTope(error.message);
+    if (tope) return { ok: false, errors: { form: tope } };
+
     // No se devuelve `error.message`: trae nombres de columnas y de políticas,
     // que es información gratis para quien esté probando el formulario.
     console.error(`[comunidad] publicar: ${error.message}`);
@@ -176,6 +220,8 @@ export async function alternarReaccion(
         { onConflict: "post_id,user_id,kind", ignoreDuplicates: true },
       );
     if (error) {
+      const tope = motivoDeTope(error.message);
+      if (tope) return { ok: false, error: tope };
       console.error(`[comunidad] marcar reacción: ${error.message}`);
       return { ok: false, error: "No pudimos guardar tu reacción. Inténtalo otra vez." };
     }

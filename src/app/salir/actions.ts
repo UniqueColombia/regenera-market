@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { cerrarVentanaDeActividad } from "@/lib/sesion";
 
 /**
  * Cierra la sesión.
@@ -22,6 +23,7 @@ export async function cerrarSesion() {
   // «salir» en el computador del hotel en «me echó del teléfono». Quien quiera
   // lo otro tiene la pantalla de dispositivos de confianza en `/cuenta`.
   await supabase.auth.signOut({ scope: "local" });
+  await cerrarVentanaDeActividad();
   revalidatePath("/", "layout");
   redirect("/");
 }

@@ -13,6 +13,8 @@ import {
 } from "@/lib/dispositivos";
 import { armarTelefono } from "@/lib/telefono";
 import { validarClave } from "@/lib/password";
+import { abrirVentanaDeActividad } from "@/lib/sesion";
+import { dentroDelRitmo, origenDeLaPeticion, porCorreo } from "@/lib/ritmo";
 
 /**
  * Acceso, registro y recuperación.
@@ -148,6 +150,63 @@ function tieneClave(meta: Record<string, unknown> | undefined): boolean {
 // ---------------------------------------------------------------------------
 // Registro
 // ---------------------------------------------------------------------------
+// Cuántos intentos caben
+//
+// Las cuatro acciones de este archivo son públicas por definición: para entrar
+// hay que poder llamarlas sin sesión. Eso las convierte en las tres cosas que
+// más se automatizan de cualquier sitio — probar contraseñas, probar códigos y
+// gastarle a alguien el cupo de correos.
+//
+// Supabase tiene sus propios límites y son reales, pero son **del proyecto
+// entero**: el de correos ronda los 30 por hora para todo Seregenera. O sea que
+// un guion apuntando a un solo buzón no le rompe la cuenta a nadie, pero sí deja
+// sin correo de acceso a todos los demás durante esa hora. Por eso el límite de
+// aquí cuenta por IP y por buzón, que es lo que Supabase no puede hacer por
+// nosotros.
+//
+// Lo que este limitador NO garantiza está en la cabecera de `src/lib/ritmo.ts`,
+// y conviene leerlo antes de tratarlo como una defensa.
+// ---------------------------------------------------------------------------
+
+/** Cuántos correos de acceso caben por hora: por quien los pide y por buzón. */
+const CORREOS_POR_IP = 8;
+const CORREOS_POR_BUZON = 4;
+/** Intentos de contraseña o de código en un cuarto de hora. */
+const INTENTOS_POR_IP = 15;
+const INTENTOS_POR_BUZON = 8;
+
+const HORA = 3600;
+const CUARTO_DE_HORA = 900;
+
+/**
+ * ¿Cabe un intento más de esta clase, desde esta IP y para este buzón?
+ *
+ * Se cuentan las dos cosas porque frenan ataques distintos: la IP frena al que
+ * prueba mil correos, el buzón frena al que prueba mil contraseñas de uno solo
+ * desde mil sitios. Cualquiera de las dos que se pase, corta.
+ *
+ * **El mensaje es el mismo pase lo que pase y no dice cuál de los dos topó.**
+ * Decirlo confirmaría que ese correo existe, que es justo lo que el resto de
+ * este archivo se cuida de no filtrar.
+ */
+async function cabeUnIntento(
+  clase: string,
+  correo: string,
+  porIp: number,
+  porBuzon: number,
+  ventana: number,
+): Promise<boolean> {
+  const ip = await origenDeLaPeticion();
+  const cabeIp = dentroDelRitmo(`${clase}:ip:${ip}`, porIp, ventana);
+  const cabeBuzon = dentroDelRitmo(porCorreo(`${clase}:correo`, correo), porBuzon, ventana);
+  return cabeIp && cabeBuzon;
+}
+
+const DEMASIADOS = {
+  form: "Demasiados intentos desde aquí. Espera unos minutos y vuelve a probar.",
+};
+
+// ---------------------------------------------------------------------------
 
 /**
  * Crea la cuenta y dispara el correo con el código.
@@ -177,6 +236,12 @@ export async function registrarse(datos: unknown): Promise<ResultadoAcceso> {
   if (problema) return { ok: false, errors: { password: problema } };
 
   const nombreCompleto = `${d.nombre} ${d.apellido}`.replace(/\s+/g, " ").trim();
+
+  // Después de validar y antes de tocar Supabase: un formulario mal llenado no
+  // gasta cupo, y un intento bien llenado no llega a la API si ya se pasó.
+  if (!(await cabeUnIntento("registro", d.email, CORREOS_POR_IP, CORREOS_POR_BUZON, HORA))) {
+    return { ok: false, errors: DEMASIADOS };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -243,6 +308,11 @@ export async function registrarse(datos: unknown): Promise<ResultadoAcceso> {
 export async function entrarConClave(datos: unknown): Promise<ResultadoAcceso> {
   const parsed = AccesoSchema.safeParse(datos);
   if (!parsed.success) return { ok: false, errors: errores(parsed.error) };
+
+  if (!(await cabeUnIntento(
+    "clave", parsed.data.email, INTENTOS_POR_IP, INTENTOS_POR_BUZON, CUARTO_DE_HORA))) {
+    return { ok: false, errors: DEMASIADOS };
+  }
 
   const efimero = createEphemeralClient();
   const { data, error } = await efimero.auth.signInWithPassword({
@@ -336,6 +406,11 @@ export async function pedirCodigo(datos: unknown): Promise<Resultado> {
   const parsed = CorreoSchema.safeParse(datos);
   if (!parsed.success) return { ok: false, errors: errores(parsed.error) };
 
+  if (!(await cabeUnIntento(
+    "codigo", parsed.data.email, CORREOS_POR_IP, CORREOS_POR_BUZON, HORA))) {
+    return { ok: false, errors: DEMASIADOS };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
@@ -364,6 +439,14 @@ export async function pedirCodigo(datos: unknown): Promise<Resultado> {
 export async function verificarCodigo(datos: unknown): Promise<ResultadoCodigo> {
   const parsed = CodigoSchema.safeParse(datos);
   if (!parsed.success) return { ok: false, errors: errores(parsed.error) };
+
+  // Un código son seis dígitos: un millón de combinaciones, que a fuerza bruta
+  // sin freno se agotan en minutos. Aquí el tope es más estrecho que el de pedir
+  // el correo porque adivinar es barato y pedir no lo es.
+  if (!(await cabeUnIntento(
+    "verificar", parsed.data.email, INTENTOS_POR_IP, INTENTOS_POR_BUZON, CUARTO_DE_HORA))) {
+    return { ok: false, errors: { token: DEMASIADOS.form } };
+  }
 
   const supabase = await createClient();
 
@@ -400,7 +483,17 @@ export async function verificarCodigo(datos: unknown): Promise<ResultadoCodigo> 
 }
 
 /**
- * Guarda este aparato como conocido para el usuario de la sesión actual.
+ * Guarda este aparato como conocido para el usuario de la sesión actual, y
+ * arranca el reloj de inactividad de la sesión.
+ *
+ * **Las dos cosas van juntas aquí y no en cada sitio que abre sesión** porque se
+ * la llama desde los tres —registrarse, entrar con clave desde un aparato
+ * conocido y canjear el código— y desde ningún otro. Repartir la llamada a
+ * `abrirVentanaDeActividad()` en tres puntos sería tres oportunidades de
+ * olvidarla, y olvidarla significa que esa forma de entrar deja de funcionar:
+ * `src/proxy.ts` interpreta «cookies de sesión sin ventana de actividad» como
+ * «sesión caducada» y devuelve a `/entrar`. El único otro sitio que la abre es
+ * `src/app/auth/callback/route.ts`, que no pasa por aquí.
  *
  * **Recibe el cliente que acaba de abrir la sesión en vez de crear otro.** Uno
  * nuevo tendría que releer la cookie recién escrita en esta misma petición, y
@@ -423,4 +516,5 @@ async function confiarEnEsteAparato(
     await asegurarIdDispositivo(),
     await describirDispositivo(),
   );
+  await abrirVentanaDeActividad(userId);
 }
