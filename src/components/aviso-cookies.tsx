@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Cookie } from "lucide-react";
 import {
@@ -21,11 +22,10 @@ import {
  *
  * ## Qué se le pregunta a alguien, exactamente
  *
- * Hoy el sitio no mide nada, así que el aviso **informa** de las cookies
- * necesarias y **pregunta** por la medición que todavía no existe. Eso no es
- * pedir permiso de más: es dejar la decisión tomada antes de que haya algo que
- * medir. Lo que no se hace es fingir que ya hay analítica para que el banner se
- * vea más serio.
+ * El aviso **informa** de las cookies necesarias y **pregunta** por la
+ * medición de uso, que es propia (migración 0010) y no comparte nada con
+ * terceros. Decir que sí pone la cookie `sgr_visitante`; decir que no, o
+ * cambiar de opinión después, la borra.
  *
  * Las dos opciones tienen **el mismo peso visual**. Un «aceptar» verde y grande
  * junto a un «rechazar» gris y pequeño es un patrón oscuro, y además invalida el
@@ -36,10 +36,11 @@ import {
  *
  * Va abajo, fijo, y se puede ignorar. Un modal que tapa el sitio hasta que
  * alguien pulse algo convierte una obligación informativa en un peaje — y aquí
- * no hay nada que esperar, porque ninguna cookie de seguimiento se pone antes de
- * que alguien responda. No hay ninguna que poner.
+ * no hay nada que esperar, porque ninguna cookie de medición se pone antes de
+ * que alguien responda.
  */
 export function AvisoCookies({ yaDecidido }: { yaDecidido: boolean }) {
+  const router = useRouter();
   const [visible, setVisible] = useState(!yaDecidido);
 
   // El enlace «Cookies» del pie vuelve a abrirlo, para que la decisión se pueda
@@ -58,6 +59,11 @@ export function AvisoCookies({ yaDecidido }: { yaDecidido: boolean }) {
   function decidir(medicion: boolean) {
     guardarEnNavegador(nuevoConsentimiento(medicion));
     setVisible(false);
+    // El identificador es `httpOnly`: solo el servidor lo puede borrar.
+    if (!medicion) fetch("/api/medicion", { method: "DELETE" }).catch(() => {});
+    // El layout vuelve a leer la cookie y monta o desmonta `<MedicionUso>` sin
+    // esperar a la próxima carga completa.
+    router.refresh();
   }
 
   return (
@@ -74,8 +80,9 @@ export function AvisoCookies({ yaDecidido }: { yaDecidido: boolean }) {
         <p className="flex-1 text-sm text-muted">
           Usamos cookies para mantener tu sesión abierta y para reconocer los
           dispositivos en los que confías; sin ellas no podrías entrar ni
-          comprar. Nos gustaría además medir cómo se usa el sitio, de forma
-          agregada y sin identificarte.{" "}
+          comprar. Si nos dejas, contamos también qué páginas visitas y desde
+          dónde llegas, para saber qué te sirve. Esa medición es nuestra: no
+          la compartimos con nadie ni la usamos para publicidad.{" "}
           <Link
             href="/privacidad#cookies"
             className="font-medium text-brand-700 underline underline-offset-4"

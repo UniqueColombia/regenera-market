@@ -3,9 +3,9 @@
  *
  * ## Por qué una cookie y no `localStorage`
  *
- * Porque la decisión la tiene que poder leer **el servidor**. El día que haya
- * una herramienta de medición, quien decide si su script se manda al navegador
- * es el layout, en el servidor, antes de pintar nada. Con `localStorage` el
+ * Porque la decisión la tiene que poder leer **el servidor**. Quien decide si
+ * el código de medición se manda al navegador es el layout, en el servidor,
+ * antes de pintar nada. Con `localStorage` el
  * script ya habría viajado y se apagaría después — que es la forma habitual de
  * incumplir un aviso de cookies sin querer: el consentimiento se pide y el
  * seguimiento ya ocurrió.
@@ -13,19 +13,21 @@
  * Y tiene un segundo efecto que se nota: el layout sabe si hay decisión antes
  * de renderizar, así que el aviso **no parpadea** al cargar la página.
  *
- * ## Qué hay hoy, dicho sin adornos
+ * ## Qué se mide, dicho sin adornos
  *
- * Hoy el sitio **no tiene ninguna herramienta de medición**. Las cookies que
- * usa son las de sesión y la del dispositivo de confianza, que son necesarias
- * para que se pueda entrar y comprar — y para esas ninguna normativa pide
- * consentimiento previo.
+ * Desde la migración 0010 hay **una medición propia**: cada página vista se
+ * guarda en `page_views` (ruta sin query, dominio de origen, tipo de aparato y
+ * país), y un identificador aleatorio en la cookie `sgr_visitante` permite
+ * contar visitantes distintos. No hay ninguna herramienta de terceros.
  *
- * Entonces, ¿por qué existe todo esto? Porque la maquinaria hay que tenerla
- * puesta **antes** de que llegue la primera etiqueta de analítica, no después.
- * Cuando alguien agregue una, lo único que tiene que hacer es preguntar
- * `medicion` aquí. Si esto no existiera, lo que pasaría es lo de siempre: se
- * agrega la herramienta, se deja el aviso para «más adelante», y el sitio pasa
- * meses midiendo sin haber preguntado.
+ * Todo eso **solo ocurre si `medicion` es `true`**, y lo decide el servidor dos
+ * veces: el layout no manda `<MedicionUso>` al navegador si no hay permiso, y
+ * `/api/medicion` vuelve a leer esta cookie antes de guardar nada. Si alguien
+ * fuerza la llamada sin permiso, no se registra.
+ *
+ * Las cookies de sesión y la del dispositivo de confianza siguen siendo las
+ * necesarias: sin ellas no se puede entrar ni comprar, y para esas ninguna
+ * normativa pide consentimiento previo.
  */
 
 export const COOKIE_CONSENTIMIENTO = "sgr_cookies";
@@ -41,7 +43,25 @@ export const VIDA_CONSENTIMIENTO = 60 * 60 * 24 * 365;
  * esto. Subir el número vuelve a preguntar, que es lo correcto y también lo
  * único defendible si alguien lo revisa.
  */
-export const VERSION_CONSENTIMIENTO = 1;
+export const VERSION_CONSENTIMIENTO = 2;
+
+/*
+ * Historial, para quien tenga que explicar por qué se volvió a preguntar:
+ *
+ * - 1 (2026-09-19): se preguntaba por una medición que todavía no existía.
+ * - 2 (2026-09-24): la medición existe (migración 0010) y pone su propia
+ *   cookie, `sgr_visitante`. Un «sí» a algo que no existía no vale como «sí» a
+ *   algo concreto, así que todo el mundo vuelve a decidir.
+ */
+
+/**
+ * El identificador aleatorio que permite contar visitantes distintos.
+ *
+ * Solo existe con `medicion: true`: lo pone `/api/medicion` y lo borra la misma
+ * ruta cuando alguien retira el permiso. A la base llega su SHA-256, nunca el
+ * valor, y no se cruza con la cuenta de nadie.
+ */
+export const COOKIE_VISITANTE = "sgr_visitante";
 
 export interface Consentimiento {
   /**
