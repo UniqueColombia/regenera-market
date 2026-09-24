@@ -231,32 +231,49 @@ export function progresoDe(puntos: number): Progreso {
  * un hecho de la base (una orden entregada, una reseña guardada) y tiene que
  * apuntarse en la misma transacción que ese hecho, o se pierde el día que algo
  * falle a mitad.
+ *
+ * ## Por qué estos números y no los del principio
+ *
+ * Los de la 0006 eran demasiado generosos y se notó en cuanto existió la
+ * Comunidad: publicar daba 30 puntos **sin tope**, así que nueve entradas en una
+ * tarde, más el perfil y diez ofertas, llegaban a los 600 de Raíz sin haberle
+ * vendido nada a nadie. Raíz son dos puntos menos de comisión: el agujero no era
+ * de reputación, era de dinero.
+ *
+ * La migración 0011 los recortó con un criterio: **lo que se hace solo vale
+ * menos; lo que exige que otro te compre vale más.** Publicar, escribir y llenar
+ * el perfil son cosas que un proveedor hace sin que nadie participe. Vender,
+ * entregar y que te reseñen, no.
+ *
+ * Los umbrales (600 y 2.500) no se tocaron, y **los puntos ya otorgados no se
+ * recalcularon**: quien ganó 30 por una publicación de agosto los ganó. Lo que
+ * cambió es lo que vale un evento de aquí en adelante.
  */
 export const EXPERIENCIA = [
   {
     clave: "perfil_completo",
-    puntos: 80,
+    puntos: 40,
     titulo: "Completar tu perfil",
     detalle: "Logo, descripción, ubicación y datos de contacto.",
     repetible: false,
   },
   {
     clave: "oferta_publicada",
-    puntos: 25,
+    puntos: 10,
     titulo: "Publicar una oferta",
-    detalle: "Hasta 10 al mes, para que el puntaje mida catálogo y no volumen de ruido.",
+    detalle: "Hasta 5 al mes, para que el puntaje mida catálogo y no volumen de ruido.",
     repetible: true,
   },
   {
     clave: "primera_venta",
-    puntos: 150,
+    puntos: 120,
     titulo: "Tu primera venta",
     detalle: "Una sola vez, y es el salto más grande al principio.",
     repetible: false,
   },
   {
     clave: "venta_entregada",
-    puntos: 50,
+    puntos: 40,
     titulo: "Entregar un pedido",
     detalle: "Se cuenta cuando la orden queda como entregada, no cuando se paga.",
     repetible: true,
@@ -264,27 +281,27 @@ export const EXPERIENCIA = [
   {
     clave: "volumen_vendido",
     puntos: 10,
-    titulo: "Por cada $200.000 entregados",
+    titulo: "Por cada $500.000 entregados",
     detalle: "Reconoce el tamaño de lo vendido sin que dependa solo de él.",
     repetible: true,
   },
   {
     clave: "resena_positiva",
-    puntos: 40,
+    puntos: 30,
     titulo: "Recibir una reseña de 4 o 5 estrellas",
     detalle: "Solo de quien te compró de verdad: la reseña la escribe el comprador.",
     repetible: true,
   },
   {
     clave: "cotizacion_respondida",
-    puntos: 15,
+    puntos: 5,
     titulo: "Responder una cotización",
-    detalle: "Responder rápido es lo que cierra las cuentas corporativas.",
+    detalle: "Hasta 10 al mes. Responder rápido es lo que cierra las cuentas corporativas.",
     repetible: true,
   },
   {
     clave: "evaluacion_aprobada",
-    puntos: 300,
+    puntos: 250,
     titulo: "Aprobar la evaluación de sostenibilidad",
     detalle:
       "El evento que más suma, y el único que además te da el sello de evaluación verificada.",
@@ -292,7 +309,7 @@ export const EXPERIENCIA = [
   },
   {
     clave: "certificacion_verificada",
-    puntos: 100,
+    puntos: 80,
     titulo: "Certificación verificada",
     detalle: "Hasta tres. El tope es a propósito: un taller sin plata para certificarse tiene que poder llegar arriba igual.",
     repetible: true,
@@ -308,14 +325,14 @@ export const EXPERIENCIA = [
   // tan activa es la empresa. Lo impone el trigger `community_posts_experiencia`.
   {
     clave: "articulo_publicado",
-    puntos: 30,
+    puntos: 10,
     titulo: "Publicar en la Comunidad",
-    detalle: "Un consejo, una noticia o una práctica que le sirva a otro.",
+    detalle: "Hasta 4 al mes. Un consejo, una noticia o una práctica que le sirva a otro.",
     repetible: true,
   },
   {
     clave: "articulo_destacado",
-    puntos: 80,
+    puntos: 50,
     titulo: "Que destaquemos tu artículo",
     detalle: "Lo elige el equipo entre lo publicado en la Comunidad.",
     repetible: true,

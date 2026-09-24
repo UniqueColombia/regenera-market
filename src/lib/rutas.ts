@@ -48,6 +48,9 @@ export const RUTAS_PUBLICAS = [
   { ruta: "/vender", prioridad: 0.8, frecuencia: "monthly" },
   { ruta: "/verificacion", prioridad: 0.7, frecuencia: "monthly" },
   { ruta: "/niveles", prioridad: 0.7, frecuencia: "monthly" },
+  // La página que las reúne va por delante de las dos que reúne: es la que
+  // queremos que salga si alguien busca «políticas de Seregenera».
+  { ruta: "/legal", prioridad: 0.4, frecuencia: "yearly" },
   { ruta: "/terminos", prioridad: 0.3, frecuencia: "yearly" },
   { ruta: "/privacidad", prioridad: 0.3, frecuencia: "yearly" },
 ] as const satisfies readonly {

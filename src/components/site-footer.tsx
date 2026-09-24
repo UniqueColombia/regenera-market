@@ -75,6 +75,11 @@ export function SiteFooter() {
                 Comunidad
               </Link>
             </li>
+            <li>
+              <Link href="/legal" className="text-brand-200 transition-colors hover:text-white active:text-white">
+                Políticas y términos
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -109,10 +114,13 @@ export function SiteFooter() {
         </div>
       </div>
 
-      {/* Lo legal va en la barra inferior y no en una columna más: quien lo
-          busca lo busca abajo, y meterlo arriba lo pondría a competir con lo
-          que la gente sí viene a leer. Los tres enlaces son obligatorios de
-          tener y opcionales de mirar. */}
+      {/* Lo legal sigue en la barra inferior porque es donde se busca, pero ya
+          no **solo** ahí: «Políticas y términos» está también arriba, en la
+          columna de plataforma, y lleva a `/legal`, que las reúne y las explica.
+          El motivo del cambio es que la letra pequeña del pie sirve para cumplir
+          y no para que nadie lo lea, y estos documentos dicen cosas que a un
+          proveedor le conviene saber antes de firmar — la comisión, entre
+          ellas. Los de aquí abajo son el atajo directo a cada documento. */}
       <div className="border-t border-brand-800">
         <div className="container-page flex flex-col items-center gap-3 py-5 text-xs text-brand-300 sm:flex-row sm:justify-between">
           <p className="text-center sm:text-left">
@@ -121,6 +129,14 @@ export function SiteFooter() {
           </p>
           <nav aria-label="Legal">
             <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              <li>
+                <Link
+                  href="/legal"
+                  className="transition-colors hover:text-white active:text-white"
+                >
+                  Todas las políticas
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/terminos"

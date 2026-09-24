@@ -6,6 +6,7 @@ import { saveOrder } from "@/lib/orders";
 import { priceLine, totalsFor } from "@/lib/pricing";
 import { getListingsByIds, getProviderTiers } from "@/lib/repo";
 import type { Order, OrderItem } from "@/lib/types";
+import { dentroDelRitmo, origenDeLaPeticion } from "@/lib/ritmo";
 import type { CartLine, PricedCartDTO } from "./types";
 
 /**
@@ -97,6 +98,21 @@ export async function checkout(
       errors[key] ??= issue.message;
     }
     return { ok: false, errors };
+  }
+
+  // Comprar no exige cuenta a propósito —un hotel pide una cotización sin
+  // registrarse— y eso deja el formulario abierto a cualquiera con un bucle.
+  // Cinco órdenes en diez minutos desde la misma IP es más de lo que hace nadie
+  // comprando de verdad, y mucho menos de lo que hace un guion. Lo que se
+  // protege no es el dinero (no se cobra aquí) sino la tabla de órdenes: cada
+  // envío deja una fila que alguien tiene que mirar en `/admin/ordenes`.
+  if (!dentroDelRitmo(`checkout:${await origenDeLaPeticion()}`, 5, 600)) {
+    return {
+      ok: false,
+      errors: {
+        form: "Recibimos varios pedidos seguidos desde aquí. Espera unos minutos y vuelve a intentarlo.",
+      },
+    };
   }
 
   const listings = await getListingsByIds(lines.map((l) => l.listingId));
