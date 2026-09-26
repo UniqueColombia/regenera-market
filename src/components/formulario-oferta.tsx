@@ -2,9 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Loader2 } from "lucide-react";
-import { guardarOferta } from "./actions";
-import { CATEGORIES, DEPARTMENTS, KIND_LABEL, VERTICALS, CERTIFICATIONS } from "@/lib/taxonomy";
+import { Loader2, ShieldCheck } from "lucide-react";
+import {
+  CATEGORIAS,
+  CERTIFICATIONS,
+  DEPARTMENTS,
+  KIND_LABEL,
+  VERTICALS,
+  categoriaPorId,
+} from "@/lib/taxonomy";
 import type { Listing, ListingKind } from "@/lib/types";
 
 /**
@@ -12,16 +18,34 @@ import type { Listing, ListingKind } from "@/lib/types";
  * `listings` tiene campos comunes y campos que solo existen para un tipo.
  *
  * **Las secciones por tipo se muestran según `kind`, y el estado de `kind` vive
- * aquí** — es la única razón por la que esto es un componente de cliente.
+ * aquí** — es la razón principal por la que esto es un componente de cliente.
  * Enseñar «punto de encuentro» al crear un producto no es un detalle estético:
- * es invitar a llenar un dato que el servidor va a tirar (`guardarOferta` limpia
- * los campos del otro tipo a propósito).
+ * es invitar a llenar un dato que el servidor va a tirar (`filaDeOferta()`
+ * limpia los campos del otro tipo a propósito).
  *
  * El envío arma el objeto a mano en vez de pasar el `FormData` entero porque hay
  * tres cosas que un `Object.fromEntries` deja mal: las casillas múltiples
  * (verticales, certificaciones) pierden todos los valores menos el último, las
  * casillas sueltas llegan como `"on"` o ausentes en vez de booleanas, y las
  * listas por línea necesitan quedarse como texto para que Zod las parta.
+ *
+ * ## Dos modos, un formulario
+ *
+ * Vivía en `src/app/admin/ofertas/` y lo usaba solo el equipo. Desde el
+ * 2026-09-26 lo usa también cada empresa para publicar lo suyo desde
+ * `/cuenta/empresa/ofertas`, y por eso está en `src/components/` (dos rutas,
+ * regla de `componentizacion`). Lo que cambia con `modo`:
+ *
+ * - **admin** elige el proveedor, el estado y si se destaca.
+ * - **empresa** no ve nada de eso: la oferta es de su empresa, nace en borrador
+ *   o en revisión, y la publica el equipo. Lo impone el trigger
+ *   `listings_proteger_proveedor` de la 0012; aquí solo no se ofrece. Además,
+ *   **lo que aporta y lo que cuesta al ambiente son obligatorios**, y
+ *   «Consultoría e implementación» aparece bloqueada si la empresa no tiene la
+ *   evaluación verificada.
+ *
+ * La acción llega por props (`guardar`) en vez de importarse: cada modo tiene
+ * la suya, con su propia comprobación de quién puede qué.
  */
 
 const ESTADOS = [
@@ -38,22 +62,43 @@ export interface ProveedorOpcion {
   aprobado: boolean;
 }
 
+export type ResultadoGuardarOferta =
+  | { ok: true; id: string; slug: string }
+  | { ok: false; errors: Record<string, string> };
+
 export function FormularioOferta({
-  proveedores,
+  modo = "admin",
+  proveedores = [],
   oferta,
+  guardar,
+  destino,
+  verificada = false,
 }: {
-  proveedores: ProveedorOpcion[];
+  modo?: "admin" | "empresa";
+  proveedores?: ProveedorOpcion[];
   /** Sin oferta, el formulario crea. Con oferta, edita. */
   oferta?: Listing;
+  guardar: (datos: unknown) => Promise<ResultadoGuardarOferta>;
+  /** A dónde volver al guardar o al cancelar. */
+  destino: string;
+  /** Solo en modo empresa: ¿tiene la evaluación verificada por Seregenera? */
+  verificada?: boolean;
 }) {
   const router = useRouter();
+  const esEmpresa = modo === "empresa";
   const [kind, setKind] = useState<ListingKind>(oferta?.kind ?? "product");
+  const [categoria, setCategoria] = useState(oferta?.category ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pendiente, iniciar] = useTransition();
+
+  const subcategorias = categoriaPorId(categoria)?.subcategorias ?? [];
 
   function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    // Qué botón se pulsó: en modo empresa hay dos —«enviar a revisión» y
+    // «guardar borrador»— y `FormData` no incluye el botón por sí solo.
+    const boton = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
 
     const datos = {
       id: oferta?.id ?? "",
@@ -64,6 +109,7 @@ export function FormularioOferta({
       summary: fd.get("summary"),
       description: fd.get("description"),
       category: fd.get("category"),
+      subcategory: fd.get("subcategory") ?? "",
       verticals: fd.getAll("verticals"),
       images: fd.get("images"),
       priceCop: fd.get("priceCop"),
@@ -75,6 +121,9 @@ export function FormularioOferta({
       co2KgSaved: fd.get("co2KgSaved"),
       waterLitersSaved: fd.get("waterLitersSaved"),
       wasteKgReduced: fd.get("wasteKgReduced"),
+      aporteAmbiental: fd.get("aporteAmbiental"),
+      consecuenciaAmbiental: fd.get("consecuenciaAmbiental"),
+      huellaCo2Kg: fd.get("huellaCo2Kg"),
       certifications: fd.getAll("certifications"),
       department: fd.get("department"),
       city: fd.get("city"),
@@ -87,10 +136,11 @@ export function FormularioOferta({
       includes: fd.get("includes"),
       deliveryTime: fd.get("deliveryTime"),
       scope: fd.get("scope"),
+      enviar: boton?.value === "borrador" ? "borrador" : "revision",
     };
 
     iniciar(async () => {
-      const r = await guardarOferta(datos);
+      const r = await guardar(datos);
       if (!r.ok) {
         setErrors(r.errors);
         // El error puede estar arriba del todo y la persona haber enviado desde
@@ -100,15 +150,17 @@ export function FormularioOferta({
       }
       setErrors({});
       router.refresh();
-      router.push("/admin/ofertas");
+      router.push(destino);
     });
   }
 
+  const hayErrores = Object.keys(errors).length > 0;
+
   return (
     <form onSubmit={enviar} className="mt-8 space-y-8">
-      {errors.form && (
+      {(errors.form || hayErrores) && (
         <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-red-100">
-          {errors.form}
+          {errors.form ?? "Revisa los campos marcados en rojo."}
         </p>
       )}
 
@@ -116,27 +168,29 @@ export function FormularioOferta({
         <legend className="font-display text-xl text-ink">Qué se vende</legend>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Campo label="Proveedor" error={errors.providerId}>
-            <select
-              name="providerId"
-              defaultValue={oferta?.providerId ?? ""}
-              required
-              className={entrada(errors.providerId)}
-            >
-              <option value="">Elige…</option>
-              {proveedores.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                  {!p.aprobado ? " (sin aprobar)" : ""}
-                </option>
-              ))}
-            </select>
-          </Campo>
+          {!esEmpresa && (
+            <Campo label="Proveedor" error={errors.providerId}>
+              <select
+                name="providerId"
+                defaultValue={oferta?.providerId ?? ""}
+                required
+                className={entrada(errors.providerId)}
+              >
+                <option value="">Elige…</option>
+                {proveedores.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {!p.aprobado ? " (sin aprobar)" : ""}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          )}
 
           <Campo
             label="Tipo"
             error={errors.kind}
-            ayuda="Cambia qué campos pide el formulario más abajo."
+            ayuda="Producto, experiencia o servicio. Cambia qué campos pide el formulario más abajo."
           >
             <select
               name="kind"
@@ -158,11 +212,12 @@ export function FormularioOferta({
             name="title"
             defaultValue={oferta?.title}
             required
+            maxLength={140}
             className={entrada(errors.title)}
           />
         </Campo>
 
-        {oferta && (
+        {oferta && !esEmpresa && (
           <Campo
             label="Dirección (slug)"
             error={errors.slug}
@@ -180,6 +235,7 @@ export function FormularioOferta({
           <textarea
             name="summary"
             rows={2}
+            maxLength={300}
             defaultValue={oferta?.summary}
             className={entrada(errors.summary)}
           />
@@ -189,45 +245,90 @@ export function FormularioOferta({
           <textarea
             name="description"
             rows={6}
+            maxLength={5000}
             defaultValue={oferta?.description}
             className={entrada(errors.description)}
           />
         </Campo>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Campo label="Categoría" error={errors.category}>
+          <Campo
+            label="Categoría"
+            error={errors.category}
+            ayuda={categoriaPorId(categoria)?.descripcion ?? "Qué resuelve lo que vendes."}
+          >
             <select
               name="category"
-              defaultValue={oferta?.category ?? ""}
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
               required
               className={entrada(errors.category)}
             >
               <option value="">Elige…</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+              {CATEGORIAS.map((c) => {
+                // La consultoría exige el sello: una empresa sin él la ve,
+                // porque saber que existe es lo que la anima a pedirlo, pero no
+                // la puede elegir. La base la rechazaría igual.
+                const bloqueada = esEmpresa && c.avanzada && !verificada;
+                return (
+                  <option key={c.id} value={c.id} disabled={bloqueada}>
+                    {c.label}
+                    {bloqueada ? " (requiere el sello verificado)" : ""}
+                  </option>
+                );
+              })}
             </select>
           </Campo>
 
           <Campo
-            label="Unidad"
-            error={errors.unit}
-            ayuda="«unidad», «kit», «persona», «hora», «mes»…"
+            label="Subcategoría"
+            error={errors.subcategory}
+            ayuda="Opcional. Ayuda a que te encuentre quien busca algo concreto."
           >
-            <input
-              name="unit"
-              defaultValue={oferta?.unit ?? "unidad"}
-              required
-              className={entrada(errors.unit)}
-            />
+            {/* `key` para que al cambiar de categoría el desplegable se vacíe:
+                una subcategoría de «Agua» no tiene sentido en «Energía». */}
+            <select
+              key={categoria}
+              name="subcategory"
+              defaultValue={oferta?.category === categoria ? (oferta?.subcategory ?? "") : ""}
+              disabled={subcategorias.length === 0}
+              className={entrada(errors.subcategory)}
+            >
+              <option value="">Ninguna en particular</option>
+              {subcategorias.map((sc) => (
+                <option key={sc.id} value={sc.id}>
+                  {sc.label}
+                </option>
+              ))}
+            </select>
           </Campo>
         </div>
 
+        {esEmpresa && categoria === "consultoria" && verificada && (
+          <p className="flex items-start gap-2 rounded-xl bg-brand-50 p-4 text-sm text-brand-800 ring-1 ring-brand-100">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
+            Tu empresa tiene el sello verificado por Seregenera, así que puedes
+            ofrecer consultoría e implementación.
+          </p>
+        )}
+
         <Campo
-          label="Verticales a las que sirve"
-          ayuda="Son los filtros del menú. Puede ser más de una."
+          label="Unidad"
+          error={errors.unit}
+          ayuda="«unidad», «kit», «persona», «hora», «mes»…"
+        >
+          <input
+            name="unit"
+            defaultValue={oferta?.unit ?? "unidad"}
+            required
+            maxLength={40}
+            className={entrada(errors.unit)}
+          />
+        </Campo>
+
+        <Campo
+          label="Tipos de negocio a los que sirve"
+          ayuda="Son los filtros del catálogo. Puede ser más de uno."
         >
           <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
             {VERTICALS.map((v) => (
@@ -397,11 +498,22 @@ export function FormularioOferta({
           </Campo>
 
           <p className="rounded-xl bg-clay-100 p-4 text-sm text-clay-700">
-            Las <strong className="font-semibold">fechas con cupo</strong>{" "}
-            todavía no se editan desde aquí: viven en la tabla{" "}
-            <code>listing_availability</code> y hoy se siembran con el script.
-            Mientras no exista esa pantalla, una experiencia nueva se puede
-            comprar sin fecha.
+            {esEmpresa ? (
+              <>
+                Las <strong className="font-semibold">fechas con cupo</strong>{" "}
+                las cargamos nosotros al revisar tu experiencia: escríbenos cuáles
+                quieres abrir y para cuántas personas. Hasta entonces se puede
+                reservar sin fecha.
+              </>
+            ) : (
+              <>
+                Las <strong className="font-semibold">fechas con cupo</strong>{" "}
+                todavía no se editan desde aquí: viven en la tabla{" "}
+                <code>listing_availability</code> y hoy se siembran con el script.
+                Mientras no exista esa pantalla, una experiencia nueva se puede
+                comprar sin fecha.
+              </>
+            )}
           </p>
         </fieldset>
       )}
@@ -434,16 +546,48 @@ export function FormularioOferta({
       )}
 
       <fieldset className="space-y-4 border-t border-hairline pt-8" disabled={pendiente}>
-        <legend className="font-display text-xl text-ink">Impacto y origen</legend>
+        <legend className="font-display text-xl text-ink">Impacto ambiental</legend>
 
         <p className="rounded-xl bg-sand p-4 text-sm text-muted">
-          Estas cifras son <strong>por unidad</strong> y se multiplican por la
-          cantidad en el certificado del comprador. Es mejor dejarlas vacías que
-          inventarlas: una cifra sin sustento es lo que convierte el impacto en
-          decoración.
+          Cuéntalo en las dos direcciones: <strong>lo que aporta</strong> y{" "}
+          <strong>lo que cuesta</strong>. Nada de lo que se produce tiene huella
+          cero, y una ficha que la declara se lee como información, no como
+          publicidad. Las cifras son <strong>por unidad</strong>; es mejor
+          dejarlas vacías que inventarlas.
         </p>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Campo
+            label={esEmpresa ? "Lo que aporta al ambiente" : "Lo que aporta al ambiente (opcional)"}
+            error={errors.aporteAmbiental}
+            ayuda="Qué evita, qué regenera o qué devuelve al territorio. Ej.: «Sustituye 40 botellitas plásticas de amenities por cada dispensador»."
+          >
+            <textarea
+              name="aporteAmbiental"
+              rows={4}
+              maxLength={1000}
+              required={esEmpresa}
+              defaultValue={oferta?.aporteAmbiental}
+              className={entrada(errors.aporteAmbiental)}
+            />
+          </Campo>
+          <Campo
+            label={esEmpresa ? "Lo que cuesta al ambiente" : "Lo que cuesta al ambiente (opcional)"}
+            error={errors.consecuenciaAmbiental}
+            ayuda="Su huella: qué consume, de dónde viene, cómo se transporta, qué queda al final. Ej.: «Se envía por carretera desde Pasto; el envase es de vidrio retornable»."
+          >
+            <textarea
+              name="consecuenciaAmbiental"
+              rows={4}
+              maxLength={1000}
+              required={esEmpresa}
+              defaultValue={oferta?.consecuenciaAmbiental}
+              className={entrada(errors.consecuenciaAmbiental)}
+            />
+          </Campo>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-4">
           <Campo label="CO₂ evitado (kg)" error={errors.co2KgSaved}>
             <input
               name="co2KgSaved"
@@ -474,6 +618,20 @@ export function FormularioOferta({
               className={entrada(errors.wasteKgReduced)}
             />
           </Campo>
+          <Campo
+            label="Huella de CO₂ (kg)"
+            error={errors.huellaCo2Kg}
+            ayuda="Lo que emite producir y entregar una unidad, si lo sabes."
+          >
+            <input
+              name="huellaCo2Kg"
+              type="number"
+              step="0.01"
+              min={0}
+              defaultValue={oferta?.huellaCo2Kg ?? ""}
+              className={entrada(errors.huellaCo2Kg)}
+            />
+          </Campo>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -483,7 +641,7 @@ export function FormularioOferta({
               defaultValue={oferta?.department ?? ""}
               className={entrada(errors.department)}
             >
-              <option value="">El del proveedor</option>
+              <option value="">{esEmpresa ? "El de mi empresa" : "El del proveedor"}</option>
               {DEPARTMENTS.map((d) => (
                 <option key={d} value={d}>
                   {d}
@@ -499,7 +657,11 @@ export function FormularioOferta({
 
         <Campo
           label="Certificaciones de esta oferta"
-          ayuda="Las del proveedor van en su ficha. Estas son las del producto."
+          ayuda={
+            esEmpresa
+              ? "Las revisamos antes de publicar: ten a mano el documento vigente."
+              : "Las del proveedor van en su ficha. Estas son las del producto."
+          }
         >
           <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
             {Object.entries(CERTIFICATIONS).map(([code, cert]) => (
@@ -518,66 +680,90 @@ export function FormularioOferta({
         </Campo>
       </fieldset>
 
-      <fieldset className="space-y-4 border-t border-hairline pt-8" disabled={pendiente}>
-        <legend className="font-display text-xl text-ink">Publicación</legend>
+      {!esEmpresa && (
+        <fieldset className="space-y-4 border-t border-hairline pt-8" disabled={pendiente}>
+          <legend className="font-display text-xl text-ink">Publicación</legend>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Campo
-            label="Estado"
-            error={errors.status}
-            ayuda="Solo «Publicada» se ve en el catálogo, y únicamente si su proveedor también está aprobado."
-          >
-            <select
-              name="status"
-              defaultValue={oferta?.status ?? "draft"}
-              className={entrada(errors.status)}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Campo
+              label="Estado"
+              error={errors.status}
+              ayuda="Solo «Publicada» se ve en el catálogo, y únicamente si su proveedor también está aprobado."
             >
-              {ESTADOS.map((e) => (
-                <option key={e.value} value={e.value}>
-                  {e.label}
-                </option>
-              ))}
-            </select>
-          </Campo>
+              <select
+                name="status"
+                defaultValue={oferta?.status ?? "draft"}
+                className={entrada(errors.status)}
+              >
+                {ESTADOS.map((e) => (
+                  <option key={e.value} value={e.value}>
+                    {e.label}
+                  </option>
+                ))}
+              </select>
+            </Campo>
 
-          <Campo label="Destacada">
-            <label className="flex items-start gap-2 pt-2 text-sm text-ink">
-              <input
-                type="checkbox"
-                name="featured"
-                defaultChecked={oferta?.featured}
-                className="mt-0.5 size-4 rounded border-control text-brand-700 focus:ring-brand-500"
-              />
-              <span>Aparece primero en el catálogo y en la portada.</span>
-            </label>
-          </Campo>
-        </div>
-      </fieldset>
+            <Campo label="Destacada">
+              <label className="flex items-start gap-2 pt-2 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  name="featured"
+                  defaultChecked={oferta?.featured}
+                  className="mt-0.5 size-4 rounded border-control text-brand-700 focus:ring-brand-500"
+                />
+                <span>Aparece primero en el catálogo y en la portada.</span>
+              </label>
+            </Campo>
+          </div>
+        </fieldset>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-6">
         <button
           type="submit"
+          value="revision"
           disabled={pendiente}
           className="flex items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:bg-muted"
         >
           {pendiente && <Loader2 className="size-4 animate-spin" />}
-          {oferta ? "Guardar cambios" : "Crear la oferta"}
+          {esEmpresa
+            ? "Enviar a revisión"
+            : oferta
+              ? "Guardar cambios"
+              : "Crear la oferta"}
         </button>
+        {esEmpresa && (
+          <button
+            type="submit"
+            value="borrador"
+            disabled={pendiente}
+            className="rounded-full px-5 py-3 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand disabled:opacity-50"
+          >
+            Guardar como borrador
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => router.push("/admin/ofertas")}
+          onClick={() => router.push(destino)}
           className="rounded-full px-5 py-3 text-sm text-muted transition hover:bg-sand hover:text-brand-700"
         >
           Cancelar
         </button>
       </div>
+
+      {esEmpresa && (
+        <p className="text-xs text-muted">
+          La revisamos antes de publicarla —sobre todo las cifras de impacto— y
+          te avisamos. Si editas una oferta ya publicada, vuelve a revisión.
+        </p>
+      )}
     </form>
   );
 }
 
 /** Clases del control, con el borde rojo cuando el campo trae error. */
 function entrada(error?: string): string {
-  return `w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-500 ${
+  return `w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-500 disabled:bg-sand disabled:text-muted ${
     error ? "border-red-500" : "border-control"
   }`;
 }

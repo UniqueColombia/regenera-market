@@ -19,7 +19,8 @@ export const LISTINGS: Listing[] = [
       "Shampoo, acondicionador y jabón orgánicos en envases compostables.",
     description:
       "Kit completo de acogida para habitación, formulado con caléndula, romero y aloe cultivados en huertas agroecológicas de Boyacá. Los envases son de papel semilla: el huésped puede sembrarlos. Se entrega en caja de cartón reciclado sin plástico de ningún tipo.",
-    category: "Amenities",
+    category: "habitacion",
+    subcategory: "amenities",
     verticals: ["hoteles", "hostales"],
     images: ["/img/ofertas/kit-amenities-organicos-hoteles.webp"],
     priceCop: 45000,
@@ -46,7 +47,8 @@ export const LISTINGS: Listing[] = [
       "Aireadores y reductores de caudal certificados para grifería y duchas.",
     description:
       "Conjunto de aireadores y reductores que baja el caudal de 12 a 6 litros por minuto sin que el huésped perciba pérdida de presión. Incluye instalación en hasta 20 puntos y tablero de medición del ahorro durante los primeros seis meses.",
-    category: "Tecnología",
+    category: "agua",
+    subcategory: "ahorro-agua",
     verticals: ["hoteles", "hostales", "restaurantes"],
     images: ["/img/ofertas/sistema-ahorro-agua-banos.webp"],
     priceCop: 180000,
@@ -72,7 +74,8 @@ export const LISTINGS: Listing[] = [
     summary: "Sillas y mesas artesanales de bambú guadua certificado.",
     description:
       "Juego de mesa y cuatro sillas en guadua angustifolia curada por inmersión, con acabado en aceite de linaza. Cada pieza lleva grabado el rodal de origen y el año de cosecha. Garantía estructural de cinco años.",
-    category: "Mobiliario",
+    category: "habitacion",
+    subcategory: "mobiliario",
     verticals: ["hoteles", "hostales", "restaurantes"],
     images: ["/img/ofertas/mobiliario-bambu-zonas-comunes.webp"],
     priceCop: 320000,
@@ -99,7 +102,8 @@ export const LISTINGS: Listing[] = [
       "Tiendas de glamping fabricadas con lona reciclada y estructura de bambú.",
     description:
       "Domo de 4 metros de diámetro para dos personas, con cubierta de lona publicitaria recuperada y estructura en guadua. Impermeable, desmontable en 40 minutos y reparable con kit incluido.",
-    category: "Equipamiento",
+    category: "habitacion",
+    subcategory: "mobiliario",
     verticals: ["hostales", "agencias"],
     images: ["/img/ofertas/tiendas-campana-eco-friendly.webp"],
     priceCop: 280000,
@@ -126,7 +130,8 @@ export const LISTINGS: Listing[] = [
       "Botella reutilizable, bolsa de algodón orgánico y libreta de papel reciclado.",
     description:
       "Kit de bienvenida que reemplaza el plástico de un solo uso durante toda la estadía. La botella es de acero inoxidable, la bolsa de algodón orgánico certificado y la libreta de papel 100% reciclado con tapa en papel semilla.",
-    category: "Amenities",
+    category: "habitacion",
+    subcategory: "kits-bienvenida",
     verticals: ["hoteles", "hostales", "agencias"],
     images: ["/img/ofertas/kit-bienvenida-sostenible-huespedes.webp"],
     priceCop: 18500,
@@ -152,7 +157,8 @@ export const LISTINGS: Listing[] = [
     summary: "Platos, vasos y contenedores compostables a base de bagazo.",
     description:
       "Vajilla desechable que resiste líquidos calientes y microondas, y se composta por completo en 90 días. Caja de 500 piezas surtidas. Incluye recolección del material usado en Cali, Palmira y Buga.",
-    category: "Empaques",
+    category: "gastronomia",
+    subcategory: "vajilla",
     verticals: ["restaurantes", "hostales", "agencias"],
     images: ["/img/ofertas/vajilla-biodegradable-cana-azucar.webp"],
     priceCop: 32000,
@@ -179,7 +185,8 @@ export const LISTINGS: Listing[] = [
       "Sistema completo de compostaje in situ con asesoría y compostera industrial.",
     description:
       "Instalación de compostera industrial dimensionada al volumen de residuo orgánico del establecimiento, capacitación al equipo de cocina y acompañamiento mensual durante el primer año. Entrega certificado de disposición final válido para reportes de sostenibilidad.",
-    category: "Servicios",
+    category: "residuos",
+    subcategory: "compostaje",
     verticals: ["restaurantes", "hoteles"],
     images: ["/img/ofertas/programa-compostaje-restaurantes.webp"],
     priceCop: 125000,
@@ -215,7 +222,8 @@ export const LISTINGS: Listing[] = [
       "Productos biodegradables para limpieza interior y exterior de vehículos.",
     description:
       "Línea completa de limpieza vehicular sin fosfatos ni solventes derivados del petróleo. El sistema de lavado en seco incluido reduce el consumo de agua por vehículo de 180 a menos de 5 litros.",
-    category: "Mantenimiento",
+    category: "movilidad",
+    subcategory: "limpieza-vehiculos",
     verticals: ["transporte"],
     images: ["/img/ofertas/kit-limpieza-ecologica-flotas.webp"],
     priceCop: 55000,
@@ -242,7 +250,8 @@ export const LISTINGS: Listing[] = [
       "Filtros HEPA con ionización para mejorar la calidad del aire en transporte turístico.",
     description:
       "Unidad de filtración HEPA H13 con ionización para buses de hasta 45 pasajeros. Reduce material particulado en cabina durante trayectos por vías destapadas. Incluye instalación y dos recambios de filtro al año.",
-    category: "Tecnología",
+    category: "movilidad",
+    subcategory: "calidad-aire",
     verticals: ["transporte"],
     images: ["/img/ofertas/sistema-purificacion-aire-buses.webp"],
     priceCop: 420000,
@@ -269,7 +278,8 @@ export const LISTINGS: Listing[] = [
       "Souvenirs y merchandising hechos con fibra de coco del Pacífico colombiano.",
     description:
       "Portavasos, llaveros y jaboneras en fibra y estopa de coco, con marcado en bajorrelieve del logo del cliente. Cada pedido se produce por encargo en Nuquí y se despacha en empaque de papel kraft sin plástico.",
-    category: "Marketing",
+    category: "territorio",
+    subcategory: "artesanias",
     verticals: ["agencias", "hoteles", "hostales"],
     images: ["/img/ofertas/merchandising-fibra-coco-personalizado.webp"],
     priceCop: 12000,
@@ -296,7 +306,8 @@ export const LISTINGS: Listing[] = [
       "Tour de 4 días con comunidades indígenas y reforestación de selva.",
     description:
       "Cuatro días en el bajo Amazonas conviviendo con familias ticuna. El itinerario combina navegación por caños, recorrido nocturno de fauna y dos jornadas de siembra en el vivero comunitario. Cada viajero deja plantados y georreferenciados 15 árboles nativos, con seguimiento por dos años.",
-    category: "Experiencias",
+    category: "territorio",
+    subcategory: "experiencias-comunitarias",
     verticals: ["agencias"],
     images: ["/img/ofertas/experiencia-turismo-regenerativo-amazonia.webp"],
     priceCop: 850000,
@@ -341,7 +352,8 @@ export const LISTINGS: Listing[] = [
       "Lámparas solares autónomas con sensor de movimiento para senderos y jardines.",
     description:
       "Luminaria solar autónoma con panel monocristalino y batería LiFePO4 de 6 años de vida útil. Sensor de movimiento con modo de baja intensidad para no alterar la fauna nocturna. No requiere zanja ni conexión a red.",
-    category: "Energía",
+    category: "energia",
+    subcategory: "iluminacion",
     verticals: ["hoteles", "hostales"],
     images: ["/img/ofertas/iluminacion-solar-led-exteriores.webp"],
     priceCop: 95000,
@@ -367,7 +379,8 @@ export const LISTINGS: Listing[] = [
     summary: "Recolección y reciclaje certificado de aceite usado de cocina.",
     description:
       "Servicio de recolección programada de aceite vegetal usado, con contenedores herméticos en comodato. El aceite se transforma en biodiésel y el cliente recibe certificado de gestión válido ante la autoridad ambiental.",
-    category: "Servicios",
+    category: "residuos",
+    subcategory: "aceite-usado",
     verticals: ["restaurantes", "hoteles"],
     images: ["/img/ofertas/aceite-cocina-reciclado-biodiesel.webp"],
     priceCop: 75000,
@@ -402,7 +415,8 @@ export const LISTINGS: Listing[] = [
       "Duchas con calentamiento solar pasivo para zonas sin red eléctrica.",
     description:
       "Ducha de calentamiento solar pasivo de 60 litros que alcanza 45 °C en cuatro horas de sol. Estructura desmontable en guadua y cortina de lona reciclada. Pensada para glamping y campamentos sin conexión.",
-    category: "Equipamiento",
+    category: "energia",
+    subcategory: "paneles-solares",
     verticals: ["hostales", "agencias"],
     images: ["/img/ofertas/duchas-solares-portatiles.webp"],
     priceCop: 145000,
@@ -429,7 +443,8 @@ export const LISTINGS: Listing[] = [
       "Curso certificado de 40 horas en prácticas regenerativas para guías turísticos.",
     description:
       "Programa de 40 horas que prepara al equipo de guías en interpretación del patrimonio natural, manejo de capacidad de carga, protocolos de relacionamiento comunitario y primeros auxilios en entornos remotos. Modalidad mixta con dos jornadas presenciales.",
-    category: "Capacitación",
+    category: "territorio",
+    subcategory: "educacion-ambiental",
     verticals: ["agencias", "transporte", "hoteles"],
     images: ["/img/ofertas/capacitacion-turismo-sostenible-guias.webp"],
     priceCop: 65000,
@@ -464,7 +479,8 @@ export const LISTINGS: Listing[] = [
       "Inmersión guiada para trasplantar corales cultivados en guardería submarina.",
     description:
       "Jornada de medio día en la que el visitante desciende con un biólogo marino a la guardería de corales, aprende a fijar fragmentos de cuerno de alce y trasplanta seis colonias al arrecife en restauración. No requiere certificación de buceo: se hace con snorkel asistido.",
-    category: "Experiencias",
+    category: "territorio",
+    subcategory: "restauracion",
     verticals: ["agencias", "hoteles"],
     images: ["/img/ofertas/siembra-de-coral-islas-del-rosario.webp"],
     priceCop: 320000,
@@ -509,7 +525,8 @@ export const LISTINGS: Listing[] = [
       "Día completo de finca a taza en sistemas agroforestales de Santander.",
     description:
       "Recorrido por una finca cacaotera bajo sombrío nativo: cosecha, fermentación, secado y tostión, cerrando con una cata comparativa de tres perfiles. Almuerzo campesino preparado por la asociación de mujeres de la vereda.",
-    category: "Experiencias",
+    category: "territorio",
+    subcategory: "experiencias-comunitarias",
     verticals: ["agencias", "restaurantes"],
     images: ["/img/ofertas/ruta-del-cacao-regenerativo.webp"],
     priceCop: 165000,
@@ -553,7 +570,8 @@ export const LISTINGS: Listing[] = [
       "Consultoría integral para certificar su establecimiento en la norma colombiana de turismo sostenible.",
     description:
       "Proceso de seis meses que cubre diagnóstico inicial, cierre de brechas documentales, formación del equipo y acompañamiento en la auditoría de certificación. El alcance y el precio dependen del tamaño y la categoría del establecimiento, por eso se cotiza caso a caso.",
-    category: "Servicios",
+    category: "consultoria",
+    subcategory: "certificaciones",
     verticals: ["hoteles", "hostales", "agencias", "restaurantes"],
     images: ["/img/ofertas/acompanamiento-certificacion-nts-ts.webp"],
     priceCop: 4800000,

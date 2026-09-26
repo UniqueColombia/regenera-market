@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   BadgeCheck,
+  Briefcase,
   ClipboardCheck,
   Eye,
+  ReceiptText,
   ShieldCheck,
   Sprout,
   Users,
@@ -20,30 +22,42 @@ const PUNTOS_EVALUACION = eventoExperiencia("evaluacion_aprobada").puntos;
 export const metadata: Metadata = {
   title: "Cómo verificamos",
   description:
-    "La metodología de verificación de Seregenera: seis dimensiones, evidencia documental y revisión humana antes de otorgar el sello de evaluación verificada.",
+    "El sello Green Watching de Seregenera: seis dimensiones, evidencia documental, un estudio de nuestro equipo y una licencia. Solo lo otorga Seregenera.",
   ...publica("/verificacion"),
 };
 
+/**
+ * El proceso del sello, en el orden en que ocurre.
+ *
+ * **Green Watching es el nombre del sello**, y es lo que ya existía como
+ * «evaluación verificada» (`providers.sustainability_verified_at`): no hay dos
+ * sellos. Lo que se hizo explícito el 2026-09-26 es cómo se obtiene —un estudio
+ * de nuestro equipo y el pago de una licencia— y que **solo lo otorga
+ * Seregenera**: ni se compra por fuera ni se lo pone el proveedor. En la base lo
+ * escribe `sync_provider_score()` cuando un administrador aprueba la evaluación,
+ * y el trigger `providers_proteger_derivados` impide escribirlo desde una sesión
+ * de proveedor.
+ */
 const STEPS = [
   {
     icon: ClipboardCheck,
-    title: "El proveedor se autoevalúa",
-    body: "Responde 16 preguntas repartidas en seis dimensiones y adjunta la evidencia de las que la exigen: facturas de compra local, certificados vigentes, actas de reparto comunitario.",
+    title: "Te autoevalúas",
+    body: "Respondes 16 preguntas repartidas en seis dimensiones y adjuntas la evidencia de las que la exigen: facturas de compra local, certificados vigentes, actas de reparto comunitario.",
   },
   {
     icon: Eye,
-    title: "Nuestro equipo revisa la evidencia",
-    body: "Contrastamos cada documento con lo declarado y, cuando algo no cuadra, pedimos aclaración antes de aprobar. Una respuesta sin su evidencia no puntúa.",
+    title: "Hacemos el estudio",
+    body: "Aplicamos nuestra metodología de revisión: contrastamos cada documento con lo declarado y, si algo no cuadra, te pedimos aclaración. Una respuesta sin su evidencia no puntúa.",
+  },
+  {
+    icon: ReceiptText,
+    title: "Pagas la licencia",
+    body: "Si el estudio sale favorable, te enviamos el resultado junto con el valor de la licencia del sello. Sin licencia vigente, el sello no se muestra.",
   },
   {
     icon: ShieldCheck,
-    title: "Se otorga el sello",
-    body: "El puntaje y el sello aparecen en la ficha del proveedor, y los revisamos cada doce meses. El nivel que se ve al lado mide otra cosa: cuánto lleva vendido y entregado.",
-  },
-  {
-    icon: Users,
-    title: "El comprador puede reclamar",
-    body: "Si lo que recibiste no corresponde con lo declarado, lo investigamos. Un proveedor puede perder el sello, y las ofertas quedan suspendidas mientras tanto.",
+    title: "Recibes el sello Green Watching",
+    body: "Aparece en tu ficha con tu puntaje y lo revisamos cada doce meses. El nivel que se ve al lado mide otra cosa: cuánto llevas vendido y entregado.",
   },
 ];
 
@@ -57,9 +71,9 @@ export default function VerificacionPage() {
         titulo="Cómo sabemos que un proveedor es realmente regenerativo"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
-          El mercado está lleno de sellos verdes que nadie audita. Aquí cada
-          punto del puntaje sale de una respuesta concreta con evidencia
-          detrás, y cualquiera puede ver de dónde salió.
+          El mercado está lleno de sellos verdes que nadie audita. El sello
+          Green Watching solo lo otorga Seregenera, después de un estudio, y
+          cada punto del puntaje sale de una respuesta con evidencia detrás.
         </p>
       </HeroBanner>
 
@@ -82,6 +96,13 @@ export default function VerificacionPage() {
             </li>
           ))}
         </ol>
+
+        <p className="mt-6 flex max-w-3xl items-start gap-2 text-sm text-muted">
+          <Users className="mt-0.5 size-4 shrink-0 text-brand-600" aria-hidden />
+          Y después, el comprador puede reclamar: si lo que recibió no
+          corresponde con lo declarado, lo investigamos. Un proveedor puede
+          perder el sello, y sus ofertas quedan suspendidas mientras tanto.
+        </p>
       </section>
 
       <section className="bg-sand py-14">
@@ -144,15 +165,28 @@ export default function VerificacionPage() {
       {/* ------------------------------------------------------------------ */}
       <section className="container-page py-14">
         <h2 className="font-display text-3xl text-ink">Qué da aprobarla</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
           <div className="rounded-xl bg-white p-6 ring-1 ring-hairline">
             <BadgeCheck className="size-7 text-brand-600" />
             <h3 className="mt-4 font-display text-lg text-ink">
-              El sello de evaluación verificada
+              El sello Green Watching
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">
               Aparece en tu ficha junto a tu puntaje y al desglose por
               dimensión. Lo revisamos cada doce meses.
+            </p>
+          </div>
+          <div className="rounded-xl bg-white p-6 ring-1 ring-hairline">
+            <Briefcase className="size-7 text-brand-600" />
+            <h3 className="mt-4 font-display text-lg text-ink">
+              Poder vender consultoría e implementación
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Es la categoría avanzada del catálogo: diagnósticos,
+              acompañamiento a certificaciones, implementación de sistemas y
+              formación de equipos. Vender eso es vender criterio, y por eso
+              solo la ofrece quien tiene el sello. Sin él, la categoría se ve
+              pero no se puede elegir.
             </p>
           </div>
           <div className="rounded-xl bg-white p-6 ring-1 ring-hairline">

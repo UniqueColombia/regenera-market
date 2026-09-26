@@ -4,7 +4,7 @@ import { ImpactChips } from "./impact-chips";
 import { ListingMedia } from "./listing-media";
 import { TierBadge } from "./tier-badge";
 import { money } from "@/lib/format";
-import { KIND_LABEL } from "@/lib/taxonomy";
+import { KIND_LABEL, categoriaLabel } from "@/lib/taxonomy";
 import type { Listing, Provider } from "@/lib/types";
 
 export function ListingCard({
@@ -41,7 +41,7 @@ export function ListingCard({
       <div className="flex flex-1 flex-col gap-2.5 p-4">
         <div className="flex items-start justify-between gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-muted">
-            {listing.category}
+            {categoriaLabel(listing.category)}
           </span>
           {provider && <TierBadge tier={provider.tier} />}
         </div>

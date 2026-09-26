@@ -41,7 +41,7 @@ import type {
  */
 
 /** Columnas de `listings_publicos`. La vista es `listings.*` más las del proveedor. */
-const COLUMNAS_LISTING = `
+const COLUMNAS_LISTING_BASE = `
   id, slug, provider_id, kind, title, summary, description, category, verticals,
   images, price_cop, wholesale_price_cop, wholesale_min_qty, unit, quote_only,
   stock, co2_kg_saved, water_liters_saved, waste_kg_reduced, certifications,
@@ -50,12 +50,59 @@ const COLUMNAS_LISTING = `
   listing_availability(date, slots_total, slots_taken)
 `;
 
-const COLUMNAS_PROVIDER = `
+const COLUMNAS_PROVIDER_BASE = `
   id, slug, name, legal_name, tax_id, tagline, description, logo_url, cover_url,
   department, city, website, email, phone, status, sustainability_score, tier,
   experience_points, sustainability_verified_at, founded_year, traits, created_at,
   provider_certifications(certification_code)
 `;
+
+/** Lo que la migración 0012 agrega a cada tabla. */
+const DE_LA_0012_LISTING =
+  "subcategory, aporte_ambiental, consecuencia_ambiental, huella_co2_kg";
+const DE_LA_0012_PROVIDER = "giros";
+
+/**
+ * ¿Está aplicada la migración 0012?
+ *
+ * ## Por qué el código pregunta, en vez de exigirla
+ *
+ * Hasta la 0011, una migración que agregaba columnas obligaba a un orden: se
+ * aplicaba a mano en el panel **antes** de desplegar, o el catálogo entero
+ * respondía 500 (así fue con la 0006). Es un orden que depende de que alguien
+ * se acuerde, entre dos personas que despliegan por separado.
+ *
+ * Esto lo quita de en medio: una consulta barata la primera vez, y según la
+ * respuesta se piden o no las columnas nuevas. **Sin la 0012 el sitio sigue
+ * funcionando como antes**: se ve el catálogo, se compra por el camino viejo
+ * (`saveOrder()`), y lo que sí depende de las columnas nuevas —publicar desde
+ * la empresa, el giro— falla con su código de incidencia en vez de tumbar
+ * páginas que no lo usan.
+ *
+ * El «sí» se recuerda para siempre en el proceso —una migración no se
+ * desaplica sola— y el «no» solo un minuto, para enterarse pronto de que ya se
+ * aplicó sin tener que redesplegar. `42703` es «la columna no existe».
+ */
+let sondeo0012: { aplicada: boolean; hasta: number } | null = null;
+
+async function columnas(): Promise<{ listing: string; provider: string }> {
+  const ahora = Date.now();
+  if (!sondeo0012 || (!sondeo0012.aplicada && ahora > sondeo0012.hasta)) {
+    const db = await createClient();
+    const { error } = await db.from("providers").select("giros").limit(1);
+    sondeo0012 = { aplicada: error?.code !== "42703", hasta: ahora + 60_000 };
+    if (!sondeo0012.aplicada) {
+      console.warn("[repo] la migración 0012 no está aplicada: se leen las columnas de antes");
+    }
+  }
+
+  return sondeo0012.aplicada
+    ? {
+        listing: `${COLUMNAS_LISTING_BASE}, ${DE_LA_0012_LISTING}`,
+        provider: `${COLUMNAS_PROVIDER_BASE}, ${DE_LA_0012_PROVIDER}`,
+      }
+    : { listing: COLUMNAS_LISTING_BASE, provider: COLUMNAS_PROVIDER_BASE };
+}
 
 interface FilaDisponibilidad {
   date: string;
@@ -96,6 +143,11 @@ interface FilaListing {
   delivery_time: string | null;
   scope: string[] | null;
   created_at: string;
+  /** Las cuatro, desde la 0012: llegan `undefined` mientras no esté aplicada. */
+  subcategory?: string | null;
+  aporte_ambiental?: string | null;
+  consecuencia_ambiental?: string | null;
+  huella_co2_kg?: number | string | null;
   listing_availability?: FilaDisponibilidad[] | null;
 }
 
@@ -121,6 +173,8 @@ interface FilaProvider {
   sustainability_verified_at: string | null;
   founded_year: number | null;
   traits: ProviderTrait[];
+  /** Desde la 0012. */
+  giros?: string[] | null;
   created_at: string;
   provider_certifications?: { certification_code: string }[] | null;
 }
@@ -153,6 +207,7 @@ function aListing(f: FilaListing): Listing {
     summary: f.summary,
     description: f.description,
     category: f.category,
+    subcategory: f.subcategory ?? undefined,
     verticals: f.verticals,
     images: f.images,
     priceCop: f.price_cop,
@@ -166,6 +221,9 @@ function aListing(f: FilaListing): Listing {
       waterLitersSaved: numero(f.water_liters_saved),
       wasteKgReduced: numero(f.waste_kg_reduced),
     },
+    aporteAmbiental: f.aporte_ambiental ?? undefined,
+    consecuenciaAmbiental: f.consecuencia_ambiental ?? undefined,
+    huellaCo2Kg: numero(f.huella_co2_kg ?? null),
     certifications: f.certifications,
     department: f.department ?? undefined,
     city: f.city ?? undefined,
@@ -226,6 +284,7 @@ function aProvider(f: FilaProvider): Provider {
     ),
     foundedYear: f.founded_year ?? undefined,
     traits: f.traits,
+    giros: f.giros ?? [],
     createdAt: soloFecha(f.created_at),
   };
 }
@@ -256,11 +315,15 @@ export async function searchListings(
   filters: ListingFilters = {},
 ): Promise<Listing[]> {
   const db = await createClient();
-  let q = db.from("listings_publicos").select(COLUMNAS_LISTING);
+  let q = db.from("listings_publicos").select((await columnas()).listing);
 
   if (filters.kind) q = q.eq("kind", filters.kind);
   if (filters.vertical) q = q.contains("verticals", [filters.vertical]);
   if (filters.category) q = q.eq("category", filters.category);
+  // Sin la 0012 la columna no existe: filtrar por ella tumbaría el catálogo.
+  if (filters.subcategory && sondeo0012?.aplicada) {
+    q = q.eq("subcategory", filters.subcategory);
+  }
   if (filters.department) q = q.eq("department", filters.department);
   if (filters.certification)
     q = q.contains("certifications", [filters.certification]);
@@ -317,7 +380,7 @@ export async function getListingBySlug(
   const db = await createClient();
   const { data, error } = await db
     .from("listings_publicos")
-    .select(COLUMNAS_LISTING)
+    .select((await columnas()).listing)
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw new Error(`getListingBySlug: ${error.message}`);
@@ -343,7 +406,7 @@ export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("listings_publicos")
-    .select(COLUMNAS_LISTING)
+    .select((await columnas()).listing)
     .in("id", uuids);
   if (error) throw new Error(`getListingsByIds: ${error.message}`);
   return (data as unknown as FilaListing[]).map(aListing);
@@ -353,7 +416,7 @@ export async function getFeaturedListings(limit = 6): Promise<Listing[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("listings_publicos")
-    .select(COLUMNAS_LISTING)
+    .select((await columnas()).listing)
     .order("featured", { ascending: false })
     .order("provider_score", { ascending: false })
     .limit(limit);
@@ -369,7 +432,7 @@ export async function getRelatedListings(
   const verticales = listing.verticals.join(",");
   const { data, error } = await db
     .from("listings_publicos")
-    .select(COLUMNAS_LISTING)
+    .select((await columnas()).listing)
     .neq("id", listing.id)
     .or(
       `category.eq."${listing.category}"` +
@@ -386,7 +449,7 @@ export async function getProviderBySlug(
   const db = await createClient();
   const { data, error } = await db
     .from("providers")
-    .select(COLUMNAS_PROVIDER)
+    .select((await columnas()).provider)
     .eq("slug", slug)
     .eq("status", "approved")
     .maybeSingle();
@@ -409,7 +472,7 @@ export const getProviderById = cache(
     const db = await createClient();
     const { data, error } = await db
       .from("providers")
-      .select(COLUMNAS_PROVIDER)
+      .select((await columnas()).provider)
       .eq("id", id)
       .maybeSingle();
     if (error) throw new Error(`getProviderById: ${error.message}`);
@@ -424,7 +487,7 @@ export async function getListingsByProvider(
   const db = await createClient();
   const { data, error } = await db
     .from("listings_publicos")
-    .select(COLUMNAS_LISTING)
+    .select((await columnas()).listing)
     .eq("provider_id", providerId);
   if (error) throw new Error(`getListingsByProvider: ${error.message}`);
   return (data as unknown as FilaListing[]).map(aListing);
@@ -434,7 +497,7 @@ export async function getApprovedProviders(): Promise<Provider[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("providers")
-    .select(COLUMNAS_PROVIDER)
+    .select((await columnas()).provider)
     .eq("status", "approved")
     .order("sustainability_score", { ascending: false });
   if (error) throw new Error(`getApprovedProviders: ${error.message}`);
@@ -486,7 +549,7 @@ export async function getProvidersForReview(): Promise<Provider[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("providers")
-    .select(COLUMNAS_PROVIDER)
+    .select((await columnas()).provider)
     .order("created_at", { ascending: true });
   if (error) throw new Error(`getProvidersForReview: ${error.message}`);
   return (data as unknown as FilaProvider[]).map(aProvider);
@@ -555,7 +618,7 @@ export async function getListingsForAdmin(): Promise<ListingAdmin[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("listings")
-    .select(`${COLUMNAS_LISTING}, providers(name, status)`)
+    .select(`${(await columnas()).listing}, providers(name, status)`)
     .order("created_at", { ascending: false });
   if (error) throw new Error(`getListingsForAdmin: ${error.message}`);
 
@@ -576,7 +639,7 @@ export async function getListingByIdForAdmin(
   const db = await createClient();
   const { data, error } = await db
     .from("listings")
-    .select(COLUMNAS_LISTING)
+    .select((await columnas()).listing)
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`getListingByIdForAdmin: ${error.message}`);
@@ -1103,4 +1166,54 @@ export async function getEventosDeExperiencia(
     puntos: e.puntos,
     createdAt: e.created_at,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Las ofertas de tu empresa
+// ---------------------------------------------------------------------------
+
+/**
+ * Todas las ofertas de una empresa, en cualquier estado.
+ *
+ * Contra `listings` y no contra la vista pública: quien la gestiona tiene que
+ * ver también lo que está en borrador o esperando revisión, que es justo lo que
+ * la vista esconde. El alcance lo decide `listings_public_read`, que deja ver a
+ * `manages_provider()` lo suyo — un id ajeno devuelve solo lo ya publicado, que
+ * es lo mismo que vería cualquiera.
+ */
+export async function getOfertasDeEmpresa(providerId: string): Promise<Listing[]> {
+  if (!UUID.test(providerId)) return [];
+  const db = await createClient();
+  const { data, error } = await db
+    .from("listings")
+    .select((await columnas()).listing)
+    .eq("provider_id", providerId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`getOfertasDeEmpresa: ${error.message}`);
+  return (data as unknown as FilaListing[]).map(aListing);
+}
+
+/**
+ * Una oferta de la empresa que se gestiona, para editarla.
+ *
+ * Se filtra por las dos columnas a la vez: si el id es de otra empresa, no
+ * vuelve nada aunque la oferta esté publicada. Sin el `provider_id` en el
+ * `where`, el formulario abriría con los datos de una oferta ajena — no podría
+ * guardarla (RLS), pero enseñaría un formulario que promete algo que no va a
+ * pasar.
+ */
+export async function getOfertaDeEmpresa(
+  providerId: string,
+  id: string,
+): Promise<Listing | undefined> {
+  if (!UUID.test(providerId) || !UUID.test(id)) return undefined;
+  const db = await createClient();
+  const { data, error } = await db
+    .from("listings")
+    .select((await columnas()).listing)
+    .eq("provider_id", providerId)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getOfertaDeEmpresa: ${error.message}`);
+  return data ? aListing(data as unknown as FilaListing) : undefined;
 }

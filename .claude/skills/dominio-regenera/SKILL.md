@@ -60,13 +60,24 @@ humano; cuando exista el webhook de Wompi, **hay que validar la firma con
 `WOMPI_EVENTS_SECRET` antes de tocar el estado de la orden**. Un webhook sin
 verificar es un botón de "marcar como pagado" abierto a internet.
 
-**10. Cupos e inventario necesitan transacción de base de datos.** Todavía no
-está implementado y es la deuda más peligrosa: dos compradores simultáneos
-pueden sobrevender la última plaza de una experiencia. Cuando se implemente, el
-descuento de cupo va en la misma transacción que la creación de la orden, no en
-código de aplicación.
+**10. Cupos e inventario necesitan transacción de base de datos.** Desde la
+0012 la orden la crea `crear_orden()`, que descuenta el cupo de las
+experiencias **en la misma transacción** y con un `where slots_taken + qty <=
+slots_total` que serializa a dos compradores de la última plaza. Lo que sigue
+sin estar: **el stock se comprueba pero no se descuenta**, y cancelar una orden
+no devuelve el cupo. Cualquier camino nuevo que cree órdenes pasa por esa
+función, nunca por dos `insert` desde la aplicación.
 
-**11. `generateReference()` no garantiza unicidad.** Es
+**10b. Comprar exige cuenta, y la orden es idempotente.** Desde el 2026-09-26.
+`buyer_id` sale de `auth.uid()` dentro de `crear_orden()`, no de un correo del
+formulario, y la orden se lee por RLS (`orders_buyer_read`). El `id` de la orden
+lo genera el navegador una vez por cesta y es la llave de idempotencia: el
+mismo intento devuelve la misma orden. **Los precios de la orden los calcula la
+función contra el catálogo** — es el gemelo SQL de `pricing.ts`; si cambias uno,
+cambia el otro.
+
+**11. La referencia legible no garantiza unicidad.** La genera `crear_orden()`
+(y `generateReference()` en el camino viejo). Es
 `SR-AAMMDD-<4 chars aleatorios>`, legible para poner en una transferencia. Cuando
 las órdenes se persistan, la unicidad la impone un `UNIQUE` en la base y un
 reintento, no la aleatoriedad.
@@ -76,6 +87,13 @@ reintento, no la aleatoriedad.
 **12. Los roles viven en su propia tabla, no en el perfil.** Si el usuario
 pudiera actualizar su fila de perfil, se autoasignaría `admin`. Ninguna política
 RLS debe leer un rol desde una tabla que el propio usuario puede escribir.
+
+**12b. Una empresa escribe sus ofertas; no las publica.** Desde la 0012,
+`listings_proteger_proveedor` pisa `status`, `featured` y `provider_id` cuando
+escribe una sesión de proveedor, y editar una oferta publicada la devuelve a
+`pending_review`. La categoría `consultoria` y el giro del mismo nombre exigen
+el sello (`sustainability_verified_at`, «Green Watching»). Y cuántos giros
+declara una empresa lo decide su nivel (`limite_de_giros()`), no el formulario.
 
 **13. El puntaje de sostenibilidad lo escribe un trigger, no el proveedor.** El
 proveedor responde el cuestionario; el puntaje se deriva. Nunca aceptes

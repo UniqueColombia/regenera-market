@@ -37,3 +37,4 @@ referencie al anterior.
 | 2026-09-24 | [Analíticas propias con permiso previo, y `/admin/comunidad` deja de caerse](2026-09-24-analiticas-propias-y-comunidad-sin-caidas.md) | Jesús Seiler | 1 y 2 — corrección y medición |
 | 2026-09-24 | [La sesión caduca sola, la Comunidad tiene freno, y el nivel cuesta](2026-09-24-sesion-que-caduca-limites-y-puntos-mas-caros.md) | Jesús Seiler | 1 y 2 — endurecimiento de la beta |
 | 2026-09-24 | [Las once migraciones están aplicadas, y la beta se probó con datos reales](2026-09-24-las-once-migraciones-aplicadas-y-la-beta-probada.md) | Jesús Seiler | 1 y 2 — cierre de pendientes |
+| 2026-09-26 | [Las empresas publican lo suyo, comprar exige cuenta y es una transacción, y el catálogo se agrupa por lo que resuelve](2026-09-26-empresas-publican-compra-con-cuenta-y-categorias.md) | Jesús Seiler | 1 y 2 — Bloque 4 empezado y compra endurecida |

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Fraunces, Inter } from "next/font/google";
+import { AvisoAlVolver } from "@/components/aviso-al-volver";
 import { AvisoCookies } from "@/components/aviso-cookies";
 import { MedicionUso } from "@/components/medicion-uso";
 import { SiteFooter } from "@/components/site-footer";
@@ -91,6 +92,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex-1">{children}</main>
         <SiteFooter />
         <AvisoCookies yaDecidido={consentimiento !== null} />
+        <AvisoAlVolver />
         {consentimiento?.medicion && <MedicionUso />}
       </body>
     </html>
