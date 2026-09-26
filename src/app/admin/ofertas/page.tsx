@@ -4,7 +4,7 @@ import { Plus, SquarePen } from "lucide-react";
 import { EstadoOferta } from "./estado-oferta";
 import { getListingsForAdmin } from "@/lib/repo";
 import { money } from "@/lib/format";
-import { KIND_LABEL } from "@/lib/taxonomy";
+import { KIND_LABEL, categoriaLabel } from "@/lib/taxonomy";
 import type { ReviewStatus } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Ofertas" };
@@ -100,7 +100,7 @@ export default async function OfertasPage() {
                 </div>
 
                 <p className="mt-0.5 text-sm text-muted">
-                  {KIND_LABEL[o.kind]} · {o.providerName} · {o.category}
+                  {KIND_LABEL[o.kind]} · {o.providerName} · {categoriaLabel(o.category)}
                   {o.quoteOnly ? " · solo cotización" : ` · ${money(o.priceCop)} / ${o.unit}`}
                 </p>
               </div>

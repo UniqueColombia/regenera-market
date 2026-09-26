@@ -8,7 +8,7 @@ import { enviarCorreo } from "@/lib/correo";
 import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 import { correoPostulacionRecibida } from "@/lib/correo/plantillas";
 import { IDS_TIPO_ORGANIZACION, NOMBRES_PAIS, paisPorNombre } from "@/lib/paises";
-import { VERTICALS } from "@/lib/taxonomy";
+import { GIROS_POR_NIVEL, IDS_GIRO, VERTICALS } from "@/lib/taxonomy";
 import { dentroDelRitmo, origenDeLaPeticion } from "@/lib/ritmo";
 import { LIMITES } from "./limites";
 
@@ -154,6 +154,17 @@ const PostulacionSchema = z.object({
   categories: z
     .array(z.enum(CATEGORIAS))
     .max(5, "Elige como máximo cinco categorías")
+    .optional(),
+
+  /**
+   * El giro de la empresa (`GIROS`). Toda empresa nace en Semilla, así que
+   * caben los de Semilla, y la consultoría no: exige el sello, que una empresa
+   * recién llegada todavía no tiene. Lo impone también la base.
+   */
+  giros: z
+    .array(z.enum(IDS_GIRO))
+    .max(GIROS_POR_NIVEL.semilla, `Para empezar caben ${GIROS_POR_NIVEL.semilla}. Al subir de nivel puedes sumar más.`)
+    .refine((g) => !Array.isArray(g) || !g.includes("consultoria"), "La consultoría exige el sello verificado")
     .optional(),
   description: z
     .string()
@@ -310,8 +321,27 @@ async function postular(form: unknown): Promise<ResultadoPostulacion> {
   const resultado = (data ?? {}) as {
     activado?: boolean;
     provider_slug?: string;
+    provider_id?: string;
   };
   const activada = Boolean(resultado.activado);
+
+  // El giro va aparte de `postular_proveedor()` para no tener que cambiar la
+  // firma de esa función (y con ella las migraciones que ya la definen). Quien
+  // acaba de crear la empresa ya es su dueño, así que `providers_member_update`
+  // le deja escribirlo. **Fuera del camino crítico**: la empresa ya existe, y si
+  // esto fallara —o si la 0012 todavía no está aplicada y no hay columna— se
+  // apunta y se sigue; el giro se puede poner después en `/cuenta/empresa`.
+  if (activada && (d.giros?.length ?? 0) > 0 && (resultado.provider_id || resultado.provider_slug)) {
+    try {
+      const consulta = supabase.from("providers").update({ giros: d.giros });
+      const { error: errorGiros } = resultado.provider_id
+        ? await consulta.eq("id", resultado.provider_id)
+        : await consulta.eq("slug", resultado.provider_slug!);
+      if (errorGiros) registrarFallo("postular-giros", errorGiros, { cuantos: d.giros?.length });
+    } catch (e) {
+      registrarFallo("postular-giros", e);
+    }
+  }
 
   // Queda apuntado que el alta salió bien, y con qué. Es la otra mitad de poder
   // diagnosticar esto: sin esta línea, un registro con un fallo posterior no

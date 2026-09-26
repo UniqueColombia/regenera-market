@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import {
   BadgeCheck,
   Clock,
+  Footprints,
   MapPin,
   Package,
+  Sprout,
   Users,
 } from "lucide-react";
 import { AddToCart, RequestQuote } from "@/components/add-to-cart";
@@ -14,14 +16,21 @@ import { ImpactChips } from "@/components/impact-chips";
 import { ListingCard } from "@/components/listing-card";
 import { ListingMedia } from "@/components/listing-media";
 import { TierBadge } from "@/components/tier-badge";
-import { duration } from "@/lib/format";
+import { duration, num } from "@/lib/format";
 import {
   getListingBySlug,
   getProviderById,
   getRelatedListings,
 } from "@/lib/repo";
 import { descripcion, publica } from "@/lib/seo";
-import { certLabel, KIND_LABEL, VERTICAL_LABEL } from "@/lib/taxonomy";
+import {
+  categoriaLabel,
+  certLabel,
+  KIND_LABEL,
+  subcategoriaLabel,
+  VERTICAL_LABEL,
+} from "@/lib/taxonomy";
+import { getSesion } from "@/lib/auth";
 
 export async function generateMetadata(
   props: PageProps<"/oferta/[slug]">,
@@ -53,6 +62,8 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
   if (!listing) notFound();
 
   const provider = await getProviderById(listing.providerId);
+  const subcategoria = subcategoriaLabel(listing.category, listing.subcategory);
+  const sesion = await getSesion();
   const related = await getRelatedListings(listing);
   const relatedProviders = await Promise.all(
     related.map((l) => getProviderById(l.providerId)),
@@ -79,8 +90,19 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
           href={`/catalogo?category=${encodeURIComponent(listing.category)}`}
           className="hover:text-brand-700"
         >
-          {listing.category}
+          {categoriaLabel(listing.category)}
         </Link>
+        {subcategoria && (
+          <>
+            <span className="mx-2">/</span>
+            <Link
+              href={`/catalogo?category=${encodeURIComponent(listing.category)}&subcategory=${encodeURIComponent(listing.subcategory ?? "")}`}
+              className="hover:text-brand-700"
+            >
+              {subcategoria}
+            </Link>
+          </>
+        )}
       </nav>
 
       <div className="mt-5 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
@@ -104,7 +126,7 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
               {KIND_LABEL[listing.kind]}
             </span>
             <span className="rounded-full bg-sand px-2.5 py-1 text-xs font-medium text-ink">
-              {listing.category}
+              {categoriaLabel(listing.category)}
             </span>
             {provider && (
               <TierBadge
@@ -207,6 +229,43 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
               </p>
             )}
 
+            {/* Las dos caras, lado a lado: lo que aporta y lo que cuesta. Una
+                ficha que solo cuenta lo bueno se lee como publicidad; la que
+                declara también su huella es la que un hotel puede citar en su
+                reporte de sostenibilidad. */}
+            {(listing.aporteAmbiental || listing.consecuenciaAmbiental) && (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {listing.aporteAmbiental && (
+                  <div className="rounded-xl bg-brand-50 p-4 ring-1 ring-brand-100">
+                    <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-brand-700">
+                      <Sprout className="size-4" aria-hidden />
+                      Lo que aporta
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-brand-900">
+                      {listing.aporteAmbiental}
+                    </p>
+                  </div>
+                )}
+                {listing.consecuenciaAmbiental && (
+                  <div className="rounded-xl bg-clay-100 p-4 ring-1 ring-clay-300/60">
+                    <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-clay-700">
+                      <Footprints className="size-4" aria-hidden />
+                      Lo que cuesta
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-ink">
+                      {listing.consecuenciaAmbiental}
+                    </p>
+                    {listing.huellaCo2Kg !== undefined && (
+                      <p className="mt-2 text-xs text-clay-700">
+                        Huella declarada: {num(listing.huellaCo2Kg)} kg de CO₂ por{" "}
+                        {listing.unit}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {listing.certifications.length > 0 && (
               <>
                 <h3 className="mt-6 font-display text-lg text-ink">
@@ -247,7 +306,7 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
           {listing.quoteOnly ? (
             <RequestQuote listing={listing} />
           ) : (
-            <AddToCart listing={listing} />
+            <AddToCart listing={listing} conSesion={Boolean(sesion)} />
           )}
 
           {provider && (

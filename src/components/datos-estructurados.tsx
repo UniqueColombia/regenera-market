@@ -1,3 +1,4 @@
+import { categoriaLabel } from "@/lib/taxonomy";
 import { CONTACTO } from "@/lib/legal";
 import type { Listing, Provider } from "@/lib/types";
 
@@ -137,7 +138,7 @@ export function DatosDeOferta({
         description: listing.summary,
         ...(imagenes.length > 0 && { image: imagenes }),
         sku: listing.slug,
-        category: listing.category,
+        category: categoriaLabel(listing.category),
         ...(provider && {
           brand: { "@type": "Brand", name: provider.name },
         }),

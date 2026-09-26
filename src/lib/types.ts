@@ -80,6 +80,11 @@ export interface Provider {
   foundedYear?: number;
   /** Rasgos de impacto social que el buscador expone como filtros */
   traits: ProviderTrait[];
+  /**
+   * Qué es y qué ofrece la empresa (`GIROS` de `src/lib/taxonomy.ts`). Desde
+   * la 0012. Cuántos caben lo decide el nivel, y lo impone la base.
+   */
+  giros: string[];
   createdAt: string;
 }
 
@@ -100,7 +105,10 @@ export interface Listing {
   title: string;
   summary: string;
   description: string;
+  /** `id` de `CATEGORIAS` desde la 0012. Antes, una etiqueta suelta. */
   category: string;
+  /** `id` de una subcategoría de esa categoría. Opcional. */
+  subcategory?: string;
   verticals: Vertical[];
   images: string[];
   /** Precio unitario al público, en COP sin decimales */
@@ -115,6 +123,20 @@ export interface Listing {
   quoteOnly: boolean;
   stock?: number;
   impact: ImpactMetrics;
+  /**
+   * La otra cara del impacto, desde la 0012: lo que la oferta **aporta** y lo
+   * que **cuesta** al ambiente, dicho por el proveedor en sus palabras.
+   *
+   * Van los dos porque un producto regenerativo no es uno sin huella —no
+   * existe— sino uno que la declara. Una ficha que solo cuenta lo bueno se lee
+   * como publicidad; una que dice también «se transporta en camión desde
+   * Pasto» se lee como información, y es la que un hotel puede citar en su
+   * reporte.
+   */
+  aporteAmbiental?: string;
+  consecuenciaAmbiental?: string;
+  /** kg de CO₂ que emite producir y entregar una unidad, si el proveedor lo sabe. */
+  huellaCo2Kg?: number;
   certifications: string[];
   department?: string;
   city?: string;
@@ -184,6 +206,10 @@ export interface Order {
   buyerName: string;
   buyerCompany?: string;
   buyerPhone?: string;
+  /** La empresa en cuyo nombre se compró, si se compró como empresa. Desde la 0012. */
+  buyerProviderId?: string;
+  /** NIT, RUT, RUC… de la empresa compradora, para facturarle a ella. Desde la 0012. */
+  buyerTaxId?: string;
   items: OrderItem[];
   subtotalCop: number;
   commissionTotalCop: number;
@@ -200,6 +226,7 @@ export interface ListingFilters {
   kind?: ListingKind;
   vertical?: Vertical;
   category?: string;
+  subcategory?: string;
   department?: string;
   tier?: Tier;
   minPrice?: number;

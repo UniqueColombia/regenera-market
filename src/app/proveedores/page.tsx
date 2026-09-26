@@ -5,7 +5,8 @@ import { HeroBanner } from "@/components/hero-banner";
 import { ProviderAvatar } from "@/components/provider-avatar";
 import { TierBadge } from "@/components/tier-badge";
 import { getApprovedProviders, getListingsByProvider } from "@/lib/repo";
-import { certLabel, TRAIT_LABEL } from "@/lib/taxonomy";
+import { Revelar } from "@/components/revelar";
+import { certLabel, giroLabel, TRAIT_LABEL } from "@/lib/taxonomy";
 import { publica } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -47,7 +48,9 @@ export default async function ProveedoresPage() {
 
       <ul className="container-page mt-10 grid gap-5 pb-10 md:grid-cols-2">
         {providers.map((p, i) => (
-          <li key={p.id}>
+          // Entran al desplazarse, de a dos, escalonadas por columna. Las de
+          // la primera pantalla no se animan: ver `revelar.tsx`.
+          <Revelar as="li" key={p.id} retraso={(i % 2) * 90} className="grid">
             <Link
               href={`/proveedor/${p.slug}`}
               className="group flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-md active:ring-brand-300 active:shadow-md"
@@ -66,6 +69,12 @@ export default async function ProveedoresPage() {
               <p className="mt-3 line-clamp-3 text-sm text-muted">
                 {p.description}
               </p>
+
+              {p.giros.length > 0 && (
+                <p className="mt-3 text-xs font-medium text-brand-700">
+                  {p.giros.map(giroLabel).join(" · ")}
+                </p>
+              )}
 
               {p.traits.length > 0 && (
                 <ul className="mt-4 flex flex-wrap gap-1.5">
@@ -96,7 +105,7 @@ export default async function ProveedoresPage() {
                 </p>
               )}
             </Link>
-          </li>
+          </Revelar>
         ))}
       </ul>
     </div>

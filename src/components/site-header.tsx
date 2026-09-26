@@ -18,7 +18,8 @@ import { cerrarSesion } from "@/app/salir/actions";
 import type { Sesion } from "@/lib/auth";
 import { Isotipo } from "./isotipo";
 import { useCartCount } from "./cart";
-import { VERTICALS } from "@/lib/taxonomy";
+import { CATEGORIAS } from "@/lib/taxonomy";
+import { IconoCategoria } from "./icono-categoria";
 
 const NAV = [
   { href: "/catalogo", label: "Catálogo" },
@@ -78,7 +79,12 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
   }, [openCategories]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-hairline bg-cream/90 backdrop-blur">
+    // `viewTransitionName`: el encabezado se queda quieto mientras la página
+    // cambia. Las reglas que lo anclan están en `globals.css`.
+    <header
+      style={{ viewTransitionName: "encabezado" }}
+      className="sticky top-0 z-50 border-b border-hairline bg-cream/90 backdrop-blur"
+    >
       <div className="container-page flex h-16 items-center gap-4">
         <Link href="/" className="group flex items-center gap-2">
           {/* Compacto y no detalle: a 36 px los nervios y los continentes
@@ -117,30 +123,42 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
             </button>
 
             {openCategories && (
-              <div className="absolute left-1/2 top-full mt-2 w-[42rem] max-w-[calc(100vw-2.5rem)] -translate-x-1/2 animate-desplegar rounded-xl bg-white p-5 shadow-xl ring-1 ring-hairline motion-reduce:animate-none">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-5">
-                  {VERTICALS.map((v) => (
-                    <div key={v.id}>
-                      <Link
-                        href={`/catalogo?vertical=${v.id}`}
-                        className="font-display text-sm font-semibold text-brand-700 underline-offset-4 transition-colors hover:text-brand-500 hover:underline"
-                      >
-                        {v.label}
-                      </Link>
-                      <ul className="mt-1.5 space-y-1">
-                        {v.subcategories.map((s) => (
-                          <li key={s.slug}>
-                            <Link
-                              href={`/catalogo?vertical=${v.id}&q=${encodeURIComponent(s.label)}`}
-                              className="inline-block text-sm text-muted transition-all duration-200 hover:translate-x-0.5 hover:text-brand-700 motion-reduce:transition-none"
-                            >
-                              {s.label}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+              // Agrupado por lo que resuelve —agua, energía, residuos…— y no
+              // por tipo de negocio: es la misma taxonomía de las tarjetas del
+              // catálogo (`src/lib/taxonomy.ts`), y cada categoría dice debajo
+              // a qué hace referencia. Las verticales siguen como filtro dentro
+              // del catálogo.
+              <div className="absolute left-1/2 top-full mt-2 w-[60rem] max-w-[calc(100vw-2.5rem)] -translate-x-1/2 animate-desplegar rounded-xl bg-white p-5 shadow-xl ring-1 ring-hairline motion-reduce:animate-none">
+                <div className="grid grid-cols-4 gap-x-6 gap-y-6">
+                  {CATEGORIAS.map((c) => {
+                    return (
+                      <div key={c.id}>
+                        <Link
+                          href={`/catalogo?category=${c.id}`}
+                          title={c.descripcion}
+                          className="group/cat flex items-center gap-2 font-display text-sm font-semibold text-brand-700 underline-offset-4 transition-colors hover:text-brand-500 hover:underline"
+                        >
+                          <IconoCategoria id={c.id} className="size-4 shrink-0 transition-transform group-hover/cat:scale-110 motion-reduce:transition-none" />
+                          {c.label}
+                        </Link>
+                        <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted">
+                          {c.descripcion}
+                        </p>
+                        <ul className="mt-2 space-y-1">
+                          {c.subcategorias.map((s) => (
+                            <li key={s.id}>
+                              <Link
+                                href={`/catalogo?category=${c.id}&subcategory=${s.id}`}
+                                className="inline-block text-sm text-muted transition-all duration-200 hover:translate-x-0.5 hover:text-brand-700 motion-reduce:transition-none"
+                              >
+                                {s.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -201,10 +219,10 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
                 </FilaMovil>
               </li>
             ))}
-            {VERTICALS.map((v) => (
-              <li key={v.id}>
-                <FilaMovil href={`/catalogo?vertical=${v.id}`} tenue>
-                  {v.label}
+            {CATEGORIAS.map((c) => (
+              <li key={c.id}>
+                <FilaMovil href={`/catalogo?category=${c.id}`} tenue>
+                  {c.label}
                 </FilaMovil>
               </li>
             ))}
