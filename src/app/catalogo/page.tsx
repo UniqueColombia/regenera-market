@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SlidersHorizontal } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
+import { Revelar } from "@/components/revelar";
 import { getProviderById, searchListings } from "@/lib/repo";
+import { Categorias } from "./categorias";
 import {
-  CATEGORIES,
+  categoriaPorId,
   CERTIFICATIONS,
   DEPARTMENTS,
   KIND_LABEL,
@@ -13,6 +15,7 @@ import {
 } from "@/lib/taxonomy";
 import type { ListingFilters, ListingKind, Tier, Vertical } from "@/lib/types";
 import { publica } from "@/lib/seo";
+import { getSesion } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Catálogo",
@@ -30,7 +33,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   const sp = await props.searchParams;
   const filters = parseFilters(sp);
 
-  const listings = await searchListings(filters);
+  const [listings, sesion] = await Promise.all([searchListings(filters), getSesion()]);
   const providers = await Promise.all(
     listings.map((l) => getProviderById(l.providerId)),
   );
@@ -47,7 +50,22 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
           Filtra por lo que necesitas. En cada ficha ves quién lo produce, de
           dónde viene y cuánto impacto evita por unidad.
         </p>
+        {/* La puerta para publicar, desde donde se ve lo publicado. Quien ya
+            tiene empresa va directo a crear la oferta; quien no, a darla de
+            alta. Letra pequeña: esta página es de quien compra. */}
+        <p className="mt-2 text-sm text-muted">
+          ¿Vendes algo que encaje aquí?{" "}
+          <Link
+            href={sesion?.esProveedor ? "/cuenta/empresa/ofertas/nueva" : "/vender"}
+            className="font-medium text-brand-700 underline underline-offset-4"
+          >
+            {sesion?.esProveedor ? "Publica una oferta" : "Da de alta tu empresa"}
+          </Link>
+          .
+        </p>
       </header>
+
+      <Categorias filters={filters} />
 
       <form
         method="get"
@@ -105,20 +123,15 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
             </Select>
           </Field>
 
-          <Field label="Categoría" htmlFor="category">
-            <Select
-              id="category"
-              name="category"
-              defaultValue={filters.category ?? ""}
-            >
-              <option value="">Todas</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          {/* La categoría se elige en las tarjetas de arriba. Aquí viaja
+              oculta para que «Aplicar filtros» no la borre: el formulario GET
+              solo manda lo que tiene dentro. */}
+          {filters.category && (
+            <input type="hidden" name="category" value={filters.category} />
+          )}
+          {filters.subcategory && (
+            <input type="hidden" name="subcategory" value={filters.subcategory} />
+          )}
 
           <Field label="Departamento" htmlFor="department">
             <Select
@@ -204,11 +217,12 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
       ) : (
         <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing, i) => (
-            <ListingCard
-              key={listing.id}
-              listing={listing}
-              provider={providers[i]}
-            />
+            // Entran al desplazarse, escalonadas por columna. `Revelar` no
+            // anima lo que ya está en la primera pantalla, así que filtrar no
+            // hace parpadear la rejilla.
+            <Revelar key={listing.id} retraso={(i % 3) * 80} className="grid">
+              <ListingCard listing={listing} provider={providers[i]} />
+            </Revelar>
           ))}
         </div>
       )}
@@ -263,6 +277,12 @@ function parseFilters(
 ): ListingFilters {
   const kind = one(sp.kind);
   const vertical = one(sp.vertical);
+  const category = one(sp.category);
+  const subcategory = one(sp.subcategory);
+  // Solo se acepta una subcategoría que pertenezca a la categoría elegida: un
+  // `?subcategory=` suelto o de otra categoría devolvería cero resultados sin
+  // que en pantalla se viera por qué.
+  const categoria = categoriaPorId(category);
   const tier = one(sp.tier);
   const sort = one(sp.sort);
 
@@ -276,7 +296,13 @@ function parseFilters(
     vertical: VERTICALS.some((v) => v.id === vertical)
       ? (vertical as Vertical)
       : undefined,
-    category: one(sp.category),
+    // Un valor que no está en la taxonomía se deja pasar igual: puede ser una
+    // categoría vieja de un enlace guardado, y filtrar por ella sigue siendo
+    // lo que esa persona pidió.
+    category,
+    subcategory: categoria?.subcategorias.some((s) => s.id === subcategory)
+      ? subcategory
+      : undefined,
     department: one(sp.department),
     tier: FILTERABLE_TIERS.includes(tier as (typeof FILTERABLE_TIERS)[number])
       ? (tier as Tier)

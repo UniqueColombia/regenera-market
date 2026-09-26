@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, KeyRound, ShieldCheck, UserRound } from "lucide-react";
+import { Building2, KeyRound, Receipt, ShieldCheck, UserRound } from "lucide-react";
 import { Dispositivos, type DispositivoVisible } from "./dispositivos";
 import { guardarFoto, quitarFoto } from "./actions";
 import { ProgresoNivel } from "@/components/progreso-nivel";
 import { SelectorImagen } from "@/components/selector-imagen";
 import { getSesion, requireUser } from "@/lib/auth";
 import { getMiEmpresa } from "@/lib/repo";
+import { getPedidosDe } from "@/lib/orders";
+import { COLOR_ESTADO, ETIQUETA_ESTADO } from "@/lib/order-status";
+import { longDate, money } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { hashDispositivo, leerIdDispositivo } from "@/lib/dispositivos";
 import { mostrarTelefono } from "@/lib/telefono";
@@ -55,7 +58,7 @@ export default async function CuentaPage() {
   // gestione ninguna recibe `undefined` y el bloque del nivel no se pinta. No se
   // mira `sesion.esProveedor` — el rol dice que alguien vende, no de qué
   // empresa, y son dos preguntas distintas.
-  const empresa = await getMiEmpresa();
+  const [empresa, pedidos] = await Promise.all([getMiEmpresa(), getPedidosDe(user.id)]);
 
   const idActual = await leerIdDispositivo();
   const hashActual = idActual ? hashDispositivo(idActual) : null;
@@ -146,6 +149,57 @@ export default async function CuentaPage() {
           </div>
         </section>
       )}
+
+      {/* Lo que compraste. Es el sitio donde queda registrado cada pedido
+          después de confirmarlo, y desde donde se vuelve a las instrucciones
+          de pago sin buscar el correo. */}
+      <section id="pedidos" className="mt-10 scroll-mt-24">
+        <h2 className="font-display text-xl text-ink">Tus pedidos</h2>
+        {pedidos.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">
+            Todavía no has comprado nada.{" "}
+            <Link
+              href="/catalogo"
+              className="font-medium text-brand-700 underline underline-offset-4"
+            >
+              Mira el catálogo
+            </Link>
+            .
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-hairline rounded-xl bg-white ring-1 ring-hairline">
+            {pedidos.map((o) => (
+              <li key={o.id}>
+                <Link
+                  href={`/orden/${o.reference}`}
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-4 transition hover:bg-sand"
+                >
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-2 font-mono text-sm text-ink">
+                      <Receipt className="size-4 text-brand-600" aria-hidden />
+                      {o.reference}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-muted">
+                      {longDate(o.createdAt)} ·{" "}
+                      {o.items.map((i) => i.titleSnapshot).join(", ")}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${COLOR_ESTADO[o.status]}`}
+                    >
+                      {ETIQUETA_ESTADO[o.status]}
+                    </span>
+                    <span className="font-display text-base tabular-nums text-ink">
+                      {money(o.totalCop)}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="mt-10">
         <h2 className="font-display text-xl text-ink">Contraseña</h2>

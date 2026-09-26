@@ -11,7 +11,7 @@ import {
   getProviderBySlug,
 } from "@/lib/repo";
 import { descripcion, publica } from "@/lib/seo";
-import { CERTIFICATIONS, TIERS, TRAIT_LABEL } from "@/lib/taxonomy";
+import { CERTIFICATIONS, TIERS, TRAIT_LABEL, giroLabel } from "@/lib/taxonomy";
 
 export async function generateMetadata(
   props: PageProps<"/proveedor/[slug]">,
@@ -127,6 +127,28 @@ export default async function ProveedorPage(
           <p className="mt-3 max-w-2xl leading-relaxed text-ink">
             {provider.description}
           </p>
+
+          {/* El giro: qué es la empresa y qué ofrece. Va antes de los rasgos
+              sociales porque es lo primero que pregunta un hotel —¿me puede
+              alojar a los guías, darles de comer, llevarlos?— y los rasgos son
+              el porqué elegirla. */}
+          {provider.giros.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-xs font-medium uppercase tracking-wide text-muted">
+                Qué ofrece
+              </h3>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {provider.giros.map((g) => (
+                  <li
+                    key={g}
+                    className="rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-800 ring-1 ring-brand-100"
+                  >
+                    {giroLabel(g)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {provider.traits.length > 0 && (
             <ul className="mt-6 flex flex-wrap gap-2">

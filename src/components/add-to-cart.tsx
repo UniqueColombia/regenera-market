@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Check, Minus, Plus, ShoppingBasket } from "lucide-react";
@@ -13,8 +14,19 @@ import type { Listing } from "@/lib/types";
  * Aplica el precio mayorista en cuanto la cantidad alcanza el mínimo, y lo
  * muestra: el comprador B2B tiene que ver que le conviene subir el pedido, no
  * enterarse en el checkout.
+ *
+ * `conSesion` no cambia lo que se puede hacer aquí —llenar la cesta no exige
+ * cuenta, es estado del navegador— sino lo que se avisa: confirmar el pedido sí
+ * la exige, y enterarse en el último paso, con la cesta armada, es peor que
+ * leerlo antes en letra pequeña.
  */
-export function AddToCart({ listing }: { listing: Listing }) {
+export function AddToCart({
+  listing,
+  conSesion = true,
+}: {
+  listing: Listing;
+  conSesion?: boolean;
+}) {
   const router = useRouter();
   const [qty, setQty] = useState(listing.experience?.minPeople ?? 1);
   const [date, setDate] = useState(
@@ -171,7 +183,7 @@ export function AddToCart({ listing }: { listing: Listing }) {
       >
         {added ? (
           <>
-            <Check className="size-4" />
+            <Check className="size-4 animate-latido motion-reduce:animate-none" />
             Agregado a la cesta
           </>
         ) : (
@@ -193,6 +205,27 @@ export function AddToCart({ listing }: { listing: Listing }) {
       >
         Comprar ahora
       </button>
+
+      {!conSesion && (
+        <p className="mt-3 text-center text-xs leading-relaxed text-muted">
+          Para confirmar la compra necesitas una cuenta, a tu nombre o al de tu
+          empresa.{" "}
+          <Link
+            href={`/entrar?volver=${encodeURIComponent(`/oferta/${listing.slug}`)}`}
+            className="font-medium text-brand-700 underline underline-offset-2"
+          >
+            Entra
+          </Link>{" "}
+          o{" "}
+          <Link
+            href={`/registro?volver=${encodeURIComponent(`/oferta/${listing.slug}`)}`}
+            className="font-medium text-brand-700 underline underline-offset-2"
+          >
+            crea la tuya
+          </Link>
+          .
+        </p>
+      )}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { FormularioOferta } from "../formulario-oferta";
+import { guardarOferta } from "../actions";
+import { FormularioOferta } from "@/components/formulario-oferta";
 import { getProvidersForReview } from "@/lib/repo";
 
 export const metadata: Metadata = { title: "Nueva oferta" };
@@ -33,6 +34,8 @@ export default async function NuevaOfertaPage() {
       </p>
 
       <FormularioOferta
+        guardar={guardarOferta}
+        destino="/admin/ofertas"
         proveedores={proveedores.map((p) => ({
           id: p.id,
           name: p.name,

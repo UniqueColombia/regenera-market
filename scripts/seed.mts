@@ -221,6 +221,9 @@ const filasListings = LISTINGS.map((l) => {
     summary: l.summary,
     description: l.description,
     category: l.category,
+    // Desde la 0012. Sembrar contra una base sin esa migración falla aquí:
+    // se aplica la migración primero, como manda `docs/ESTADO.md`.
+    subcategory: l.subcategory ?? null,
     verticals: l.verticals,
     images: l.images,
     price_cop: l.priceCop,
