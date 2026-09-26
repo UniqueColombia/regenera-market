@@ -7,6 +7,7 @@ import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
 import { getMiEmpresa } from "@/lib/repo";
 import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 import type { ResultadoImagenUI } from "@/components/selector-imagen";
+import { GIROS_POR_NIVEL, IDS_GIRO, type GiroId } from "@/lib/taxonomy";
 
 /**
  * Lo que puede hacer con su empresa quien la gestiona.
@@ -154,5 +155,61 @@ async function escribirImagen(
   revalidatePath(`/proveedor/${slug}`);
   revalidatePath("/proveedores");
   revalidatePath("/comunidad");
+  return { ok: true };
+}
+
+/**
+ * El giro de la empresa: qué es y qué ofrece (`GIROS` de `src/lib/taxonomy.ts`).
+ *
+ * El tope por nivel se comprueba aquí para poder decirlo en español, y lo
+ * impone de verdad el trigger `providers_limitar_giros` de la 0012: la clave
+ * anon es pública, y un `update` directo contra PostgREST no pasaría por este
+ * archivo. Si la base lo rechaza igual —porque el nivel cambió entre que se
+ * pintó la pantalla y se guardó—, el mensaje es el mismo.
+ */
+export async function guardarGiros(
+  giros: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const empresa = await getMiEmpresa();
+  if (!empresa) return { ok: false, error: "Tu cuenta todavía no gestiona ninguna empresa." };
+
+  const validos = [...new Set(giros)].filter((g): g is GiroId =>
+    (IDS_GIRO as readonly string[]).includes(g),
+  );
+  const tope = GIROS_POR_NIVEL[empresa.tier];
+  if (validos.length > tope) {
+    return {
+      ok: false,
+      error: `Con tu nivel puedes declarar hasta ${tope}. Sube de nivel para ofrecer más a la vez.`,
+    };
+  }
+  if (validos.includes("consultoria") && !empresa.evaluacionVerificada) {
+    return {
+      ok: false,
+      error: "La consultoría exige el sello verificado por Seregenera.",
+    };
+  }
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("providers")
+    .update({ giros: validos })
+    .eq("id", empresa.id)
+    .select("id");
+
+  if (error?.message.includes("giros-limite")) {
+    return { ok: false, error: `Con tu nivel puedes declarar hasta ${tope}.` };
+  }
+  if (error?.message.includes("giros-verificacion")) {
+    return { ok: false, error: "La consultoría exige el sello verificado por Seregenera." };
+  }
+  if (error || !data || data.length === 0) {
+    const codigo = registrarFallo("empresa-giros", error ?? "sin filas", { cuantos: validos.length });
+    return { ok: false, error: mensajeDeFallo(codigo) };
+  }
+
+  revalidatePath("/cuenta/empresa");
+  revalidatePath(`/proveedor/${empresa.slug}`);
+  revalidatePath("/proveedores");
   return { ok: true };
 }

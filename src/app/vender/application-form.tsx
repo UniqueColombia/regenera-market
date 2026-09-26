@@ -13,7 +13,10 @@ import {
 } from "@/app/cuenta/empresa/actions";
 import { SelectorImagen } from "@/components/selector-imagen";
 import { PAISES, TIPOS_ORGANIZACION, paisPorNombre } from "@/lib/paises";
-import { VERTICALS } from "@/lib/taxonomy";
+import { GIROS, GIROS_POR_NIVEL, VERTICALS } from "@/lib/taxonomy";
+
+/** Cuántos giros caben al darse de alta: toda empresa nace en Semilla. */
+const GIROS_AL_EMPEZAR = GIROS_POR_NIVEL.semilla;
 
 /**
  * Postulación de proveedor, en tres pasos.
@@ -64,6 +67,7 @@ const PASO_DE_CAMPO: Record<string, number> = {
   city: 1,
   website: 1,
   categories: 2,
+  giros: 2,
   description: 2,
   consent: 2,
 };
@@ -92,6 +96,8 @@ export function ApplicationForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   /** Cuántos caracteres lleva la descripción. Solo para el contador que se ve. */
   const [largo, setLargo] = useState(0);
+  /** Los giros marcados. Solo para frenar la casilla que ya no cabe. */
+  const [giros, setGiros] = useState<string[]>([]);
   const [hecho, setHecho] = useState<{
     activada: boolean;
     slug?: string;
@@ -158,6 +164,7 @@ export function ApplicationForm({
       // `getAll` porque son casillas con el mismo nombre; `Object.fromEntries`
       // se queda solo con la última y perdería todas las demás categorías.
       categories: fd.getAll("categories").map(String),
+      giros: fd.getAll("giros").map(String),
     };
 
     startTransition(async () => {
@@ -332,6 +339,56 @@ export function ApplicationForm({
       {/* ---------------------------------------------------------------- 3 */}
       <fieldset hidden={paso !== 2} disabled={pending} className="mt-6 space-y-5">
         <legend className="sr-only">Qué vendes</legend>
+
+        {/* El giro: qué es la empresa. Distinto de «a quién le sirve» de
+            abajo — una ecoposada ES alojamiento y restaurante, y le SIRVE a
+            agencias. Toda empresa nace en Semilla, que admite dos; el resto
+            se abre al subir de nivel, y la consultoría con el sello. */}
+        <div>
+          <p className="mb-1 block text-xs font-medium text-muted">
+            ¿Qué es tu empresa? (hasta {GIROS_AL_EMPEZAR} para empezar)
+          </p>
+          <p className="mb-2 text-xs text-muted">
+            Al subir de nivel puedes sumar más. Bosque ofrece todos a la vez.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {GIROS.map((g) => {
+              const marcado = giros.includes(g.id);
+              const avanzado = "avanzado" in g && g.avanzado;
+              const bloqueado = avanzado || (!marcado && giros.length >= GIROS_AL_EMPEZAR);
+              return (
+                <label
+                  key={g.id}
+                  title={avanzado ? "Requiere el sello verificado por Seregenera" : undefined}
+                  className={`group rounded-full ring-1 ring-hairline transition has-[:checked]:bg-brand-50 has-[:checked]:ring-brand-400 ${
+                    bloqueado ? "cursor-not-allowed opacity-45" : "cursor-pointer hover:ring-brand-300"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    name="giros"
+                    value={g.id}
+                    data-paso={2}
+                    disabled={bloqueado}
+                    checked={marcado}
+                    onChange={() =>
+                      setGiros((a) =>
+                        a.includes(g.id) ? a.filter((x) => x !== g.id) : [...a, g.id],
+                      )
+                    }
+                    className="peer sr-only"
+                  />
+                  <span className="block px-3.5 py-2 text-sm text-muted transition peer-checked:font-medium peer-checked:text-brand-700">
+                    {g.label}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          {errors.giros && (
+            <p className="mt-1 text-xs font-medium text-red-700">{errors.giros}</p>
+          )}
+        </div>
 
         <div>
           <p className="mb-2 block text-xs font-medium text-muted">

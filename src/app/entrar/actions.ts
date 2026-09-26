@@ -15,6 +15,10 @@ import { armarTelefono } from "@/lib/telefono";
 import { validarClave } from "@/lib/password";
 import { abrirVentanaDeActividad } from "@/lib/sesion";
 import { dentroDelRitmo, origenDeLaPeticion, porCorreo } from "@/lib/ritmo";
+import { enviarCorreo } from "@/lib/correo";
+import { correoBienvenida } from "@/lib/correo/plantillas";
+import { registrarFallo } from "@/lib/incidencias";
+import { avisarAlVolver } from "@/lib/avisos";
 
 /**
  * Acceso, registro y recuperación.
@@ -285,6 +289,8 @@ export async function registrarse(datos: unknown): Promise<ResultadoAcceso> {
   // que recordar el aparato: es el primero de esta cuenta.
   if (data.session && data.user) {
     await confiarEnEsteAparato(supabase, data.user.id);
+    await darLaBienvenida(supabase, data.user);
+    await avisarAlVolver("entrada");
     return { ok: true, requiereCodigo: false };
   }
 
@@ -358,6 +364,7 @@ export async function entrarConClave(datos: unknown): Promise<ResultadoAcceso> {
 
     // Renueva `last_seen_at` y, de paso, la cookie del aparato.
     await confiarEnEsteAparato(supabase, user.id);
+    await avisarAlVolver("entrada");
     return {
       ok: true,
       requiereCodigo: false,
@@ -478,8 +485,60 @@ export async function verificarCodigo(datos: unknown): Promise<ResultadoCodigo> 
   }
 
   await confiarEnEsteAparato(supabase, data.user.id);
+  await darLaBienvenida(supabase, data.user);
+  await avisarAlVolver("entrada");
 
   return { ok: true, necesitaClave: !tieneClave(data.user.user_metadata) };
+}
+
+/**
+ * El correo de bienvenida, una sola vez por cuenta.
+ *
+ * ## Por qué aquí y no en `registrarse()`
+ *
+ * Porque al registrarse la cuenta todavía no está confirmada: quien escribe mal
+ * su correo recibiría la bienvenida en un buzón ajeno. Se manda al canjear el
+ * primer código, que es cuando el correo queda demostrado.
+ *
+ * ## Cómo se sabe que es la primera vez
+ *
+ * Dos condiciones, y hacen falta las dos:
+ *
+ * - `user_metadata.bienvenida` sin marcar. Se marca **solo si el correo salió
+ *   de verdad por SMTP**: si el enviador es la consola —faltan las `SMTP_*`—,
+ *   nadie lo recibió y marcarlo lo perdería para siempre.
+ * - La cuenta tiene menos de una semana. Sin esto, todas las cuentas creadas
+ *   antes de que existiera este correo recibirían una «bienvenida» en su
+ *   próximo acceso con código, meses después de llegar.
+ *
+ * **Fuera del camino crítico**, como el respaldo de una postulación: la sesión
+ * ya está abierta, y un SMTP caído no puede convertir un acceso correcto en un
+ * error.
+ */
+async function darLaBienvenida(
+  supabase: SupabaseClient,
+  user: { id: string; email?: string; created_at?: string; user_metadata?: Record<string, unknown> },
+): Promise<void> {
+  try {
+    const meta = user.user_metadata ?? {};
+    if (meta.bienvenida === true || !user.email) return;
+
+    const creada = user.created_at ? Date.parse(user.created_at) : NaN;
+    if (!Number.isFinite(creada) || Date.now() - creada > 7 * 24 * 3600 * 1000) return;
+
+    const nombre =
+      (typeof meta.full_name === "string" && meta.full_name.trim()) ||
+      user.email.split("@")[0];
+
+    const envio = await enviarCorreo(correoBienvenida({ nombre, correo: user.email }));
+    if (envio.ok && envio.via === "smtp") {
+      await supabase.auth.updateUser({ data: { bienvenida: true } });
+    } else if (!envio.ok) {
+      console.error(`[bienvenida] no enviada (${envio.via}): ${envio.error}`);
+    }
+  } catch (e) {
+    registrarFallo("bienvenida", e);
+  }
 }
 
 /**
