@@ -4,12 +4,59 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-24 (segunda tanda del día)
-- **Producción:** `v0.8.0` en `main` → **https://regenera-market.vercel.app**
+- **Corte:** 2026-09-26
+- **Producción:** `v0.9.0` en `main` → **https://regenera-market.vercel.app**
+  (comprobado el 2026-09-26: `/legal` responde 200 y la portada trae
+  `Content-Security-Policy`). La tanda de esta fecha sale como `v0.10.0`.
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
-  cerrados y **en producción**.
+  cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
+  empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.
 
-> ## ⚠️ Sin desplegar: la sesión caduca, la Comunidad tiene freno y los puntos cuestan
+> ## ⚠️ Falta aplicar la `0012` — y sin ella el sitio funciona, pero a medias
+>
+> Es la tanda del 2026-09-26: las empresas publican lo suyo, comprar exige
+> cuenta y es una transacción, categorías nuevas, giro de empresa, impacto en
+> las dos direcciones, correo de bienvenida, Green Watching y animaciones. Todo
+> en [el hito](../.claude/hitos/2026-09-26-empresas-publican-compra-con-cuenta-y-categorias.md).
+>
+> **Por primera vez, el código no exige un orden.** `src/lib/repo.ts` pregunta
+> si la `0012` está aplicada y, si no, lee las columnas de antes. Sin ella:
+>
+> - el catálogo, las fichas y la compra funcionan como hasta hoy (la compra por
+>   el camino viejo, `saveOrder()` con la clave de servicio);
+> - **las categorías nuevas salen vacías**, porque las ofertas siguen con la
+>   etiqueta vieja hasta que la migración las convierte;
+> - **publicar desde la empresa y guardar el giro fallan** con un código de
+>   incidencia.
+>
+> Se aplica en el editor SQL del panel, **entera y de una vez**. Tiene un único
+> `drop`: la vista `listings_publicos`, que se vuelve a crear en la línea
+> siguiente (la cabecera de la migración explica por qué hace falta).
+>
+> ```sql
+> -- Comprobación: 2 = aplicada
+> select count(*) from pg_proc where proname in ('crear_orden', 'limite_de_giros');
+> -- Y ninguna oferta con una categoría vieja
+> select category, count(*) from listings group by 1 order by 1;
+> ```
+>
+> **Lo primero que hay que probar después:** una compra de punta a punta con una
+> cuenta real —cesta, confirmar, «¡Listo!», «Tus pedidos»— y después cancelarla
+> desde `/admin/ordenes`. No se probó contra la base: crear una orden de prueba
+> en producción necesitaba el visto bueno de su dueño.
+>
+> **El error de compra `3014714994` no se pudo leer en Vercel** (la cuenta de
+> Jesús no ve el proyecto). La tabla `orders` estaba vacía, así que falló al
+> guardar; la sospecha principal es `SUPABASE_SERVICE_ROLE_KEY` mal puesta en
+> Vercel, porque era el único uso de esa clave en producción. Con la `0012` la
+> compra deja de usarla. **Ivan:** buscar ese `digest` en los registros de
+> Vercel confirma o descarta la hipótesis.
+>
+> **Sin las `SMTP_*` en Vercel no llega ni la bienvenida ni el correo del
+> pedido.** Es lo que se vio como «solo llega el código»: ese lo manda Supabase
+> con su propio SMTP.
+
+> ## Desplegado en `v0.9.0`: la sesión caduca, la Comunidad tiene freno y los puntos cuestan
 >
 > Es la tanda del 2026-09-24 por la tarde, y trae **dos cosas que se notan el
 > primer día**:
@@ -462,13 +509,17 @@ Lo que sigue abierto son las `SMTP_*` y desplegar la tanda de endurecimiento
 | Subir imágenes de una oferta | ❌ fuera de la beta a propósito |
 | Fechas con cupo de una experiencia desde el panel | ❌ solo por script |
 | Vercel Preview | ❌ faltan las tres de Supabase |
-| Panel de proveedor | ❌ **Bloque 4, sin empezar** |
+| Panel de proveedor | 🟡 **Bloque 4 empezado**: ofertas y giro en `/cuenta/empresa`. Faltan sus órdenes y sus cotizaciones |
 | Servidor propio (VPS) en vez de Vercel + Supabase | ❌ decidido, sin fecha |
-| Caducidad de sesión por inactividad (48 h) y tope de vida (30 días) | 🟡 escrito y probado en local, **sin desplegar**; falta `SESION_SECRETO` en Vercel |
-| Límites de ritmo en la Comunidad y puntos más caros | 🟡 migración `0011` **aplicada**; falta desplegar el código que traduce los topes a mensajes |
-| Límites por IP en entrar, registro, checkout, postular y `/api` | 🟡 escrito, **sin desplegar**. En memoria de cada instancia: frena a quien insiste, no a quien reparte |
-| Cabeceras de seguridad (CSP, HSTS, `frame-ancestors`, …) | 🟡 escrito y comprobado en local, **sin desplegar** |
-| `/legal` — políticas y términos en una página | 🟡 escrito, **sin desplegar** |
+| Caducidad de sesión por inactividad (48 h) y tope de vida (30 días) | ✅ en producción desde `v0.9.0`; comprobar que `SESION_SECRETO` está en Vercel |
+| Límites de ritmo en la Comunidad y puntos más caros | ✅ en producción desde `v0.9.0` |
+| Las empresas publican sus ofertas (`/cuenta/empresa/ofertas`), con revisión del equipo | 🟡 escrito, **falta aplicar la `0012`** |
+| Comprar exige cuenta; la orden es una transacción idempotente que descuenta cupo (`crear_orden()`) | 🟡 escrito, **falta aplicar la `0012`**; sin ella compra por el camino viejo |
+| Categorías por lo que resuelven, subcategorías, giro de empresa, impacto en dos direcciones | 🟡 escrito, **falta aplicar la `0012`** |
+| Correo de bienvenida y del pedido | 🟡 escrito; **nadie lo recibe hasta que estén las `SMTP_*` en Vercel** |
+| Límites por IP en entrar, registro, checkout, postular y `/api` | ✅ en producción desde `v0.9.0`. En memoria de cada instancia: frena a quien insiste, no a quien reparte. El de checkout cuenta por cuenta desde el 2026-09-26 |
+| Cabeceras de seguridad (CSP, HSTS, `frame-ancestors`, …) | ✅ en producción desde `v0.9.0` (comprobado el 2026-09-26) |
+| `/legal` — políticas y términos en una página | ✅ en producción desde `v0.9.0` (200 el 2026-09-26) |
 
 ---
 

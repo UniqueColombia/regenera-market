@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { cerrarVentanaDeActividad } from "@/lib/sesion";
+import { avisarAlVolver } from "@/lib/avisos";
 
 /**
  * Cierra la sesión.
@@ -24,6 +25,9 @@ export async function cerrarSesion() {
   // lo otro tiene la pantalla de dispositivos de confianza en `/cuenta`.
   await supabase.auth.signOut({ scope: "local" });
   await cerrarVentanaDeActividad();
+  // La portada no dice nada de que acabas de salir: sin esto, el único indicio
+  // es que el nombre desapareció del encabezado, y eso se confunde con un fallo.
+  await avisarAlVolver("salida");
   revalidatePath("/", "layout");
   redirect("/");
 }

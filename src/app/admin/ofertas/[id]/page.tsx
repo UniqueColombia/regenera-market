@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import { FormularioOferta } from "../formulario-oferta";
+import { guardarOferta } from "../actions";
+import { FormularioOferta } from "@/components/formulario-oferta";
 import { getListingByIdForAdmin, getProvidersForReview } from "@/lib/repo";
 
 export const metadata: Metadata = { title: "Editar oferta" };
@@ -47,6 +48,8 @@ export default async function EditarOfertaPage(
       </div>
 
       <FormularioOferta
+        guardar={guardarOferta}
+        destino="/admin/ofertas"
         oferta={oferta}
         proveedores={proveedores.map((p) => ({
           id: p.id,

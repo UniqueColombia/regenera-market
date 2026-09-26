@@ -283,3 +283,134 @@ function textoSinActivar(d: DatosPostulacion, url: string): string {
     "— Seregenera",
   ].join("\n");
 }
+
+// ---------------------------------------------------------------------------
+// Bienvenida a una persona
+// ---------------------------------------------------------------------------
+
+/**
+ * Lo que llega al terminar de crear la cuenta.
+ *
+ * Hasta ahora quien se registraba recibía **solo** el código de seis dígitos,
+ * que manda Supabase y no nosotros. Eso es un trámite, no un recibimiento: nadie
+ * le decía qué podía hacer ahora. Este correo lo dice, y no repite el código ni
+ * pide nada.
+ *
+ * Una empresa recibe además `correoPostulacionRecibida()` al darse de alta, que
+ * es su propia bienvenida: la de aquí es de la persona, la otra de su empresa.
+ */
+export function correoBienvenida(d: { nombre: string; correo: string }): Mensaje {
+  const url = sitio();
+
+  const cuerpo =
+    seccion(
+      h1(`Hola, ${d.nombre.split(" ")[0] || d.nombre}: ya estás dentro`) +
+        p(
+          "Tu cuenta en Seregenera ya está activa. Desde hoy puedes comprar a proveedores que te cuentan de dónde viene lo que venden y cuánto impacto evita.",
+        ),
+    ) +
+    bloqueSiguientesPasos([
+      "Explora el catálogo por lo que quieres resolver: agua, energía, residuos, hospitalidad…",
+      "Si tienes una empresa que vende algo regenerativo, dala de alta y publica el mismo día.",
+      "Pasa por la Comunidad: ahí cuentan otros qué les funcionó.",
+    ]) +
+    boton(`${url}/catalogo`, "Ver el catálogo") +
+    separador() +
+    seccion(
+      p(
+        `¿Vendes? <a href="${url}/vender" style="color:${VERDE};">Da de alta tu empresa</a>. Publicar es gratis y la comisión solo se cobra cuando vendes.`,
+      ),
+    );
+
+  return {
+    para: d.correo,
+    asunto: "Te damos la bienvenida a Seregenera",
+    html: envolver({
+      titulo: "Te damos la bienvenida a Seregenera",
+      preencabezado: "Tu cuenta ya está activa. Esto es lo que puedes hacer ahora.",
+      cuerpo,
+    }),
+    texto: [
+      "Te damos la bienvenida a Seregenera",
+      "",
+      `${d.nombre.split(" ")[0] || d.nombre}, tu cuenta ya está activa.`,
+      "",
+      "1. Explora el catálogo por lo que quieres resolver: agua, energía, residuos…",
+      "2. Si tienes una empresa que vende algo regenerativo, dala de alta.",
+      "3. Pasa por la Comunidad: ahí cuentan otros qué les funcionó.",
+      "",
+      `Catálogo: ${url}/catalogo`,
+      `Vender en Seregenera: ${url}/vender`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Pedido recibido
+// ---------------------------------------------------------------------------
+
+/**
+ * El respaldo de un pedido: qué se compró, cuánto es y con qué referencia se
+ * paga. Es lo que la persona busca en su correo el día que va a transferir.
+ *
+ * Los importes llegan ya calculados por la base (`crear_orden()`): aquí no se
+ * suma nada, solo se pinta. Invariante 1 de `dominio-regenera`.
+ */
+export function correoPedidoRecibido(d: {
+  nombre: string;
+  correo: string;
+  referencia: string;
+  totalCop: number;
+  lineas: { titulo: string; qty: number }[];
+}): Mensaje {
+  const url = sitio();
+  const pesos = new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(d.totalCop);
+
+  const lista = d.lineas
+    .map((l) => `${l.qty} × ${escapar(l.titulo)}`)
+    .join("<br>");
+
+  const cuerpo =
+    seccion(
+      h1("Recibimos tu pedido") +
+        p(
+          `Gracias, ${escapar(d.nombre.split(" ")[0] || d.nombre)}. Tu pedido quedó registrado con la referencia <strong style="color:${TINTA};">${escapar(d.referencia)}</strong> por <strong style="color:${TINTA};">${pesos}</strong>.`,
+        ) +
+        p(lista),
+    ) +
+    boton(`${url}/orden/${encodeURIComponent(d.referencia)}`, "Ver mi pedido y cómo pagar") +
+    separador() +
+    seccion(
+      p(
+        "El pago se coordina por transferencia. Usa la referencia en la descripción y te confirmamos el mismo día hábil.",
+      ),
+    );
+
+  return {
+    para: d.correo,
+    asunto: `Tu pedido ${d.referencia} en Seregenera`,
+    html: envolver({
+      titulo: `Tu pedido ${d.referencia}`,
+      preencabezado: `Referencia ${d.referencia} · ${pesos}`,
+      cuerpo,
+    }),
+    texto: [
+      "Recibimos tu pedido",
+      "",
+      `Referencia: ${d.referencia}`,
+      `Total: ${pesos}`,
+      "",
+      ...d.lineas.map((l) => `${l.qty} × ${l.titulo}`),
+      "",
+      `Ver el pedido y cómo pagar: ${url}/orden/${d.referencia}`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}

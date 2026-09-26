@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { abrirVentanaDeActividad } from "@/lib/sesion";
+import { avisarAlVolver } from "@/lib/avisos";
 
 /**
  * Canjea por sesión lo que traiga el enlace del correo.
@@ -92,6 +93,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/entrar?error=codigo-invalido`);
   }
   await abrirVentanaDeActividad(usuario.id);
+  await avisarAlVolver("entrada");
 
   return NextResponse.redirect(`${origin}${destino}`);
 }

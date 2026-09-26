@@ -36,6 +36,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["fair-trade", "gots"],
     foundedYear: 2016,
     traits: ["women_led", "campesino", "rural"],
+    giros: [],
     createdAt: "2026-02-11",
   },
   {
@@ -58,6 +59,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["fsc", "comercio-justo", "carbon-neutral"],
     foundedYear: 2011,
     traits: ["rural", "campesino"],
+    giros: [],
     createdAt: "2026-01-20",
   },
   {
@@ -80,6 +82,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["iso-14001", "watersense"],
     foundedYear: 2019,
     traits: [],
+    giros: [],
     createdAt: "2026-03-02",
   },
   {
@@ -101,6 +104,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["grs-recycled", "energy-star"],
     foundedYear: 2018,
     traits: ["rural"],
+    giros: [],
     createdAt: "2026-02-25",
   },
   {
@@ -123,6 +127,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["bpi-compostable", "ok-compost"],
     foundedYear: 2020,
     traits: ["rural"],
+    giros: [],
     createdAt: "2026-01-30",
   },
   {
@@ -145,6 +150,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["b-corp", "iso-14001", "carbon-neutral"],
     foundedYear: 2015,
     traits: ["b_corp"],
+    giros: [],
     createdAt: "2026-01-15",
   },
   {
@@ -166,6 +172,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["fair-trade", "comercio-justo"],
     foundedYear: 2017,
     traits: ["afro", "community_owned", "rural"],
+    giros: [],
     createdAt: "2026-02-18",
   },
   {
@@ -187,6 +194,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["rainforest-alliance", "carbon-neutral", "nts-ts"],
     foundedYear: 2013,
     traits: ["indigenous", "community_owned", "rural"],
+    giros: [],
     createdAt: "2026-01-08",
   },
   {
@@ -209,6 +217,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["energy-star"],
     foundedYear: 2021,
     traits: ["rural"],
+    giros: [],
     createdAt: "2026-03-10",
   },
   {
@@ -230,6 +239,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["mincomercio", "rainforest-alliance"],
     foundedYear: 2019,
     traits: ["women_led"],
+    giros: [],
     createdAt: "2026-02-05",
   },
   {
@@ -251,6 +261,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["rainforest-alliance", "biosphere"],
     foundedYear: 2014,
     traits: ["community_owned"],
+    giros: [],
     createdAt: "2026-02-01",
   },
   {
@@ -272,6 +283,7 @@ export const PROVIDERS: Provider[] = [
     certifications: ["fair-trade", "rainforest-alliance"],
     foundedYear: 2009,
     traits: ["campesino", "community_owned", "rural"],
+    giros: [],
     createdAt: "2026-01-25",
   },
   {
@@ -293,6 +305,7 @@ export const PROVIDERS: Provider[] = [
     certifications: [],
     foundedYear: 2022,
     traits: ["indigenous", "women_led", "community_owned", "rural"],
+    giros: [],
     createdAt: "2026-08-10",
   },
 ];

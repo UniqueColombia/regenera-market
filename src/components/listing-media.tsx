@@ -1,18 +1,6 @@
 import Image from "next/image";
-import {
-  Bike,
-  Boxes,
-  Compass,
-  Droplets,
-  GraduationCap,
-  Leaf,
-  Lightbulb,
-  Megaphone,
-  Package,
-  Sofa,
-  Sparkles,
-  Wrench,
-} from "lucide-react";
+import { IconoCategoria } from "./icono-categoria";
+import { categoriaLabel } from "@/lib/taxonomy";
 
 /**
  * Imagen de la oferta.
@@ -32,20 +20,6 @@ import {
  * El contenedor tiene que ser `relative`: las dos primeras ramas se posicionan
  * en absoluto para llenarlo.
  */
-
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  Amenities: Sparkles,
-  Capacitación: GraduationCap,
-  Empaques: Package,
-  Energía: Lightbulb,
-  Equipamiento: Boxes,
-  Experiencias: Compass,
-  Mantenimiento: Wrench,
-  Marketing: Megaphone,
-  Mobiliario: Sofa,
-  Servicios: Droplets,
-  Tecnología: Bike,
-};
 
 const GRADIENTS = [
   "from-brand-700 to-brand-500",
@@ -111,16 +85,15 @@ export function ListingMedia({
     );
   }
 
-  const Icon = ICONS[category] ?? Leaf;
   const gradient = GRADIENTS[hash(title) % GRADIENTS.length];
 
   return (
     <div
       role="img"
-      aria-label={`${category}: sin fotografía disponible`}
+      aria-label={`${categoriaLabel(category)}: sin fotografía disponible`}
       className={`size-full bg-gradient-to-br ${gradient} grid place-items-center ${className}`}
     >
-      <Icon className={`${iconClassName} text-white/70`} />
+      <IconoCategoria id={category} className={`${iconClassName} text-white/70`} />
     </div>
   );
 }

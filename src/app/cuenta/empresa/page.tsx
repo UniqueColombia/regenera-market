@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Building2 } from "lucide-react";
+import { ArrowRight, BadgeCheck, Building2, Plus, Tags } from "lucide-react";
+import { Giros } from "./giros";
 import { Historial } from "./historial";
 import {
   guardarLogo,
@@ -11,7 +12,9 @@ import {
 import { ProgresoNivel } from "@/components/progreso-nivel";
 import { SelectorImagen } from "@/components/selector-imagen";
 import { requireUser } from "@/lib/auth";
-import { getEventosDeExperiencia, getMiEmpresa } from "@/lib/repo";
+import { getEventosDeExperiencia, getMiEmpresa, getOfertasDeEmpresa } from "@/lib/repo";
+import { nivelPorId } from "@/lib/niveles";
+import { GIROS_POR_NIVEL } from "@/lib/taxonomy";
 
 export const metadata: Metadata = {
   title: "Tu empresa",
@@ -68,7 +71,12 @@ export default async function EmpresaPage() {
     );
   }
 
-  const eventos = await getEventosDeExperiencia(empresa.id);
+  const [eventos, ofertas] = await Promise.all([
+    getEventosDeExperiencia(empresa.id),
+    getOfertasDeEmpresa(empresa.id),
+  ]);
+  const publicadas = ofertas.filter((o) => o.status === "approved").length;
+  const enRevision = ofertas.filter((o) => o.status === "pending_review").length;
 
   return (
     <div className="container-page max-w-2xl py-12">
@@ -86,6 +94,60 @@ export default async function EmpresaPage() {
           ver tu ficha pública
         </Link>
       </p>
+
+      {/* Lo primero, porque es para lo que se viene aquí: publicar. Antes de
+          esta tanda una empresa no tenía desde dónde crear una oferta y tenía
+          que pedírsela al equipo. */}
+      <section className="mt-10">
+        <div className="rounded-xl bg-brand-50 p-6 ring-1 ring-brand-100">
+          <h2 className="flex items-center gap-2 font-display text-xl text-brand-900">
+            <Tags className="size-5 text-brand-600" aria-hidden />
+            Lo que vendes
+          </h2>
+          <p className="mt-1 text-sm text-brand-800">
+            {ofertas.length === 0
+              ? "Todavía no publicas nada. Productos, experiencias o servicios: empieza por lo que más vendes."
+              : `${publicadas} ${publicadas === 1 ? "publicada" : "publicadas"}${
+                  enRevision > 0 ? ` · ${enRevision} en revisión` : ""
+                } · ${ofertas.length} en total`}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/cuenta/empresa/ofertas/nueva"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
+            >
+              <Plus className="size-4" />
+              Nueva oferta
+            </Link>
+            {ofertas.length > 0 && (
+              <Link
+                href="/cuenta/empresa/ofertas"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-brand-200 transition hover:bg-sand"
+              >
+                Ver todas
+                <ArrowRight className="size-4" />
+              </Link>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-display text-xl text-ink">Tu giro</h2>
+        <p className="mt-1 text-sm text-muted">
+          ¿Qué es tu empresa y qué ofrece? Una ecoposada puede ser alojamiento,
+          restaurante, transporte y tours a la vez. Lo ven los compradores en tu
+          ficha.
+        </p>
+        <div className="mt-3 rounded-xl bg-white p-5 ring-1 ring-hairline">
+          <Giros
+            iniciales={empresa.giros}
+            tope={GIROS_POR_NIVEL[empresa.tier]}
+            nivel={nivelPorId(empresa.tier)?.label ?? "Semilla"}
+            verificada={empresa.evaluacionVerificada}
+          />
+        </div>
+      </section>
 
       <section className="mt-10">
         <h2 className="font-display text-xl text-ink">La cara de tu ficha</h2>

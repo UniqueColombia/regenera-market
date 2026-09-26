@@ -71,6 +71,146 @@
       transform: translateY(0);
     }
   }
+
+  /* El aviso de «entraste» / «saliste» (`aviso-al-volver.tsx`). Sube desde
+     abajo con un leve rebote: es una confirmación, y tiene que notarse sin
+     asustar. */
+  --animate-aviso: aviso 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+
+  @keyframes aviso {
+    from {
+      opacity: 0;
+      transform: translateY(1rem) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* El icono del aviso y el de una compra confirmada: un pulso, una vez. */
+  --animate-latido: latido 600ms ease-out 150ms both;
+
+  @keyframes latido {
+    0% {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* La barra que se vacía mientras el aviso sigue en pantalla. Tiene que durar
+     lo mismo que el temporizador de `aviso-al-volver.tsx` (4.5 s). */
+  --animate-consumir: consumir 4500ms linear both;
+
+  @keyframes consumir {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+
+  /* Los esqueletos de carga (`loading.tsx`). Un brillo que pasa, no un
+     parpadeo: el parpadeo se lee como «esto falla», el brillo como «esto
+     llega». */
+  --animate-brillo: brillo 1.4s ease-in-out infinite;
+
+  @keyframes brillo {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+
+  /* Entrada de una página cuando el navegador no tiene View Transitions
+     (Firefox antiguo, Safari antes de la 18): `src/app/template.tsx` la aplica
+     a todo lo que monta. Donde sí las hay, manda la transición de abajo. */
+  --animate-entrar: entrar 320ms ease-out both;
+
+  @keyframes entrar {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/**
+ * Transiciones entre páginas, con `<ViewTransition>` de React.
+ *
+ * `src/app/template.tsx` envuelve cada página en una. Al navegar —del catálogo a
+ * proveedores, por ejemplo— la vieja sale rápido y hacia arriba, y la nueva
+ * entra un poco después y desde abajo. La asimetría es a propósito: lo que se
+ * va no debe competir con lo que llega.
+ *
+ * **El encabezado no se mueve.** Tiene su propio `view-transition-name` y aquí
+ * se le quita la animación: si todo se deslizara, no habría ningún punto fijo
+ * para entender que lo que cambió fue el contenido.
+ *
+ * `pointer-events: none` en la capa de la transición: sin esto, un clic durante
+ * los 300 ms que dura se pierde.
+ */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(.pagina) {
+  animation: 140ms ease-in both salir-pagina;
+}
+
+::view-transition-new(.pagina) {
+  animation: 260ms ease-out 90ms both entrar-pagina;
+}
+
+@keyframes salir-pagina {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes entrar-pagina {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+::view-transition-group(encabezado) {
+  animation: none;
+  z-index: 100;
+}
+
+::view-transition-old(encabezado) {
+  display: none;
+}
+
+::view-transition-new(encabezado) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }
 
 :root {
@@ -224,5 +364,16 @@ body {
     background: var(--color-sand);
     color: var(--color-ink);
     font-weight: 600;
+  }
+}
+
+/* El respaldo de las transiciones: donde el navegador no tiene View
+   Transitions, la página nueva al menos entra con un fundido. Donde sí las
+   tiene, esta regla no aplica y no se animan dos veces. */
+@supports not (view-transition-name: none) {
+  @media (prefers-reduced-motion: no-preference) {
+    .entrada-pagina {
+      animation: var(--animate-entrar);
+    }
   }
 }

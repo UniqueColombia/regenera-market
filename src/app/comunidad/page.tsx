@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MessagesSquare } from "lucide-react";
 import { FormularioPublicacion } from "./formulario-publicacion";
+import { NivelesRapido } from "./niveles-rapido";
 import { HeroBanner } from "@/components/hero-banner";
 import { TarjetaPublicacion } from "@/components/tarjeta-publicacion";
 import { getSesion } from "@/lib/auth";
@@ -49,6 +50,10 @@ export default async function ComunidadPage() {
       </HeroBanner>
 
       <section className="container-page py-12">
+        <div className="mb-10">
+          <NivelesRapido />
+        </div>
+
         {sesion ? (
           <FormularioPublicacion empresas={empresas} />
         ) : (
