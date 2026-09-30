@@ -52,7 +52,7 @@ export default async function AdminComunidadPage() {
           </p>
         </div>
       ) : (
-        <ul className="mt-8 space-y-3">
+        <ul className="mt-8 grid items-start gap-3 xl:grid-cols-2">
           {posts.map((post) => (
             <li
               key={post.id}

@@ -68,7 +68,7 @@ export default async function OrdenesPage() {
           Todavía no hay ninguna orden.
         </p>
       ) : (
-        <ul className="mt-6 space-y-3">
+        <ul className="mt-6 grid items-start gap-3 xl:grid-cols-2">
           {ordenes.map((o) => {
             const comision = o.items.reduce((s, i) => s + i.commissionCop, 0);
 
