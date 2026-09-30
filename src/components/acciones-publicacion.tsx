@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Loader2, Pencil, Trash2 } from "lucide-react";
-import { editarPublicacion, eliminarPublicacion } from "@/app/comunidad/actions";
+import { editarPublicacion, eliminarPublicacion, puntosEnJuego } from "@/app/comunidad/actions";
+import { avisoDeEliminar } from "@/lib/comunidad";
 import { TEMAS } from "./tarjeta-publicacion";
 import type { CommunityTopic } from "@/lib/types";
 
@@ -49,13 +50,11 @@ export function AccionesPublicacion({
   }
 
   function eliminar() {
-    if (
-      !window.confirm(
-        `¿Eliminar «${titulo}»? Se borra para siempre, con sus reacciones, y no se puede deshacer.`,
-      )
-    )
-      return;
     iniciar(async () => {
+      // Se pregunta cuántos puntos se perderían ANTES de confirmar, para que el
+      // aviso diga el número real.
+      const puntos = await puntosEnJuego(postId);
+      if (!window.confirm(avisoDeEliminar(titulo, puntos))) return;
       const r = await eliminarPublicacion(postId);
       if (!r.ok) return setErrors({ form: r.error });
       router.refresh();

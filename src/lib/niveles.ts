@@ -42,6 +42,11 @@ import type { Tier } from "./types";
  * conversación que nadie quiere tener con un cliente suyo delante. El nivel sube
  * y se queda. Si algún día hace falta distinguir «activo» de «lo fue», eso es
  * otra señal, no este número.
+ *
+ * **Una excepción: borrar una publicación de la Comunidad resta lo que dio.**
+ * No es inactividad sino deshacer el hecho que originó los puntos; si no, se
+ * podía publicar, cobrar los puntos y borrar. Lo hace el trigger
+ * `community_revertir_experiencia` (migración 0013) y la aplicación avisa antes.
  */
 
 /**
