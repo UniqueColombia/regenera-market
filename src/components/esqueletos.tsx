@@ -88,14 +88,14 @@ export function EsqueletoFicha({ titulo }: { titulo: string }) {
 
 export function EsqueletoTexto({ titulo }: { titulo: string }) {
   return (
-    <div className="container-page max-w-2xl py-12" aria-busy="true">
+    <div className="container-page py-12" aria-busy="true">
       <span className="sr-only" role="status">
         {titulo}
       </span>
       <Barra className="h-3 w-28" />
       <Barra className="mt-4 h-9 w-80 max-w-full" />
-      <div className="mt-8 space-y-3">
-        {Array.from({ length: 5 }, (_, i) => (
+      <div className="mt-8 grid gap-3 lg:grid-cols-2">
+        {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="h-16 animate-brillo rounded-xl bg-white ring-1 ring-hairline motion-reduce:animate-none" />
         ))}
       </div>

@@ -74,7 +74,7 @@ export default async function CuentaPage() {
   const tieneClave = user.user_metadata?.tiene_clave === true;
 
   return (
-    <div className="container-page max-w-2xl py-12">
+    <div className="container-page py-12">
       <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
         <UserRound className="size-4" />
         Tu cuenta
@@ -83,7 +83,12 @@ export default async function CuentaPage() {
         {perfil?.full_name || sesion?.nombre}
       </h1>
 
-      <div className="mt-6 rounded-xl bg-white p-5 ring-1 ring-hairline">
+      {/* Dos columnas en pantalla ancha: a la izquierda quién eres (foto, datos,
+          contraseña) y a la derecha lo que haces (empresa, pedidos,
+          dispositivos). En el teléfono, una sola columna en ese orden. */}
+      <div className="mt-6 grid gap-8 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[26rem_minmax(0,1fr)]">
+      <div className="space-y-6">
+      <div className="rounded-xl bg-white p-5 ring-1 ring-hairline">
         <SelectorImagen
           nombre={perfil?.full_name || sesion?.nombre || "Tu cuenta"}
           imagenUrl={perfil?.avatar_url ?? undefined}
@@ -94,7 +99,7 @@ export default async function CuentaPage() {
         />
       </div>
 
-      <dl className="mt-6 grid gap-3 rounded-xl bg-white p-5 ring-1 ring-hairline sm:grid-cols-2">
+      <dl className="grid gap-3 rounded-xl bg-white p-5 ring-1 ring-hairline sm:grid-cols-2 lg:grid-cols-1">
         <div>
           <dt className="text-xs font-medium text-muted">Correo</dt>
           <dd className="text-sm text-ink">{user.email}</dd>
@@ -126,15 +131,35 @@ export default async function CuentaPage() {
       {sesion?.esAdmin && (
         <Link
           href="/admin"
-          className="mt-4 inline-flex items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
+          className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
         >
           <ShieldCheck className="size-4" />
           Ir al panel de administración
         </Link>
       )}
 
+      <section>
+        <h2 className="font-display text-xl text-ink">Contraseña</h2>
+        <div className="mt-3 flex flex-col gap-3 rounded-xl bg-white p-5 ring-1 ring-hairline">
+          <p className="text-sm text-muted">
+            {tieneClave
+              ? "Tu cuenta tiene contraseña."
+              : "Tu cuenta todavía entra solo con código. Ponerte una contraseña hace el acceso más rápido."}
+          </p>
+          <Link
+            href="/cuenta/clave"
+            className="flex shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand"
+          >
+            <KeyRound className="size-4" />
+            {tieneClave ? "Cambiarla" : "Crear contraseña"}
+          </Link>
+        </div>
+      </section>
+      </div>
+
+      <div className="space-y-8">
       {empresa && (
-        <section className="mt-10">
+        <section>
           <h2 className="font-display text-xl text-ink">Tu empresa</h2>
           <div className="mt-3 rounded-xl bg-white p-6 ring-1 ring-hairline">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -153,7 +178,7 @@ export default async function CuentaPage() {
       {/* Lo que compraste. Es el sitio donde queda registrado cada pedido
           después de confirmarlo, y desde donde se vuelve a las instrucciones
           de pago sin buscar el correo. */}
-      <section id="pedidos" className="mt-10 scroll-mt-24">
+      <section id="pedidos" className="scroll-mt-24">
         <h2 className="font-display text-xl text-ink">Tus pedidos</h2>
         {pedidos.length === 0 ? (
           <p className="mt-2 text-sm text-muted">
@@ -201,25 +226,7 @@ export default async function CuentaPage() {
         )}
       </section>
 
-      <section className="mt-10">
-        <h2 className="font-display text-xl text-ink">Contraseña</h2>
-        <div className="mt-3 flex flex-col gap-3 rounded-xl bg-white p-5 ring-1 ring-hairline sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted">
-            {tieneClave
-              ? "Tu cuenta tiene contraseña."
-              : "Tu cuenta todavía entra solo con código. Ponerte una contraseña hace el acceso más rápido."}
-          </p>
-          <Link
-            href="/cuenta/clave"
-            className="flex shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand"
-          >
-            <KeyRound className="size-4" />
-            {tieneClave ? "Cambiarla" : "Crear contraseña"}
-          </Link>
-        </div>
-      </section>
-
-      <section className="mt-10">
+      <section>
         <h2 className="font-display text-xl text-ink">Dispositivos de confianza</h2>
         <p className="mt-1 text-sm text-muted">
           En estos no te pedimos el código de seis dígitos. Si usaste un
@@ -227,6 +234,8 @@ export default async function CuentaPage() {
         </p>
         <Dispositivos items={items} />
       </section>
+      </div>
+      </div>
     </div>
   );
 }
