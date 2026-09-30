@@ -92,7 +92,7 @@ export function SiteFooter() {
               <Mail className="size-4 shrink-0" />
               <a
                 href={`mailto:${CONTACTO.correo}`}
-                className="transition-colors hover:text-white active:text-white"
+                className="min-w-0 break-all transition-colors hover:text-white active:text-white"
               >
                 {CONTACTO.correo}
               </a>
@@ -108,7 +108,7 @@ export function SiteFooter() {
             </li>
             <li className="flex items-center gap-2">
               <MapPin className="size-4 shrink-0" />
-              {CONTACTO.razonSocial} — {CONTACTO.pais}
+              <span className="min-w-0">{CONTACTO.razonSocial} — {CONTACTO.pais}</span>
             </li>
           </ul>
         </div>
@@ -122,8 +122,8 @@ export function SiteFooter() {
           proveedor le conviene saber antes de firmar — la comisión, entre
           ellas. Los de aquí abajo son el atajo directo a cada documento. */}
       <div className="border-t border-brand-800">
-        <div className="container-page flex flex-col items-center gap-3 py-5 text-xs text-brand-300 sm:flex-row sm:justify-between">
-          <p className="text-center sm:text-left">
+        <div className="container-page flex flex-col items-center gap-3 py-5 text-xs text-brand-300 lg:flex-row lg:justify-between">
+          <p className="text-center lg:text-left">
             © {new Date().getFullYear()} Seregenera — {CONTACTO.razonSocial}.
             Turismo que regenera vidas y paisajes.
           </p>
