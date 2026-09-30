@@ -23,11 +23,15 @@
 - **Sin la 0013 el muro sigue funcionando** (`edicionDisponible()` sondea la
   columna, como `sondeo0012`), pero editar se rechaza con un aviso en vez de
   editar sin dejar marca.
-- **Los puntos no se devuelven ni se repiten al borrar** (`experience_events`
-  tiene su tope mensual). Lo que sí: los topes de publicación (3 al día, 10 al
-  mes) cuentan filas, así que quien borra puede volver a publicar antes. El
-  ritmo de 30 s sigue frenando el abuso; si molesta, se guarda un contador
-  aparte en vez de filas.
+- **Borrar resta los puntos que la publicación dio** (actualiza la decisión
+  «los puntos no bajan»: es deshacer el hecho, no castigar inactividad). Trigger
+  `community_revertir_experiencia`; el nivel se recalcula y puede bajar. Antes de
+  borrar, tanto el autor como el administrador ven un aviso con el número de
+  puntos (`puntosEnJuego()` + `avisoDeEliminar()`).
+- **Borrar no libera cupo.** Los topes (30 s, 3 al día, 10 al mes) pasaron a
+  contar `community_post_log`: una fila (autor y hora, sin contenido) por
+  publicación creada, podada a los 30 días. Si borra una de tres, le quedan dos.
+  Un administrador no tiene topes, como antes.
 
 ## Verificación
 

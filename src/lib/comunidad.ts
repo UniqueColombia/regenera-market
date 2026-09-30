@@ -101,3 +101,17 @@ export function leerConteos(valor: unknown): Partial<Record<ReaccionId, number>>
 export function personas(n: number): string {
   return n === 1 ? "1 persona" : `${n} personas`;
 }
+
+/**
+ * El texto del aviso antes de eliminar una publicación.
+ *
+ * Con puntos de por medio hay que decirlo claro: eliminar resta lo que la
+ * publicación le dio a la empresa, y si eso la baja de nivel, sube su comisión.
+ * Sin puntos (publicación personal, o el tope mensual impidió que sumara) el
+ * aviso es el corto.
+ */
+export function avisoDeEliminar(titulo: string, puntos: number): string {
+  const base = `¿Eliminar «${titulo}»? Se borra para siempre, con sus reacciones, y no se puede deshacer.`;
+  if (puntos <= 0) return base;
+  return `${base}\n\nAtención: esta publicación le dio ${puntos} puntos de experiencia a la empresa que la firma. Al eliminarla se le restan, y si eso la baja de nivel, pasará a pagar más comisión.`;
+}

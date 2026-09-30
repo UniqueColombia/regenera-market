@@ -62,7 +62,7 @@ export async function moderarPublicacion(
  *
  * **Destacar otorga 80 puntos de experiencia** a la empresa que firma, vía el
  * trigger `community_posts_experiencia`. O sea que es dinero: los puntos bajan
- * la comisión. Quitar el destacado **no** los devuelve —los puntos no bajan
+ * la comisión. Quitar el destacado **no** los devuelve (solo eliminar la publicación los resta) —los puntos no bajan
  * nunca, es una decisión del modelo— y `experience_events` impide que volver a
  * destacar la misma publicación los sume otra vez.
  */
@@ -83,9 +83,10 @@ export async function destacarPublicacion(
  * Eliminar una publicación para siempre.
  *
  * Distinto de ocultar: ocultar es reversible y el autor la sigue viendo;
- * eliminar la borra y arrastra sus reacciones. No deja registro. **Los puntos de
- * experiencia que dio no se devuelven** (no bajan nunca, es una decisión del
- * modelo). Con el cliente de sesión, como el resto: lo autoriza
+ * eliminar la borra y arrastra sus reacciones. No deja registro de la
+ * publicación. **Los puntos de experiencia que dio se restan** a la empresa
+ * (trigger `community_revertir_experiencia`, migración 0013), y el nivel se
+ * recalcula; el panel avisa antes con el número. Con el cliente de sesión, como el resto: lo autoriza
  * `community_posts_admin`.
  */
 export async function eliminarPublicacionAdmin(
