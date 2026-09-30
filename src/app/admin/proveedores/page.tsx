@@ -96,7 +96,7 @@ export default async function ProveedoresPage() {
             </span>
           </h2>
 
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-4 grid items-start gap-3 xl:grid-cols-2">
             {filas.map((p) => (
               <li
                 key={p.id}

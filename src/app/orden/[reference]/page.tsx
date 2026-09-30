@@ -50,7 +50,7 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
   const comprado = order.items.map((i) => `${i.qty} × ${i.titleSnapshot}`).join(", ");
 
   return (
-    <div className="container-page max-w-3xl py-12">
+    <div className="container-page py-12">
       <div className="rounded-2xl bg-white p-6 ring-1 ring-hairline sm:p-8">
         {nuevo ? (
           <div className="animate-aviso rounded-xl bg-brand-50 p-5 ring-1 ring-brand-200 motion-reduce:animate-none">
@@ -92,27 +92,12 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
           </p>
         )}
 
-        {/* Las instrucciones solo mientras falta pagar: a quien ya pagó,
-            pedirle que transfiera otra vez es sembrarle la duda de si le
-            llegó. */}
-        {order.status === "pending_payment" && (
-          <div className="mt-6 rounded-xl bg-clay-100 p-5">
-            <h2 className="flex items-center gap-2 font-display text-lg text-ink">
-              <Info className="size-4 text-clay-700" />
-              Cómo completar el pago
-            </h2>
-            <ol className="mt-3 space-y-2 text-sm text-ink">
-              {intent.instructions?.map((step, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="font-semibold text-clay-700">{i + 1}.</span>
-                  {step}
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-
-        <h2 className="mt-8 font-display text-xl text-ink">Lo que pediste</h2>
+        {/* Dos columnas en pantalla ancha: lo que se pidió y el total a la
+            izquierda; cómo pagar, el impacto y los siguientes pasos a la
+            derecha. */}
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-x-12">
+          <div>
+        <h2 className="font-display text-xl text-ink">Lo que pediste</h2>
         <ul className="mt-4 divide-y divide-hairline">
           {order.items.map((item, i) => (
             <li key={i} className="flex justify-between gap-4 py-3">
@@ -153,10 +138,32 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
           </span>
         </div>
 
+          </div>
+          <div className="space-y-6">
+        {/* Las instrucciones solo mientras falta pagar: a quien ya pagó,
+            pedirle que transfiera otra vez es sembrarle la duda de si le
+            llegó. */}
+        {order.status === "pending_payment" && (
+          <div className="rounded-xl bg-clay-100 p-5">
+            <h2 className="flex items-center gap-2 font-display text-lg text-ink">
+              <Info className="size-4 text-clay-700" />
+              Cómo completar el pago
+            </h2>
+            <ol className="mt-3 space-y-2 text-sm text-ink">
+              {intent.instructions?.map((step, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="font-semibold text-clay-700">{i + 1}.</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
         {(order.impact.co2KgSaved ||
           order.impact.waterLitersSaved ||
           order.impact.wasteKgReduced) && (
-          <div className="mt-8 rounded-xl bg-brand-50 p-5">
+          <div className="rounded-xl bg-brand-50 p-5">
             <h2 className="font-display text-lg text-brand-800">
               El impacto de esta compra
             </h2>
@@ -168,13 +175,13 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
           </div>
         )}
 
-        <p className="mt-8 text-sm text-muted">
+        <p className="text-sm text-muted">
           Te escribimos a{" "}
           <strong className="break-all text-ink">{order.buyerEmail}</strong> en
           cuanto confirmemos el pago.
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3">
           <Link
             href="/catalogo"
             className="inline-block rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800"
@@ -187,6 +194,8 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
           >
             Ver todos mis pedidos
           </Link>
+        </div>
+          </div>
         </div>
       </div>
     </div>

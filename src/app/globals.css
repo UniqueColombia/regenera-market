@@ -377,3 +377,13 @@ body {
     }
   }
 }
+
+/* Cinta de navegación inferior (móvil). Ver src/components/nav-inferior.tsx.
+   Mientras esté en el DOM, el body reserva su alto y los avisos flotantes
+   suben sobre ella leyendo --nav-inferior. */
+@media (max-width: 767px) {
+  body:has(.nav-inferior) {
+    --nav-inferior: calc(3.5rem + env(safe-area-inset-bottom));
+    padding-bottom: var(--nav-inferior);
+  }
+}

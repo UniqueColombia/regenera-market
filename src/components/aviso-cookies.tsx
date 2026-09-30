@@ -72,7 +72,7 @@ export function AvisoCookies({ yaDecidido }: { yaDecidido: boolean }) {
       // que anunciarlo como diálogo modal le mentiría a un lector de pantalla.
       role="region"
       aria-label="Aviso de cookies"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-white/95 backdrop-blur"
+      className="fixed inset-x-0 bottom-[var(--nav-inferior,0px)] z-50 border-t border-hairline bg-white/95 backdrop-blur"
     >
       <div className="container-page flex flex-col gap-4 py-4 md:flex-row md:items-center">
         <Cookie className="size-6 shrink-0 text-brand-600" aria-hidden />

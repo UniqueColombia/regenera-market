@@ -68,7 +68,7 @@ export default async function OfertasPage() {
           No hay ninguna oferta todavía.
         </p>
       ) : (
-        <ul className="mt-6 space-y-2">
+        <ul className="mt-6 grid gap-2 xl:grid-cols-2">
           {ofertas.map((o) => (
             <li
               key={o.id}

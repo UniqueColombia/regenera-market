@@ -64,7 +64,7 @@ export default async function OfertasDeEmpresaPage() {
   const ofertas = await getOfertasDeEmpresa(empresa.id);
 
   return (
-    <div className="container-page max-w-3xl py-12">
+    <div className="container-page py-12">
       <Link
         href="/cuenta/empresa"
         className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-brand-700"
@@ -112,7 +112,7 @@ export default async function OfertasDeEmpresaPage() {
           </Link>
         </div>
       ) : (
-        <ul className="mt-8 space-y-3">
+        <ul className="mt-8 grid gap-3 lg:grid-cols-2">
           {ofertas.map((o) => (
             <li
               key={o.id}
