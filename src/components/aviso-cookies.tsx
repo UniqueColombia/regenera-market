@@ -74,10 +74,10 @@ export function AvisoCookies({ yaDecidido }: { yaDecidido: boolean }) {
       aria-label="Aviso de cookies"
       className="fixed inset-x-0 bottom-[var(--nav-inferior,0px)] z-50 border-t border-hairline bg-white/95 backdrop-blur"
     >
-      <div className="container-page flex flex-col gap-4 py-4 md:flex-row md:items-center">
-        <Cookie className="size-6 shrink-0 text-brand-600" aria-hidden />
+      <div className="container-page flex flex-col gap-2 py-3 md:flex-row md:items-center md:gap-4 md:py-4">
+        <Cookie className="hidden size-6 shrink-0 text-brand-600 md:block" aria-hidden />
 
-        <p className="flex-1 text-sm text-muted">
+        <p className="flex-1 text-xs leading-snug text-muted sm:text-sm">
           Usamos cookies para mantener tu sesión abierta y para reconocer los
           dispositivos en los que confías; sin ellas no podrías entrar ni
           comprar. Si nos dejas, contamos también qué páginas visitas y desde
@@ -92,18 +92,18 @@ export function AvisoCookies({ yaDecidido }: { yaDecidido: boolean }) {
           .
         </p>
 
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <div className="grid shrink-0 grid-cols-2 gap-2 md:flex md:flex-wrap">
           <button
             type="button"
             onClick={() => decidir(false)}
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand active:bg-sand"
+            className="rounded-full px-3 py-2 text-xs font-semibold md:px-5 md:py-2.5 md:text-sm text-brand-700 ring-1 ring-control transition hover:bg-sand active:bg-sand"
           >
             Solo las necesarias
           </button>
           <button
             type="button"
             onClick={() => decidir(true)}
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand active:bg-sand"
+            className="rounded-full px-3 py-2 text-xs font-semibold md:px-5 md:py-2.5 md:text-sm text-brand-700 ring-1 ring-control transition hover:bg-sand active:bg-sand"
           >
             Aceptar también la medición
           </button>
