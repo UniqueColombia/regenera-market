@@ -97,7 +97,11 @@ export default async function ComunidadPage() {
           <ul className="mt-10 grid gap-5 lg:grid-cols-2">
             {posts.map((post) => (
               <li key={post.id}>
-                <TarjetaPublicacion post={post} haySesion={Boolean(sesion)} />
+                <TarjetaPublicacion
+                  post={post}
+                  haySesion={Boolean(sesion)}
+                  usuarioId={sesion?.id}
+                />
               </li>
             ))}
           </ul>
