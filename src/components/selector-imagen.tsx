@@ -54,6 +54,8 @@ export type ResultadoImagenUI =
 const MEDIDAS = {
   cuadrada: { ancho: 512, alto: 512 },
   apaisada: { ancho: 1600, alto: 900 },
+  /** Las fotos de una oferta: 4:3, que es como las muestran la tarjeta y la ficha. */
+  foto: { ancho: 1200, alto: 900 },
 } as const;
 
 export type Proporcion = keyof typeof MEDIDAS;
@@ -250,7 +252,7 @@ export function SelectorImagen({
  * y un PNG de 1600 px se pasa largo del medio mega que acepta el servidor, así
  * que en ese caso se rehace en JPEG, que entiende todo el mundo desde siempre.
  */
-async function recortar(archivo: File, proporcion: Proporcion): Promise<Blob> {
+export async function recortar(archivo: File, proporcion: Proporcion): Promise<Blob> {
   const bitmap = await createImageBitmap(archivo);
   const { ancho, alto } = MEDIDAS[proporcion];
   const relacion = ancho / alto;

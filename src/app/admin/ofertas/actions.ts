@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
+import type { ResultadoImagenUI } from "@/components/selector-imagen";
 import { createClient } from "@/lib/supabase/server";
 import { slugLibre, slugify } from "@/lib/slug";
 import { CamposOferta, erroresDeOferta, filaDeOferta, reglasDeOferta } from "@/lib/ofertas";
@@ -152,4 +154,31 @@ export async function cambiarEstadoOferta(datos: unknown): Promise<
 
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/**
+ * Sube una foto de una oferta a la carpeta del proveedor elegido en el
+ * formulario. Es la versión del equipo de `subirImagenDeOferta()` de la empresa:
+ * aquí el proveedor sí viene del formulario —el administrador puede publicar por
+ * cualquiera—, y por eso se sube con el cliente de servicio tras `requireAdmin()`.
+ */
+export async function subirImagenDeOfertaAdmin(datos: FormData): Promise<ResultadoImagenUI> {
+  await requireAdmin();
+
+  const proveedor = z.uuid().safeParse(datos.get("providerId"));
+  if (!proveedor.success) {
+    return { ok: false, error: "Elige primero el proveedor de la oferta." };
+  }
+
+  const revisada = revisarImagen(datos.get("imagen"));
+  if (!revisada.ok) return { ok: false, error: revisada.error };
+
+  return getAlmacen().guardar(
+    "logos",
+    proveedor.data,
+    revisada.archivo,
+    revisada.tipo,
+    `oferta-${crypto.randomUUID()}`,
+    true,
+  );
 }

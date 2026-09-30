@@ -72,7 +72,7 @@ export default async function PostulacionesPage() {
             </span>
           </h2>
 
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-4 grid items-start gap-3 xl:grid-cols-2">
             {filas.map((p) => (
               <li key={p.id} className="rounded-xl bg-white p-5 ring-1 ring-hairline">
                 <div className="flex flex-wrap items-center gap-2">

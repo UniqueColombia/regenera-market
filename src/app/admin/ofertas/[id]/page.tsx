@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import { guardarOferta } from "../actions";
+import { guardarOferta, subirImagenDeOfertaAdmin } from "../actions";
 import { FormularioOferta } from "@/components/formulario-oferta";
 import { getListingByIdForAdmin, getProvidersForReview } from "@/lib/repo";
 
@@ -49,6 +49,7 @@ export default async function EditarOfertaPage(
 
       <FormularioOferta
         guardar={guardarOferta}
+        subirImagen={subirImagenDeOfertaAdmin}
         destino="/admin/ofertas"
         oferta={oferta}
         proveedores={proveedores.map((p) => ({

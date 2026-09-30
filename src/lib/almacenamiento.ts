@@ -1,4 +1,5 @@
 import { createClient } from "./supabase/server";
+import { createAdminClient } from "./supabase/admin";
 import { isSupabaseConfigured } from "./supabase/config";
 
 /**
@@ -37,7 +38,7 @@ export type Bucket = "avatares" | "logos";
  * primera carpeta de la ruta**, así que dos archivos distintos en la misma
  * carpeta no necesitan ni bucket ni política nueva. Ver la migración 0009.
  */
-export type Pieza = "imagen" | "portada";
+export type Pieza = "imagen" | "portada" | `oferta-${string}`;
 
 export type ResultadoImagen =
   | { ok: true; url: string }
@@ -62,6 +63,12 @@ export interface AlmacenDeImagenes {
     archivo: Blob,
     tipo: string,
     pieza?: Pieza,
+    /**
+     * Guardar con el cliente de servicio en vez del de sesión. Solo para el
+     * equipo de administración, que sube imágenes a la carpeta de una empresa
+     * que no gestiona; quien llama ya comprobó `requireAdmin()`.
+     */
+    comoServicio?: boolean,
   ): Promise<ResultadoImagen>;
 }
 
@@ -97,13 +104,14 @@ class AlmacenSupabase implements AlmacenDeImagenes {
     archivo: Blob,
     tipo: string,
     pieza: Pieza = "imagen",
+    comoServicio = false,
   ): Promise<ResultadoImagen> {
     // El cliente de sesión, no el de servicio: así la subida pasa por las
     // políticas de `storage.objects` de la migración 0008. Es defensa en
     // profundidad — la acción ya comprobó quién es, y la base lo vuelve a
     // comprobar. Con el cliente de servicio, un fallo de la comprobación de
     // arriba dejaría a cualquiera escribiendo en la carpeta de otro.
-    const db = await createClient();
+    const db = comoServicio ? createAdminClient() : await createClient();
     const ruta = `${duenio}/${nombreDeArchivo(tipo, pieza)}`;
 
     const { error } = await db.storage.from(bucket).upload(ruta, archivo, {
