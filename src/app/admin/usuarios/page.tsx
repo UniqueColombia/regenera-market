@@ -59,7 +59,7 @@ export default async function UsuariosPage() {
         </p>
       )}
 
-      <ul className="mt-6 space-y-3">
+      <ul className="mt-6 grid items-start gap-3 xl:grid-cols-2">
         {usuarios.map((u) => (
           <FilaUsuario
             key={u.id}

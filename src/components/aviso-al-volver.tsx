@@ -61,7 +61,7 @@ export function AvisoAlVolver() {
       key={aviso.vez}
       role="status"
       aria-live="polite"
-      className="fixed inset-x-4 bottom-4 z-[60] mx-auto flex max-w-sm animate-aviso items-start gap-3 rounded-xl bg-white p-4 shadow-xl shadow-brand-900/10 ring-1 ring-brand-200 motion-reduce:animate-none sm:inset-x-auto sm:right-6 sm:bottom-6"
+      className="fixed inset-x-4 bottom-[calc(var(--nav-inferior,0px)+1rem)] z-[60] mx-auto flex max-w-sm animate-aviso items-start gap-3 rounded-xl bg-white p-4 shadow-xl shadow-brand-900/10 ring-1 ring-brand-200 motion-reduce:animate-none sm:inset-x-auto sm:right-6 sm:bottom-[calc(var(--nav-inferior,0px)+1.5rem)]"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600">
         <Icono className="size-5 animate-latido motion-reduce:animate-none" aria-hidden />

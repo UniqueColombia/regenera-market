@@ -79,7 +79,7 @@ export default async function EmpresaPage() {
   const enRevision = ofertas.filter((o) => o.status === "pending_review").length;
 
   return (
-    <div className="container-page max-w-2xl py-12">
+    <div className="container-page py-12">
       <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
         <Building2 className="size-4" />
         Tu empresa
@@ -95,10 +95,15 @@ export default async function EmpresaPage() {
         </Link>
       </p>
 
+      {/* Dos columnas en pantalla ancha: lo que vendes, tu giro y tu nivel a la
+          izquierda; cómo se ve tu ficha y de dónde salen tus puntos a la
+          derecha. En el teléfono, una sola columna en este mismo orden. */}
+      <div className="mt-8 grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-x-10">
+        <div className="space-y-8">
       {/* Lo primero, porque es para lo que se viene aquí: publicar. Antes de
           esta tanda una empresa no tenía desde dónde crear una oferta y tenía
           que pedírsela al equipo. */}
-      <section className="mt-10">
+      <section>
         <div className="rounded-xl bg-brand-50 p-6 ring-1 ring-brand-100">
           <h2 className="flex items-center gap-2 font-display text-xl text-brand-900">
             <Tags className="size-5 text-brand-600" aria-hidden />
@@ -132,7 +137,7 @@ export default async function EmpresaPage() {
         </div>
       </section>
 
-      <section className="mt-10">
+      <section>
         <h2 className="font-display text-xl text-ink">Tu giro</h2>
         <p className="mt-1 text-sm text-muted">
           ¿Qué es tu empresa y qué ofrece? Una ecoposada puede ser alojamiento,
@@ -149,7 +154,34 @@ export default async function EmpresaPage() {
         </div>
       </section>
 
-      <section className="mt-10">
+      <section>
+        <h2 className="font-display text-xl text-ink">Tu nivel</h2>
+        <div className="mt-3 rounded-xl bg-white p-6 ring-1 ring-hairline">
+          <ProgresoNivel puntos={empresa.experiencePoints} />
+        </div>
+
+        {empresa.evaluacionVerificada && (
+          <p className="mt-3 flex items-start gap-2 text-sm text-muted">
+            <BadgeCheck className="mt-0.5 size-4 shrink-0 text-clay-600" />
+            Tu evaluación de sostenibilidad está verificada, y eso es distinto
+            del nivel: el sello mide cómo operas y el nivel mide tu actividad.
+          </p>
+        )}
+
+        <p className="mt-3 text-xs text-muted">
+          <Link
+            href="/niveles"
+            className="font-medium text-brand-700 underline underline-offset-4"
+          >
+            Cómo funcionan los niveles
+          </Link>{" "}
+          y qué suma cada cosa.
+        </p>
+      </section>
+
+        </div>
+        <div className="space-y-8">
+      <section>
         <h2 className="font-display text-xl text-ink">La cara de tu ficha</h2>
         <p className="mt-1 text-sm text-muted">
           Son dos imágenes distintas y hacen dos cosas distintas: el logo te
@@ -191,38 +223,15 @@ export default async function EmpresaPage() {
         </div>
       </section>
 
-      <section className="mt-10">
-        <h2 className="font-display text-xl text-ink">Tu nivel</h2>
-        <div className="mt-3 rounded-xl bg-white p-6 ring-1 ring-hairline">
-          <ProgresoNivel puntos={empresa.experiencePoints} />
-        </div>
-
-        {empresa.evaluacionVerificada && (
-          <p className="mt-3 flex items-start gap-2 text-sm text-muted">
-            <BadgeCheck className="mt-0.5 size-4 shrink-0 text-clay-600" />
-            Tu evaluación de sostenibilidad está verificada, y eso es distinto
-            del nivel: el sello mide cómo operas y el nivel mide tu actividad.
-          </p>
-        )}
-
-        <p className="mt-3 text-xs text-muted">
-          <Link
-            href="/niveles"
-            className="font-medium text-brand-700 underline underline-offset-4"
-          >
-            Cómo funcionan los niveles
-          </Link>{" "}
-          y qué suma cada cosa.
-        </p>
-      </section>
-
-      <section className="mt-10">
+      <section>
         <h2 className="font-display text-xl text-ink">De dónde salen tus puntos</h2>
         <p className="mt-1 text-sm text-muted">
           Cada línea es algo que hiciste. Los puntos suben y no bajan.
         </p>
         <Historial eventos={eventos} />
       </section>
+        </div>
+      </div>
     </div>
   );
 }

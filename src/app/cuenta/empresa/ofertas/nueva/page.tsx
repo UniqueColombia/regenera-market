@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
-import { guardarOfertaDeEmpresa } from "../actions";
+import { guardarOfertaDeEmpresa, subirImagenDeOferta } from "../actions";
 import { FormularioOferta } from "@/components/formulario-oferta";
 import { requireUser } from "@/lib/auth";
 import { getMiEmpresa } from "@/lib/repo";
@@ -21,7 +21,7 @@ export default async function NuevaOfertaDeEmpresaPage() {
   if (!empresa) redirect("/cuenta/empresa/ofertas");
 
   return (
-    <div className="container-page max-w-3xl py-12">
+    <div className="container-page py-12">
       <Link
         href="/cuenta/empresa/ofertas"
         className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-brand-700"
@@ -58,6 +58,7 @@ export default async function NuevaOfertaDeEmpresaPage() {
       <FormularioOferta
         modo="empresa"
         guardar={guardarOfertaDeEmpresa}
+        subirImagen={subirImagenDeOferta}
         destino="/cuenta/empresa/ofertas"
         verificada={empresa.evaluacionVerificada}
       />

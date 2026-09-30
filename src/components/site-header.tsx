@@ -128,7 +128,15 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
               // catálogo (`src/lib/taxonomy.ts`), y cada categoría dice debajo
               // a qué hace referencia. Las verticales siguen como filtro dentro
               // del catálogo.
-              <div className="absolute left-1/2 top-full mt-2 w-[60rem] max-w-[calc(100vw-2.5rem)] -translate-x-1/2 animate-desplegar rounded-xl bg-white p-5 shadow-xl ring-1 ring-hairline motion-reduce:animate-none">
+              <div
+                // Elegir una categoría o subcategoría cierra la lista. La ruta
+                // no siempre cambia (de /catalogo a /catalogo?category=x el
+                // `pathname` es el mismo), así que el cierre por cambio de ruta
+                // de arriba no alcanza y la lista se quedaba tapando lo elegido.
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("a")) setOpenCategories(false);
+                }}
+                className="absolute left-1/2 top-full mt-2 w-[60rem] max-w-[calc(100vw-2.5rem)] -translate-x-1/2 animate-desplegar rounded-xl bg-white p-5 shadow-xl ring-1 ring-hairline motion-reduce:animate-none">
                 <div className="grid grid-cols-4 gap-x-6 gap-y-6">
                   {CATEGORIAS.map((c) => {
                     return (
@@ -207,7 +215,14 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
       </div>
 
       {openMenu && (
-        <nav className="animate-desplegar border-t border-hairline bg-white motion-reduce:animate-none md:hidden">
+        <nav
+          // Mismo motivo que en las categorías: tocar una fila que lleva a la
+          // misma ruta (otra categoría del catálogo) no cambia el `pathname`.
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("a")) setOpenMenu(false);
+          }}
+          className="animate-desplegar border-t border-hairline bg-white motion-reduce:animate-none md:hidden"
+        >
           <ul className="container-page divide-y divide-hairline py-1">
             {NAV.map((item) => (
               <li key={item.href}>
