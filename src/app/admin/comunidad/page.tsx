@@ -99,6 +99,7 @@ export default async function AdminComunidadPage() {
                     ) : null}
                     {post.authorName} · {longDate(post.createdAt)} ·{" "}
                     {post.reactionCount} reacciones
+                    {post.editedAt && ` · editada el ${longDate(post.editedAt)}`}
                   </p>
 
                   {/* Recortado: el panel es para decidir, no para leer. El texto

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
+import { AccionesPublicacion } from "./acciones-publicacion";
 import { Reacciones } from "./reacciones";
 import { ProviderAvatar } from "./provider-avatar";
 import { TierBadge } from "./tier-badge";
@@ -50,12 +51,25 @@ function hace(iso: string): string {
   });
 }
 
+/** Marca de edición: es todo el historial que se conserva de un cambio. */
+function Editada({ iso }: { iso: string }) {
+  return (
+    <span title="El autor modificó esta publicación después de publicarla">
+      {" · editada el "}
+      {new Date(iso).toLocaleDateString("es-CO", { day: "numeric", month: "long" })}
+    </span>
+  );
+}
+
 export function TarjetaPublicacion({
   post,
   haySesion,
+  usuarioId,
 }: {
   post: CommunityPost;
   haySesion: boolean;
+  /** Quién mira. Si es el autor, la tarjeta ofrece editar y eliminar. */
+  usuarioId?: string;
 }) {
   const tema = TEMAS[post.topic];
 
@@ -83,6 +97,7 @@ export function TarjetaPublicacion({
               </Link>
               <p className="truncate text-xs text-muted">
                 por {post.authorName} · {hace(post.createdAt)}
+                {post.editedAt && <Editada iso={post.editedAt} />}
               </p>
             </>
           ) : (
@@ -90,7 +105,10 @@ export function TarjetaPublicacion({
               <p className="truncate font-display text-base text-ink">
                 {post.authorName}
               </p>
-              <p className="text-xs text-muted">{hace(post.createdAt)}</p>
+              <p className="text-xs text-muted">
+                {hace(post.createdAt)}
+                {post.editedAt && <Editada iso={post.editedAt} />}
+              </p>
             </>
           )}
         </div>
@@ -140,6 +158,14 @@ export function TarjetaPublicacion({
           >
             Ver lo que vende
           </Link>
+        )}
+        {usuarioId && usuarioId === post.authorId && (
+          <AccionesPublicacion
+            postId={post.id}
+            titulo={post.title}
+            cuerpo={post.body}
+            tema={post.topic}
+          />
         )}
       </footer>
     </article>

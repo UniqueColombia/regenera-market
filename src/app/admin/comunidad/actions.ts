@@ -79,6 +79,43 @@ export async function destacarPublicacion(
   return escribir(parsed.data.postId, { featured: parsed.data.destacada });
 }
 
+/**
+ * Eliminar una publicación para siempre.
+ *
+ * Distinto de ocultar: ocultar es reversible y el autor la sigue viendo;
+ * eliminar la borra y arrastra sus reacciones. No deja registro. **Los puntos de
+ * experiencia que dio no se devuelven** (no bajan nunca, es una decisión del
+ * modelo). Con el cliente de sesión, como el resto: lo autoriza
+ * `community_posts_admin`.
+ */
+export async function eliminarPublicacionAdmin(
+  datos: unknown,
+): Promise<ResultadoModeracion> {
+  await requireAdmin();
+
+  const parsed = z.object({ postId: z.uuid("Identificador de publicación inválido") }).safeParse(datos);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("community_posts")
+    .delete()
+    .eq("id", parsed.data.postId)
+    .select("id");
+
+  if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0) {
+    return { ok: false, error: "No se pudo eliminar. ¿Sigues teniendo permiso de administrador?" };
+  }
+
+  revalidatePath("/admin/comunidad");
+  revalidatePath("/comunidad");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 async function escribir(
   postId: string,
   campos: Record<string, unknown>,
