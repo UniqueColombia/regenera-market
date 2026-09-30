@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import {
   CATEGORIAS,
@@ -12,6 +12,8 @@ import {
   categoriaPorId,
 } from "@/lib/taxonomy";
 import type { Listing, ListingKind } from "@/lib/types";
+import { ImagenesOferta } from "./imagenes-oferta";
+import type { ResultadoImagenUI } from "./selector-imagen";
 
 /**
  * El formulario de oferta. Es el más grande del proyecto y tenía que serlo:
@@ -73,6 +75,7 @@ export function FormularioOferta({
   guardar,
   destino,
   verificada = false,
+  subirImagen,
 }: {
   modo?: "admin" | "empresa";
   proveedores?: ProveedorOpcion[];
@@ -83,7 +86,10 @@ export function FormularioOferta({
   destino: string;
   /** Solo en modo empresa: ¿tiene la evaluación verificada por Seregenera? */
   verificada?: boolean;
+  /** Sube una foto de la oferta y devuelve su URL. Cambia según quién edite. */
+  subirImagen: (datos: FormData) => Promise<ResultadoImagenUI>;
 }) {
+  const formulario = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const esEmpresa = modo === "empresa";
   const [kind, setKind] = useState<ListingKind>(oferta?.kind ?? "product");
@@ -143,9 +149,21 @@ export function FormularioOferta({
       const r = await guardar(datos);
       if (!r.ok) {
         setErrors(r.errors);
-        // El error puede estar arriba del todo y la persona haber enviado desde
-        // el final de un formulario largo.
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        // El error puede estar lejos de donde la persona envió: en un
+        // formulario largo, «campos marcados en rojo» sin llevarla al primero
+        // la deja buscando. Se lleva la vista al primer campo con error (si no
+        // hay ninguno visible, al aviso de arriba).
+        requestAnimationFrame(() => {
+          const primero = Object.keys(r.errors)
+            .map((k) => formulario.current?.querySelector<HTMLElement>(`[name="${k}"]`))
+            .find(Boolean);
+          if (primero) {
+            primero.scrollIntoView({ behavior: "smooth", block: "center" });
+            primero.focus({ preventScroll: true });
+          } else {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+        });
         return;
       }
       setErrors({});
@@ -155,15 +173,26 @@ export function FormularioOferta({
   }
 
   const hayErrores = Object.keys(errors).length > 0;
+  // Los nombres de los campos con error, para decirlos en el aviso en vez de
+  // pedir que se busquen «los marcados en rojo» por todo el formulario.
+  const camposConError = Object.keys(errors)
+    .filter((k) => k !== "form")
+    .map((k) => ETIQUETA_CAMPO[k] ?? k);
 
   return (
-    <form onSubmit={enviar} className="mt-8 space-y-8">
+    <form ref={formulario} onSubmit={enviar} className="mt-8 space-y-8">
       {(errors.form || hayErrores) && (
         <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-red-100">
-          {errors.form ?? "Revisa los campos marcados en rojo."}
+          {errors.form ??
+            `Falta corregir ${camposConError.length === 1 ? "este campo" : "estos campos"}: ${camposConError.join(", ")}. Te llevamos al primero.`}
         </p>
       )}
 
+      {/* En pantalla ancha el formulario va en dos columnas: lo que se vende a
+          la izquierda, y precio, detalle e impacto a la derecha. En el teléfono
+          es una sola columna, en ese mismo orden. */}
+      <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-x-12">
+      <div className="space-y-8">
       <fieldset className="space-y-4" disabled={pendiente}>
         <legend className="font-display text-xl text-ink">Qué se vende</legend>
 
@@ -313,21 +342,29 @@ export function FormularioOferta({
         )}
 
         <Campo
-          label="Unidad"
+          label="El precio es por…"
           error={errors.unit}
-          ayuda="«unidad», «kit», «persona», «hora», «mes»…"
+          ayuda="Escribe a qué corresponde el precio. Si cobras $50.000 por cada persona, escribe «persona»; si vendes por kilo, «kilo»; si es una noche de alojamiento, «noche». Se ve en la ficha como «$50.000 / persona»."
         >
           <input
             name="unit"
+            list="unidades-sugeridas"
             defaultValue={oferta?.unit ?? "unidad"}
+            placeholder="Ej.: unidad, kilo, persona, noche"
             required
             maxLength={40}
             className={entrada(errors.unit)}
           />
+          <datalist id="unidades-sugeridas">
+            {["unidad", "kilo", "litro", "caja", "kit", "persona", "noche", "hora", "día", "mes", "servicio"].map((u) => (
+              <option key={u} value={u} />
+            ))}
+          </datalist>
         </Campo>
 
         <Campo
           label="Tipos de negocio a los que sirve"
+          error={errors.verticals}
           ayuda="Son los filtros del catálogo. Puede ser más de uno."
         >
           <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
@@ -346,21 +383,26 @@ export function FormularioOferta({
           </div>
         </Campo>
 
-        <Campo
-          label="Imágenes"
-          error={errors.images}
-          ayuda="Una dirección por línea. Mientras no haya subida de archivos, van rutas de /public o URLs externas; si se deja vacío, la ficha dibuja un tapiz de color."
-        >
-          <textarea
-            name="images"
-            rows={3}
-            defaultValue={oferta?.images.join("\n")}
-            className={entrada(errors.images)}
+        <div>
+          <span className="mb-1 block text-xs font-medium text-muted">Fotos</span>
+          <ImagenesOferta
+            iniciales={oferta?.images ?? []}
+            subir={subirImagen}
+            // En administración el proveedor se elige en el propio formulario:
+            // la carpeta de la foto es la de ese proveedor.
+            datosExtra={() => {
+              const f = formulario.current?.elements.namedItem("providerId");
+              return f instanceof HTMLSelectElement ? { providerId: f.value } : ({} as Record<string, string>);
+            }}
           />
-        </Campo>
+          {errors.images && <span className="mt-1 block text-xs text-red-700">{errors.images}</span>}
+        </div>
       </fieldset>
 
-      <fieldset className="space-y-4 border-t border-hairline pt-8" disabled={pendiente}>
+      </div>
+
+      <div className="space-y-8">
+      <fieldset className="space-y-4 border-t border-hairline pt-8 lg:border-t-0 lg:pt-0" disabled={pendiente}>
         <legend className="font-display text-xl text-ink">Precio</legend>
 
         <p className="rounded-xl bg-sand p-4 text-sm text-muted">
@@ -718,6 +760,9 @@ export function FormularioOferta({
         </fieldset>
       )}
 
+      </div>
+      </div>
+
       <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-6">
         <button
           type="submit"
@@ -760,6 +805,39 @@ export function FormularioOferta({
     </form>
   );
 }
+
+/** Cómo se llama cada campo en pantalla, para nombrarlos en el aviso de errores. */
+const ETIQUETA_CAMPO: Record<string, string> = {
+  providerId: "Proveedor",
+  kind: "Tipo",
+  title: "Título",
+  slug: "Dirección web",
+  summary: "Resumen",
+  description: "Descripción",
+  category: "Categoría",
+  subcategory: "Subcategoría",
+  unit: "El precio es por…",
+  verticals: "Tipos de negocio",
+  images: "Fotos",
+  priceCop: "Precio al público",
+  wholesalePriceCop: "Precio mayorista",
+  wholesaleMinQty: "Desde cuántas unidades",
+  stock: "Existencias",
+  durationHours: "Duración",
+  minPeople: "Mínimo de personas",
+  maxPeople: "Máximo de personas",
+  meetingPoint: "Punto de encuentro",
+  deliveryTime: "Tiempo de entrega",
+  aporteAmbiental: "Lo que aporta al ambiente",
+  consecuenciaAmbiental: "Lo que cuesta al ambiente",
+  co2KgSaved: "CO₂ evitado",
+  waterLitersSaved: "Agua ahorrada",
+  wasteKgReduced: "Residuos evitados",
+  huellaCo2Kg: "Huella de CO₂",
+  department: "Departamento",
+  city: "Ciudad o municipio",
+  status: "Estado",
+};
 
 /** Clases del control, con el borde rojo cuando el campo trae error. */
 function entrada(error?: string): string {

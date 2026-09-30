@@ -4,6 +4,7 @@ import { Fraunces, Inter } from "next/font/google";
 import { AvisoAlVolver } from "@/components/aviso-al-volver";
 import { AvisoCookies } from "@/components/aviso-cookies";
 import { MedicionUso } from "@/components/medicion-uso";
+import { NavInferior } from "@/components/nav-inferior";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getSesion } from "@/lib/auth";
@@ -91,6 +92,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader sesion={sesion} />
         <main className="flex-1">{children}</main>
         <SiteFooter />
+        <NavInferior sesion={sesion} />
         <AvisoCookies yaDecidido={consentimiento !== null} />
         <AvisoAlVolver />
         {consentimiento?.medicion && <MedicionUso />}

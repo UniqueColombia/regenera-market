@@ -9,6 +9,8 @@ import { getMiEmpresa, getOfertaDeEmpresa } from "@/lib/repo";
 import { slugLibre } from "@/lib/slug";
 import { createClient } from "@/lib/supabase/server";
 import type { ResultadoGuardarOferta } from "@/components/formulario-oferta";
+import type { ResultadoImagenUI } from "@/components/selector-imagen";
+import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
 
 /**
  * Lo que una empresa puede hacer con sus propias ofertas.
@@ -178,4 +180,38 @@ export async function retirarOferta(
   revalidatePath(`/proveedor/${empresa.slug}`);
   revalidatePath("/catalogo");
   return { ok: true };
+}
+
+/**
+ * Sube una foto de una oferta y devuelve su URL para que el formulario la ponga
+ * en la lista de imágenes.
+ *
+ * Se sube **al elegirla**, antes de guardar la oferta: una oferta nueva todavía
+ * no tiene id, y esperar al guardado obligaría a mandar todas las fotos junto
+ * con el resto del formulario (y a superar el límite de cuerpo de una Server
+ * Action). Lo que queda guardado en `listings.images` es solo la lista de URL,
+ * como siempre. Si la persona sube una foto y no guarda la oferta, el archivo
+ * queda huérfano en Storage: pesa kilobytes y no lo sirve nadie.
+ *
+ * La carpeta es el id de **su** empresa (nunca viene del formulario) y cada foto
+ * tiene nombre propio, así que no se pisan entre sí. La política de Storage
+ * `logos_escritura` vuelve a comprobar que la carpeta es de su empresa.
+ */
+export async function subirImagenDeOferta(datos: FormData): Promise<ResultadoImagenUI> {
+  const user = await getUser();
+  if (!user) return { ok: false, error: "Tu sesión se cerró. Entra otra vez." };
+
+  const empresa = await getMiEmpresa();
+  if (!empresa) return { ok: false, error: "Tu cuenta todavía no gestiona ninguna empresa." };
+
+  const revisada = revisarImagen(datos.get("imagen"));
+  if (!revisada.ok) return { ok: false, error: revisada.error };
+
+  return getAlmacen().guardar(
+    "logos",
+    empresa.id,
+    revisada.archivo,
+    revisada.tipo,
+    `oferta-${crypto.randomUUID()}`,
+  );
 }
