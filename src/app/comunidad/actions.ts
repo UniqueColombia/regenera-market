@@ -330,6 +330,28 @@ export async function eliminarPublicacion(postId: string): Promise<ResultadoReac
   return { ok: true };
 }
 
+/**
+ * Cuántos puntos de experiencia se perderían al eliminar una publicación.
+ *
+ * Es solo para el aviso previo. Lee `experience_events` con el cliente de sesión:
+ * `experience_events_read` deja ver los eventos a quien gestiona la empresa y al
+ * administrador, que son justo quienes pueden eliminar una publicación firmada
+ * por ella. Quien no pueda verlos recibe 0 y el aviso corto; lo que se resta de
+ * verdad lo decide el trigger `community_revertir_experiencia`, no este número.
+ */
+export async function puntosEnJuego(postId: string): Promise<number> {
+  const usuario = await getUser();
+  if (!usuario || !z.uuid().safeParse(postId).success) return 0;
+
+  const db = await createClient();
+  const { data } = await db
+    .from("experience_events")
+    .select("puntos")
+    .eq("referencia", postId)
+    .in("clave", ["articulo_publicado", "articulo_destacado"]);
+  return (data ?? []).reduce((suma, e) => suma + (e.puntos as number), 0);
+}
+
 /** Las dos rutas donde se ve el muro. Si aparece una tercera, va aquí. */
 function revalidarMuro(): void {
   revalidatePath("/comunidad");

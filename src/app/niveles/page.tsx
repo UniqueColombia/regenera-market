@@ -248,6 +248,10 @@ export default function NivelesPage() {
               único que cuesta la ficha es incumplir de verdad: no despachar lo
               que prometiste.
             </p>
+            <p className="mt-3 text-sm text-brand-200">
+              Una sola excepción, y es tuya: si eliminas una publicación de la
+              Comunidad, se restan los puntos que te dio.
+            </p>
           </div>
         </div>
       </section>
