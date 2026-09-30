@@ -226,7 +226,7 @@ export default async function EmpresaPage() {
       <section>
         <h2 className="font-display text-xl text-ink">De dónde salen tus puntos</h2>
         <p className="mt-1 text-sm text-muted">
-          Cada línea es algo que hiciste. Los puntos suben y no bajan.
+          Cada línea es algo que hiciste. Los puntos suben y no bajan (salvo que elimines la publicación que los dio).
         </p>
         <Historial eventos={eventos} />
       </section>
