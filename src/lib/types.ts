@@ -336,6 +336,8 @@ export interface CommunityPost {
    */
   misReacciones: ReaccionId[];
   createdAt: string;
+  /** Cuándo se modificó por última vez el contenido. Ausente si nunca se editó. */
+  editedAt?: string;
 }
 
 /** De qué va una publicación. Espeja el `check` de `community_posts.topic`. */
