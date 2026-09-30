@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Eye, Loader2, Pause, Star, StarOff } from "lucide-react";
-import { destacarPublicacion, moderarPublicacion } from "./actions";
+import { Eye, Loader2, Pause, Star, StarOff, Trash2 } from "lucide-react";
+import { destacarPublicacion, eliminarPublicacionAdmin, moderarPublicacion } from "./actions";
 import type { ReviewStatus } from "@/lib/types";
 
 /**
@@ -108,6 +108,21 @@ export function DecisionPublicacion({
             Volver a publicar
           </button>
         )}
+
+        <button
+          type="button"
+          disabled={pendiente}
+          onClick={() =>
+            correr(
+              () => eliminarPublicacionAdmin({ postId }),
+              `¿Eliminar «${titulo}» para siempre? Se borra también con sus reacciones y no se puede deshacer. Si solo quieres que no se vea, usa «Ocultar».`,
+            )
+          }
+          className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-red-700 ring-1 ring-red-200 transition hover:bg-red-50 active:bg-red-50 disabled:opacity-40"
+        >
+          <Trash2 className="size-3.5" />
+          Eliminar
+        </button>
       </div>
 
       {error && <p className="text-xs text-red-700">{error}</p>}

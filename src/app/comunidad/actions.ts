@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { esReaccion } from "@/lib/comunidad";
+import { edicionDisponible } from "@/lib/repo";
 
 /**
  * Publicar en la Comunidad y reaccionar a lo publicado.
@@ -225,6 +226,104 @@ export async function alternarReaccion(
       console.error(`[comunidad] marcar reacción: ${error.message}`);
       return { ok: false, error: "No pudimos guardar tu reacción. Inténtalo otra vez." };
     }
+  }
+
+  revalidarMuro();
+  return { ok: true };
+}
+
+/**
+ * Corregir una publicación propia.
+ *
+ * Se puede cambiar el título, el texto y el tema; no quién la firma ni su
+ * estado. Lo demás lo protege el trigger `community_proteger_derivados`, que
+ * además sella `edited_at`: la tarjeta pasa a decir «editada» con la fecha, y
+ * eso es todo el historial (no se guardan las versiones anteriores).
+ *
+ * Solo mientras esté visible: `community_posts_update_own` exige
+ * `status = 'approved'`, así que una publicación que el equipo ocultó no se puede
+ * retocar para esquivar la moderación.
+ *
+ * Si la migración 0013 aún no está aplicada se rechaza en vez de editar sin
+ * dejar marca: editar sin que se note es justo lo que se quiere evitar.
+ */
+const EdicionSchema = PublicacionSchema.pick({ title: true, body: true, topic: true }).extend({
+  postId: z.uuid("Identificador de publicación inválido"),
+});
+
+export async function editarPublicacion(datos: unknown): Promise<ResultadoPublicacion> {
+  const usuario = await getUser();
+  if (!usuario) {
+    return { ok: false, errors: { form: "Tu sesión se cerró. Entra otra vez." } };
+  }
+
+  const parsed = EdicionSchema.safeParse(datos);
+  if (!parsed.success) {
+    const errors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      errors[String(issue.path[0])] ??= issue.message;
+    }
+    return { ok: false, errors };
+  }
+
+  if (!(await edicionDisponible())) {
+    return {
+      ok: false,
+      errors: { form: "Editar publicaciones estará disponible en unos minutos. Inténtalo más tarde." },
+    };
+  }
+
+  const d = parsed.data;
+  const db = await createClient();
+  // `.eq("author_id")` además de la política: así el mensaje puede decir «no es
+  // tuya» en vez de devolver cero filas sin explicación.
+  const { data, error } = await db
+    .from("community_posts")
+    .update({ title: d.title, body: d.body, topic: d.topic })
+    .eq("id", d.postId)
+    .eq("author_id", usuario.id)
+    .select("id");
+
+  if (error) {
+    console.error(`[comunidad] editar: ${error.message}`);
+    return { ok: false, errors: { form: "No pudimos guardar los cambios. Inténtalo de nuevo." } };
+  }
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      errors: { form: "No se puede editar esta publicación: no es tuya o ya no está visible." },
+    };
+  }
+
+  revalidarMuro();
+  return { ok: true };
+}
+
+/**
+ * Eliminar una publicación propia. Es definitivo y no deja rastro (las
+ * reacciones caen con ella). `community_posts_delete_own` es la barrera.
+ */
+export async function eliminarPublicacion(postId: string): Promise<ResultadoReaccion> {
+  const usuario = await getUser();
+  if (!usuario) return { ok: false, error: "Tu sesión se cerró. Entra otra vez." };
+  if (!z.uuid().safeParse(postId).success) {
+    return { ok: false, error: "Identificador de publicación inválido." };
+  }
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("community_posts")
+    .delete()
+    .eq("id", postId)
+    .eq("author_id", usuario.id)
+    .select("id");
+
+  if (error) {
+    console.error(`[comunidad] eliminar: ${error.message}`);
+    return { ok: false, error: "No pudimos eliminarla. Inténtalo de nuevo." };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: "No se pudo eliminar: no es tuya o ya no existe." };
   }
 
   revalidarMuro();
