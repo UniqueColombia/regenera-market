@@ -10,7 +10,7 @@ import { useCartCount } from "./cart";
 const OCULTA_EN = ["/admin", "/entrar", "/registro", "/auth", "/orden"];
 
 /**
- * Cinta de navegación fija al pie, solo en móvil (`md:hidden`).
+ * Cinta de navegación fija al pie, solo en móvil (`lg:hidden`).
  *
  * Su alto lo publica `globals.css` como `--nav-inferior` cuando la cinta está en
  * el DOM (`body:has(.nav-inferior)`): el body reserva ese espacio para no tapar
@@ -56,7 +56,7 @@ export function NavInferior({ sesion }: { sesion: Sesion | null }) {
   return (
     <nav
       aria-label="Navegación principal"
-      className="nav-inferior fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-hairline bg-white/95 px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden"
+      className="nav-inferior fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-hairline bg-white/95 px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden"
     >
       {items.map(({ href, label, Icono, activo, contador }) => (
         <Link
