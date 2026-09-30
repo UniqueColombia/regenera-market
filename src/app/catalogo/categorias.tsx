@@ -35,7 +35,7 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
         ¿Qué quieres resolver?
       </h2>
 
-      <ul className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <ul className="mt-4 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4">
         {CATEGORIAS.map((c) => {
           const elegida = activa?.id === c.id;
           const href = conFiltros(filters, {
@@ -70,7 +70,7 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
                 </span>
                 <span className="min-w-0">
                   <span className="flex items-center gap-1.5 font-display text-base leading-snug text-ink">
-                    {c.label}
+                    <span className="min-w-0 break-words">{c.label}</span>
                     {c.avanzada && (
                       <ShieldCheck
                         className="size-4 shrink-0 text-clay-600"

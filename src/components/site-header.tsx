@@ -107,7 +107,7 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
           </span>
         </Link>
 
-        <nav className="ml-auto hidden items-center gap-1 md:flex">
+        <nav className="ml-auto hidden items-center gap-1 lg:flex">
           <div ref={categoriesRef} className="relative">
             <button
               type="button"
@@ -190,7 +190,7 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1 md:ml-0">
+        <div className="ml-auto flex items-center gap-1 lg:ml-0">
           {sesion ? (
             <MenuUsuario sesion={sesion} />
           ) : (
@@ -205,7 +205,7 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
           <button
             type="button"
             onClick={() => setOpenMenu(!openMenu)}
-            className="rounded-full p-2 transition-colors hover:bg-sand hover:text-brand-700 active:bg-brand-50 md:hidden"
+            className="rounded-full p-2 transition-colors hover:bg-sand hover:text-brand-700 active:bg-brand-50 lg:hidden"
             aria-expanded={openMenu}
             aria-label="Menú"
           >
@@ -221,7 +221,7 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
           onClick={(e) => {
             if ((e.target as HTMLElement).closest("a")) setOpenMenu(false);
           }}
-          className="animate-desplegar border-t border-hairline bg-white motion-reduce:animate-none md:hidden"
+          className="animate-desplegar border-t border-hairline bg-white motion-reduce:animate-none lg:hidden"
         >
           <ul className="container-page divide-y divide-hairline py-1">
             {NAV.map((item) => (
