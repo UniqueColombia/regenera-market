@@ -784,10 +784,36 @@ export async function getVinculosProveedor(): Promise<VinculoProveedor[]> {
 // Comunidad
 // ---------------------------------------------------------------------------
 
-const COLUMNAS_POST = `
+const COLUMNAS_POST_BASE = `
   id, title, body, topic, author_id, author_name, featured, reaction_count,
   reaction_counts, created_at, providers(id, slug, name, logo_url, tier)
 `;
+
+/**
+ * ¿Está aplicada la migración 0013 (`edited_at`)?
+ *
+ * Mismo patrón que `sondeo0012`: el sitio tiene que seguir funcionando entre que
+ * se despliega el código y se aplica la migración. Sin la columna, pedirla
+ * tumbaría el muro entero. `42703` es «la columna no existe»; el «sí» se
+ * recuerda, el «no» solo un minuto.
+ */
+let sondeo0013: { aplicada: boolean; hasta: number } | null = null;
+
+export async function edicionDisponible(): Promise<boolean> {
+  const ahora = Date.now();
+  if (!sondeo0013 || (!sondeo0013.aplicada && ahora > sondeo0013.hasta)) {
+    const db = await createClient();
+    const { error } = await db.from("community_posts").select("edited_at").limit(1);
+    sondeo0013 = { aplicada: error?.code !== "42703", hasta: ahora + 60_000 };
+  }
+  return sondeo0013.aplicada;
+}
+
+async function columnasPost(): Promise<string> {
+  return (await edicionDisponible())
+    ? `${COLUMNAS_POST_BASE}, edited_at`
+    : COLUMNAS_POST_BASE;
+}
 
 interface FilaPost {
   id: string;
@@ -800,6 +826,7 @@ interface FilaPost {
   reaction_count: number;
   reaction_counts: unknown;
   created_at: string;
+  edited_at?: string | null;
   providers: {
     id: string;
     slug: string;
@@ -836,6 +863,7 @@ function aPost(
     reactions: leerConteos(fila.reaction_counts),
     misReacciones: mias.get(fila.id) ?? [],
     createdAt: fila.created_at,
+    editedAt: fila.edited_at ?? undefined,
   };
 }
 
@@ -919,7 +947,7 @@ export async function getCommunityPosts(limite = 20): Promise<CommunityPost[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("community_posts")
-    .select(COLUMNAS_POST)
+    .select(await columnasPost())
     .eq("status", "approved")
     .order("featured", { ascending: false })
     .order("created_at", { ascending: false })
@@ -978,7 +1006,7 @@ export async function getPostsForAdmin(): Promise<PostAdmin[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("community_posts")
-    .select(`${COLUMNAS_POST}, status`)
+    .select(`${await columnasPost()}, status`)
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) throw new Error(`getPostsForAdmin: ${error.message}`);
