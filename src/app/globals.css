@@ -396,3 +396,24 @@ body {
     padding-bottom: var(--nav-inferior);
   }
 }
+
+/**
+ * Google Translate: se usa solo como motor (ver `selector-idioma.tsx`), así que
+ * se oculta todo lo suyo. La barra superior empuja el <body> con `top: 40px` y
+ * tapa el encabezado pegajoso; el resaltado amarillo aparece al pasar el ratón
+ * por texto traducido. Si se quita alguna de estas reglas, reaparece su rasgo.
+ */
+.goog-te-banner-frame,
+iframe.skiptranslate,
+#goog-gt-tt,
+.goog-tooltip,
+.goog-te-balloon-frame {
+  display: none !important;
+}
+body {
+  top: 0 !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
