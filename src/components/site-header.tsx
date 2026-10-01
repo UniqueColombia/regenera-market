@@ -327,7 +327,10 @@ function MenuMovil({
         {sesion ? (
           <li>
             <FilaAcordeon
-              etiqueta="Mi cuenta"
+              // El nombre y no «Mi cuenta»: adentro hay una fila «Tu cuenta» (la
+              // página se titula así) y las dos juntas se leían como la misma cosa.
+              // Es también lo que muestra el botón de escritorio.
+              etiqueta={sesion.nombre}
               abierta={abierta === "cuenta"}
               alAlternar={() => alternar("cuenta")}
             >
@@ -419,7 +422,7 @@ function FilaAcordeon({
         className="flex min-h-11 w-full items-center gap-3 text-left text-sm font-medium transition-colors hover:text-brand-700 active:text-brand-700"
       >
         <span aria-hidden className="h-4 w-0.5" />
-        {etiqueta}
+        <span className="truncate">{etiqueta}</span>
         <ChevronDown
           aria-hidden
           className={`ml-auto size-4 text-muted transition-transform duration-200 motion-reduce:transition-none ${
