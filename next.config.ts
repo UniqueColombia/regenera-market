@@ -68,21 +68,27 @@ const anfitrion = anfitrionDeSupabase();
  * que subir el archivo sea obligatorio, esta línea se cierra al mismo dominio
  * que `remotePatterns`.
  */
+const TRADUCTOR_SCRIPTS =
+  "https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.google.com https://www.gstatic.com";
+
 function cabecerasDeSeguridad(produccion: boolean) {
   const supabase = anfitrion ? `https://${anfitrion} wss://${anfitrion}` : "";
 
   const csp = [
     "default-src 'self'",
     // `'unsafe-eval'` solo en desarrollo: lo necesita el recargado en caliente.
-    `script-src 'self' 'unsafe-inline'${produccion ? "" : " 'unsafe-eval'"}`,
-    "style-src 'self' 'unsafe-inline'",
+    // El traductor (`selector-idioma.tsx`) necesita estos dominios de Google.
+    // Pide también la lista de idiomas a `translate-pa.googleapis.com`: dejarlo
+    // fuera hace que el combo salga vacío sin error visible.
+    `script-src 'self' 'unsafe-inline'${produccion ? "" : " 'unsafe-eval'"} ${TRADUCTOR_SCRIPTS}`,
+    "style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${supabase}`.trim(),
+    `connect-src 'self' ${supabase} https://translate.googleapis.com https://translate-pa.googleapis.com`.trim(),
     "media-src 'self'",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
-    "frame-src 'none'",
+    "frame-src https://translate.google.com",
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'",
