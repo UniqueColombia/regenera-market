@@ -20,6 +20,7 @@ import { Isotipo } from "./isotipo";
 import { useCartCount } from "./cart";
 import { CATEGORIAS } from "@/lib/taxonomy";
 import { IconoCategoria } from "./icono-categoria";
+import { SelectorIdioma } from "./selector-idioma";
 
 const NAV = [
   { href: "/catalogo", label: "Catálogo" },
@@ -86,7 +87,7 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
       className="sticky top-0 z-50 border-b border-hairline bg-cream/90 backdrop-blur"
     >
       <div className="container-page flex h-16 items-center gap-4">
-        <Link href="/" className="group flex items-center gap-2">
+        <Link href="/" translate="no" className="group flex items-center gap-2">
           {/* Compacto y no detalle: a 36 px los nervios y los continentes
               se empastan. Ver src/components/isotipo.tsx */}
           {/* `group-active:` duplica lo que hace `group-hover:` porque en un
@@ -201,6 +202,7 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
               Entrar
             </Link>
           )}
+          <SelectorIdioma />
           <CartButton />
           <button
             type="button"
