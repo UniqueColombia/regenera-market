@@ -75,6 +75,7 @@ pueden pedir a mano con `/<nombre>`.
 |---|---|
 | `acceso-y-registro` | Tocas `/entrar`, `/registro`, `paso-codigo.tsx` o `lib/auth.ts`, o cambias a dónde va alguien tras verificar un código |
 | `redaccion-producto` | Escribes o cambias cualquier texto que lee un usuario: un título, una tarjeta, un mensaje de confirmación, una etiqueta o un correo |
+| `entrega-directa` | **Siempre que vayas a commitear o empujar.** Es el flujo por defecto: llega a `staging` y `main` sin PR, sin tag y sin correos. Gana sobre `flujo-git` salvo que Jesús pida un tag o un PR |
 | `flujo-git` | Vas a crear una rama, abrir un PR, hacer un release o resolver un conflicto. **Antes del primer commit de cualquier tarea.** |
 | `registrar-hito` | Terminaste algo que otro debería poder reconstruir sin preguntarte |
 | `dominio-regenera` | Tocas precios, comisiones, órdenes, roles o puntaje de sostenibilidad |
