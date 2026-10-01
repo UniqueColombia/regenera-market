@@ -217,50 +217,123 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
       </div>
 
       {openMenu && (
-        <nav
-          // Mismo motivo que en las categorías: tocar una fila que lleva a la
-          // misma ruta (otra categoría del catálogo) no cambia el `pathname`.
-          onClick={(e) => {
-            if ((e.target as HTMLElement).closest("a")) setOpenMenu(false);
-          }}
-          className="animate-desplegar border-t border-hairline bg-white motion-reduce:animate-none lg:hidden"
-        >
-          <ul className="container-page divide-y divide-hairline py-1">
-            {NAV.map((item) => (
-              <li key={item.href}>
-                <FilaMovil
-                  href={item.href}
-                  activo={pathname.startsWith(item.href)}
-                >
-                  {item.label}
-                </FilaMovil>
-              </li>
-            ))}
-            {CATEGORIAS.map((c) => (
-              <li key={c.id}>
-                <FilaMovil href={`/catalogo?category=${c.id}`} tenue>
-                  {c.label}
-                </FilaMovil>
-              </li>
-            ))}
-            {/* --------------------------------------------------------------
-                La cuenta, en el teléfono.
+        <MenuMovil
+          sesion={sesion}
+          pathname={pathname}
+          cerrar={() => setOpenMenu(false)}
+        />
+      )}
+    </header>
+  );
+}
 
-                `MenuUsuario` es `hidden sm:block`, así que por debajo de 640 px
-                el desplegable de la cuenta no existe: la única opción que tenía
-                quien entraba desde un móvil era **salir**. No podía ver su
-                perfil ni llegar a su empresa.
+/**
+ * Subrayado que crece desde el centro al pasar el puntero, y queda puesto en la
+ * sección donde estás.
+ *
+ * Va como `<span>` absoluto y no como `border-bottom` porque el enlace tiene
+ * `rounded-full`: un borde real seguiría la curva de la píldora y se vería
+ * torcido en las puntas.
+ *
+ * Es decoración pura — quien navega con lector de pantalla ya tiene el
+ * `aria-current` del enlace, y quien tiene el sistema en «menos movimiento»
+ * recibe el subrayado sin la animación, no sin el subrayado.
+ */
+function Subrayado({ activo }: { activo: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`pointer-events-none absolute inset-x-3.5 bottom-1 h-0.5 origin-center rounded-full bg-brand-500 transition-transform duration-200 ease-out group-hover:scale-x-100 motion-reduce:transition-none ${
+        activo ? "scale-x-100" : "scale-x-0"
+      }`}
+    />
+  );
+}
 
-                La regla que se saltaba: toda acción del menú de escritorio
-                tiene que existir en el de móvil. No se arregla enseñando el
-                desplegable en pantallas pequeñas —un menú flotante encima de
-                otro menú abierto— sino repitiendo aquí sus filas, que es lo que
-                el resto de este menú ya hacía con la navegación.
-                -------------------------------------------------------------- */}
-            {sesion ? (
-              <>
-                <li className="pt-1">
-                  <p className="truncate pt-2 text-xs text-muted">
+/**
+ * Menú del teléfono, en acordeón.
+ *
+ * Antes eran todas las filas a la vez —navegación, ocho categorías, la cuenta—
+ * y el panel ocupaba la pantalla entera. Ahora las dos listas largas
+ * (categorías y cuenta) van plegadas tras una fila con flecha, y solo una abierta
+ * a la vez: es el mismo patrón que el menú móvil de OPCIONES.
+ *
+ * El estado vive aquí y no en el encabezado a propósito: este componente se
+ * desmonta al cerrar el menú, así que siempre se reabre todo plegado, también
+ * cuando se cierra con Escape o con la X.
+ *
+ * `max-h` + `overflow-y-auto` es la red de seguridad: con una cuenta abierta en
+ * un teléfono bajo, el panel hace scroll en vez de salirse de la pantalla.
+ */
+function MenuMovil({
+  sesion,
+  pathname,
+  cerrar,
+}: {
+  sesion: Sesion | null;
+  pathname: string;
+  cerrar: () => void;
+}) {
+  const [abierta, setAbierta] = useState<"categorias" | "cuenta" | null>(null);
+  const alternar = (id: "categorias" | "cuenta") =>
+    setAbierta(abierta === id ? null : id);
+
+  return (
+    <nav
+      // Tocar una fila que lleva a la misma ruta (otra categoría del catálogo)
+      // no cambia el `pathname`, así que el menú no se cerraría solo.
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("a")) cerrar();
+      }}
+      className="animate-desplegar max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-hairline bg-white motion-reduce:animate-none lg:hidden"
+    >
+      <ul className="container-page divide-y divide-hairline py-1">
+        {NAV.map((item) => (
+          <li key={item.href}>
+            <FilaMovil
+              href={item.href}
+              activo={pathname.startsWith(item.href)}
+            >
+              {item.label}
+            </FilaMovil>
+          </li>
+        ))}
+
+        <li>
+          <FilaAcordeon
+            etiqueta="Categorías"
+            abierta={abierta === "categorias"}
+            alAlternar={() => alternar("categorias")}
+          >
+            {/* Dos columnas: ocho filas a lo ancho son ocho toques de scroll. */}
+            <ul className="grid grid-cols-2 gap-x-4 pb-2">
+              {CATEGORIAS.map((c) => (
+                <li key={c.id}>
+                  <Link
+                    href={`/catalogo?category=${c.id}`}
+                    className="flex min-h-11 items-center text-sm text-muted transition-colors hover:text-brand-700 active:text-brand-700"
+                  >
+                    {c.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </FilaAcordeon>
+        </li>
+
+        {/* La cuenta, en el teléfono: `MenuUsuario` es `hidden sm:block`, así que
+            por debajo de 640 px el desplegable de escritorio no existe y toda
+            acción suya tiene que estar aquí. */}
+        {sesion ? (
+          <li>
+            <FilaAcordeon
+              etiqueta="Mi cuenta"
+              abierta={abierta === "cuenta"}
+              alAlternar={() => alternar("cuenta")}
+            >
+              <ul className="pb-2">
+                <li>
+                  <p className="truncate pb-1 text-xs text-muted">
                     {sesion.email}
                   </p>
                 </li>
@@ -296,55 +369,66 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
                   <form action={cerrarSesion}>
                     <button
                       type="submit"
-                      className="flex w-full items-center gap-3 py-3 text-left text-sm text-muted transition-colors hover:text-red-700 active:text-red-700"
+                      className="flex min-h-11 w-full items-center gap-3 text-left text-sm text-muted transition-colors hover:text-red-700 active:text-red-700"
                     >
                       <span aria-hidden className="h-4 w-0.5" />
                       Salir ({sesion.nombre})
                     </button>
                   </form>
                 </li>
-              </>
-            ) : (
-              <>
-                <li>
-                  <FilaMovil href="/vender" activo={pathname === "/vender"}>
-                    Portal de proveedores
-                  </FilaMovil>
-                </li>
-                <li>
-                  <FilaMovil href="/entrar" activo={pathname === "/entrar"}>
-                    Entrar o crear cuenta
-                  </FilaMovil>
-                </li>
-              </>
-            )}
-          </ul>
-        </nav>
-      )}
-    </header>
+              </ul>
+            </FilaAcordeon>
+          </li>
+        ) : (
+          <>
+            <li>
+              <FilaMovil href="/vender" activo={pathname === "/vender"}>
+                Portal de proveedores
+              </FilaMovil>
+            </li>
+            <li>
+              <FilaMovil href="/entrar" activo={pathname === "/entrar"}>
+                Entrar o crear cuenta
+              </FilaMovil>
+            </li>
+          </>
+        )}
+      </ul>
+    </nav>
   );
 }
 
-/**
- * Subrayado que crece desde el centro al pasar el puntero, y queda puesto en la
- * sección donde estás.
- *
- * Va como `<span>` absoluto y no como `border-bottom` porque el enlace tiene
- * `rounded-full`: un borde real seguiría la curva de la píldora y se vería
- * torcido en las puntas.
- *
- * Es decoración pura — quien navega con lector de pantalla ya tiene el
- * `aria-current` del enlace, y quien tiene el sistema en «menos movimiento»
- * recibe el subrayado sin la animación, no sin el subrayado.
- */
-function Subrayado({ activo }: { activo: boolean }) {
+/** Fila que pliega y despliega su contenido, con la flecha de los demás menús. */
+function FilaAcordeon({
+  etiqueta,
+  abierta,
+  alAlternar,
+  children,
+}: {
+  etiqueta: string;
+  abierta: boolean;
+  alAlternar: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <span
-      aria-hidden
-      className={`pointer-events-none absolute inset-x-3.5 bottom-1 h-0.5 origin-center rounded-full bg-brand-500 transition-transform duration-200 ease-out group-hover:scale-x-100 motion-reduce:transition-none ${
-        activo ? "scale-x-100" : "scale-x-0"
-      }`}
-    />
+    <>
+      <button
+        type="button"
+        onClick={alAlternar}
+        aria-expanded={abierta}
+        className="flex min-h-11 w-full items-center gap-3 text-left text-sm font-medium transition-colors hover:text-brand-700 active:text-brand-700"
+      >
+        <span aria-hidden className="h-4 w-0.5" />
+        {etiqueta}
+        <ChevronDown
+          aria-hidden
+          className={`ml-auto size-4 text-muted transition-transform duration-200 motion-reduce:transition-none ${
+            abierta ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      {abierta && <div className="pl-3.5">{children}</div>}
+    </>
   );
 }
 
@@ -372,7 +456,7 @@ function FilaMovil({
     <Link
       href={href}
       aria-current={activo ? "page" : undefined}
-      className={`group flex items-center gap-3 py-3 text-sm transition-colors hover:text-brand-700 active:text-brand-700 ${
+      className={`group flex min-h-11 items-center gap-3 text-sm transition-colors hover:text-brand-700 active:text-brand-700 ${
         tenue ? "text-muted" : "font-medium"
       } ${activo ? "text-brand-700" : ""}`}
     >
