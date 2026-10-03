@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Check, Minus, Plus, ShoppingBasket } from "lucide-react";
 import { addLine } from "./cart";
+import { soltarHojas } from "@/lib/hojas";
 import { money, shortDate } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 
@@ -177,7 +178,10 @@ export function AddToCart({
 
       <button
         type="button"
-        onClick={handleAdd}
+        onClick={(e) => {
+          handleAdd();
+          soltarHojas(e.currentTarget, e.clientX, e.clientY);
+        }}
         disabled={!canAdd}
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:bg-muted"
       >

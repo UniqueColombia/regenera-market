@@ -144,6 +144,7 @@ export default async function VenderPage() {
         foto="/img/secciones/hero-vender.webp"
         encuadreMovil="object-[62%_50%]"
         encabezado="Para proveedores"
+        fondo="semillas"
         titulo="Vende lo que produces al turismo de toda América Latina"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
@@ -155,12 +156,14 @@ export default async function VenderPage() {
         <div className="mt-8 flex flex-wrap gap-3">
           <a
             href="#postular"
+            data-iman
             className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-800 transition hover:bg-brand-50 active:bg-brand-50"
           >
             Crear mi cuenta de proveedor
           </a>
           <Link
             href="/niveles"
+            data-iman
             className="rounded-full border border-brand-400 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-brand-800"
           >
             Ver cómo funcionan los niveles

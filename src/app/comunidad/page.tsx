@@ -41,6 +41,7 @@ export default async function ComunidadPage() {
           </>
         }
         titulo="Cuéntanos cómo te fue"
+        fondo="luciernagas"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
           ¿Cambiaste algo en tu operación y funcionó? ¿Tienes una duda que

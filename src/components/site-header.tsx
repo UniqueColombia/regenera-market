@@ -21,6 +21,8 @@ import { useCartCount } from "./cart";
 import { CATEGORIAS } from "@/lib/taxonomy";
 import { IconoCategoria } from "./icono-categoria";
 import { SelectorIdioma } from "./selector-idioma";
+import { SelectorTema } from "./selector-tema";
+import type { Tema } from "@/lib/tema";
 
 const NAV = [
   { href: "/catalogo", label: "Catálogo" },
@@ -29,7 +31,7 @@ const NAV = [
   { href: "/verificacion", label: "Verificación" },
 ];
 
-export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
+export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema }) {
   const pathname = usePathname();
   const categoriesRef = useRef<HTMLDivElement>(null);
 
@@ -202,6 +204,7 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
               Entrar
             </Link>
           )}
+          <SelectorTema inicial={tema} />
           <SelectorIdioma />
           <CartButton />
           <button
@@ -219,6 +222,7 @@ export function SiteHeader({ sesion }: { sesion: Sesion | null }) {
       {openMenu && (
         <MenuMovil
           sesion={sesion}
+          tema={tema}
           pathname={pathname}
           cerrar={() => setOpenMenu(false)}
         />
@@ -267,10 +271,12 @@ function Subrayado({ activo }: { activo: boolean }) {
  */
 function MenuMovil({
   sesion,
+  tema,
   pathname,
   cerrar,
 }: {
   sesion: Sesion | null;
+  tema: Tema;
   pathname: string;
   cerrar: () => void;
 }) {
@@ -396,6 +402,12 @@ function MenuMovil({
             </li>
           </>
         )}
+
+        {/* El tema, solo por debajo de `sm`: desde ahí el botón está en la
+            barra. Ver la cabecera de selector-tema.tsx. */}
+        <li className="sm:hidden">
+          <SelectorTema inicial={tema} variante="fila" />
+        </li>
       </ul>
     </nav>
   );
