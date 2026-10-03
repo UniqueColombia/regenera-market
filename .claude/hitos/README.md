@@ -39,3 +39,5 @@ referencie al anterior.
 | 2026-09-24 | [Las once migraciones están aplicadas, y la beta se probó con datos reales](2026-09-24-las-once-migraciones-aplicadas-y-la-beta-probada.md) | Jesús Seiler | 1 y 2 — cierre de pendientes |
 | 2026-09-26 | [Las empresas publican lo suyo, comprar exige cuenta y es una transacción, y el catálogo se agrupa por lo que resuelve](2026-09-26-empresas-publican-compra-con-cuenta-y-categorias.md) | Jesús Seiler | 1 y 2 — Bloque 4 empezado y compra endurecida |
 | 2026-09-26 | [La `0012` está aplicada y la compra quedó probada con una cuenta real](2026-09-26-cierre-de-la-revision-0012-aplicada.md) | Jesús Seiler | 1 y 2 — cierre de la revisión |
+| 2026-10-03 | [Los heros cobran vida y el movimiento cuenta el tema del sitio](2026-10-03-heros-vivos-y-movimiento-tematico.md) | Jesús Seiler | — |
+| 2026-10-03 | [El sitio tiene modo oscuro, a elección de quien lo visita](2026-10-03-modo-oscuro.md) | Jesús Seiler | — |

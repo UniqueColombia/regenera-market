@@ -306,6 +306,18 @@ export default function PrivacidadPage() {
           </tr>
           <tr>
             <td>
+              <code>sgr_tema</code>
+              <br />
+              <em>solo si cambias el tema</em>
+            </td>
+            <td>
+              Recordar si elegiste el modo claro o el oscuro, para enseñarte la
+              página así desde el primer momento
+            </td>
+            <td>Un año</td>
+          </tr>
+          <tr>
+            <td>
               <code>sgr_visitante</code>
               <br />
               <em>solo si aceptas la medición</em>

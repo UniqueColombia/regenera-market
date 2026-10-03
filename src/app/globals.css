@@ -33,6 +33,14 @@
      y no pasaba AA. */
   --color-clay-700: #7a542e;
 
+  /* Brote: verdes amarillentos de hoja nueva. Solo para las hojas que caen en el
+     hero de la portada (`fondo-hero.tsx`, variante `primavera`); no son color de
+     interfaz y no se usan en texto ni en botones. */
+  --color-brote-100: #eef3c4;
+  --color-brote-200: #dbe89a;
+  --color-brote-300: #c2d870;
+  --color-brote-400: #a3c04e;
+
   --color-cream: #faf8f4;
   --color-sand: #f0ebe2;
   --color-ink: #17241d;
@@ -215,6 +223,191 @@
 
 :root {
   color-scheme: light;
+}
+
+/**
+ * Modo oscuro (`selector-tema.tsx`, cookie `sgr_tema`).
+ *
+ * El sitio nació en claro y así sigue por defecto; el oscuro existe solo si
+ * alguien lo elige con el botón del encabezado. Ver el hito del 2026-10-03.
+ *
+ * ## Cómo funciona, y por qué no hay ni un `dark:` en los componentes
+ *
+ * Son unos dos mil usos de color repartidos en cien archivos. En vez de
+ * duplicarlos con variantes, **se remapean los tokens**: todas las utilidades
+ * de Tailwind 4 leen `var(--color-…)`, así que cambiar el valor de la variable
+ * cambia el color de todas las clases que la usan. Tres capas:
+ *
+ * 1. **`html`** guarda los valores originales en `--orig-*` (se resuelven ahí,
+ *    con la paleta clara) y pone el fondo y `color-scheme` del modo oscuro.
+ * 2. **`body`** redefine la paleta para lo que es interfaz clara: fondos y
+ *    textos neutros a oscuros, y la escala `brand` **invertida** — el texto
+ *    `brand-700` pasa a verde claro, el tinte `brand-50` a verde muy oscuro.
+ *    Así un enlace, una píldora o un anillo se ven bien sin tocarlos.
+ * 3. **Las superficies que ya eran oscuras recuperan la paleta original**: el
+ *    hero, el pie, los botones verde o terracota, los tapices de degradado.
+ *    Sobre ellas `text-white` tiene que seguir siendo blanco y `bg-brand-700`
+ *    verde bosque; si heredaran la paleta invertida, un botón se volvería
+ *    verde claro con letra blanca. Una variable redefinida en un elemento vale
+ *    para su propio fondo y el de todo lo que lleva dentro.
+ *
+ * **Si agregas una superficie oscura nueva** con una clase que no está en la
+ * lista de la capa 3, agrégala ahí, o ponle `data-tema-fijo`.
+ *
+ * El blanco es la excepción que obliga a todo esto: en claro, `bg-white` es
+ * «superficie elevada» y `text-white` es «letra sobre verde». Con una sola
+ * variable para las dos cosas, la única forma es que su valor dependa de dónde
+ * se lea.
+ */
+:root {
+  --orig-white: var(--color-white);
+  --orig-cream: var(--color-cream);
+  --orig-sand: var(--color-sand);
+  --orig-ink: var(--color-ink);
+  --orig-muted: var(--color-muted);
+  --orig-hairline: var(--color-hairline);
+  --orig-control: var(--color-control);
+  --orig-brand-50: var(--color-brand-50);
+  --orig-brand-100: var(--color-brand-100);
+  --orig-brand-200: var(--color-brand-200);
+  --orig-brand-300: var(--color-brand-300);
+  --orig-brand-400: var(--color-brand-400);
+  --orig-brand-500: var(--color-brand-500);
+  --orig-brand-600: var(--color-brand-600);
+  --orig-brand-700: var(--color-brand-700);
+  --orig-brand-800: var(--color-brand-800);
+  --orig-brand-900: var(--color-brand-900);
+  --orig-clay-100: var(--color-clay-100);
+  --orig-clay-300: var(--color-clay-300);
+  --orig-clay-500: var(--color-clay-500);
+  --orig-clay-600: var(--color-clay-600);
+  --orig-clay-700: var(--color-clay-700);
+}
+
+html[data-tema="oscuro"] {
+  color-scheme: dark;
+  /* El rebote del scroll en Safari enseña el fondo del `html`, no el del body. */
+  background-color: #0e1612;
+}
+
+html[data-tema="oscuro"] body {
+  /* Neutros. `cream` es la página, `white` la superficie elevada (un paso más
+     clara: la elevación se lee por luz, igual que en claro), `sand` el hover.
+     Contrastes sobre `cream`: ink 14.9:1, muted 7.6:1. */
+  --color-cream: #0e1612;
+  --color-white: #16211b;
+  --color-sand: #1e2b24;
+  --color-ink: #e6ede8;
+  --color-muted: #a3b3a9;
+  --color-hairline: #2a3830;
+  --color-control: #6d8075;
+
+  /* Marca invertida: los tintes se oscurecen y los textos se aclaran. */
+  --color-brand-50: #13261c;
+  --color-brand-100: #183022;
+  --color-brand-200: #21412f;
+  --color-brand-300: #2f5d43;
+  --color-brand-400: #43845f;
+  --color-brand-500: #56a87b;
+  --color-brand-600: #73c497;
+  --color-brand-700: #92d4ae;
+  --color-brand-800: #b6e4c9;
+  --color-brand-900: #d8f0e2;
+
+  /* Terracota: el tinte de fondo se apaga, el texto se ilumina. */
+  --color-clay-100: #2a2119;
+  --color-clay-300: #6e5338;
+  --color-clay-500: #c99a6a;
+  --color-clay-600: #ddb894;
+  --color-clay-700: #e8cba9;
+
+  /* Estados (los de Tailwind que usa el sitio). */
+  --color-red-50: #2a1515;
+  --color-red-100: #3a1b1b;
+  --color-red-200: #5c2727;
+  --color-red-700: #fca5a5;
+  --color-red-800: #fecaca;
+  --color-amber-50: #2b2410;
+  --color-amber-100: #3b3115;
+  --color-amber-800: #fcd34d;
+}
+
+/* Capa 3: superficies que ya eran oscuras. */
+html[data-tema="oscuro"]
+  :where(
+    .bg-brand-400,
+    .bg-brand-500,
+    .bg-brand-600,
+    .bg-brand-700,
+    .bg-brand-800,
+    .bg-brand-900,
+    .bg-clay-500,
+    .bg-clay-600,
+    .bg-clay-700,
+    .bg-red-500,
+    .bg-ink,
+    [class*="from-brand-"],
+    [class*="from-clay-"],
+    [data-tema-fijo]
+  ) {
+  --color-white: var(--orig-white);
+  --color-cream: var(--orig-cream);
+  --color-sand: var(--orig-sand);
+  --color-ink: var(--orig-ink);
+  --color-muted: var(--orig-muted);
+  --color-hairline: var(--orig-hairline);
+  --color-control: var(--orig-control);
+  --color-brand-50: var(--orig-brand-50);
+  --color-brand-100: var(--orig-brand-100);
+  --color-brand-200: var(--orig-brand-200);
+  --color-brand-300: var(--orig-brand-300);
+  --color-brand-400: var(--orig-brand-400);
+  --color-brand-500: var(--orig-brand-500);
+  --color-brand-600: var(--orig-brand-600);
+  --color-brand-700: var(--orig-brand-700);
+  --color-brand-800: var(--orig-brand-800);
+  --color-brand-900: var(--orig-brand-900);
+  --color-clay-100: var(--orig-clay-100);
+  --color-clay-300: var(--orig-clay-300);
+  --color-clay-500: var(--orig-clay-500);
+  --color-clay-600: var(--orig-clay-600);
+  --color-clay-700: var(--orig-clay-700);
+}
+
+/* El velo del modal (`bg-ink/40`): en oscuro, `ink` es casi blanco y velaría
+   la página de claro. Se fija a negro. */
+html[data-tema="oscuro"] .bg-ink\/40 {
+  background-color: rgb(0 0 0 / 0.6);
+}
+
+/**
+ * La transición al cambiar de tema: un círculo que crece desde el botón y
+ * descubre la página con el tema nuevo (View Transitions). Solo mientras
+ * `data-cambiando-tema` está puesto, para no tocar las transiciones entre
+ * páginas de más arriba. El encabezado pierde su nombre propio durante el
+ * cambio: si no, cambiaría de golpe mientras el resto se descubre.
+ */
+html[data-cambiando-tema] header {
+  view-transition-name: none !important;
+}
+
+html[data-cambiando-tema]::view-transition-old(root),
+html[data-cambiando-tema]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-cambiando-tema]::view-transition-new(root) {
+  animation: descubrir-tema 650ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes descubrir-tema {
+  from {
+    clip-path: circle(0 at var(--tema-x, 50%) var(--tema-y, 0));
+  }
+  to {
+    clip-path: circle(var(--tema-r, 150vmax) at var(--tema-x, 50%) var(--tema-y, 0));
+  }
 }
 
 /* Red de seguridad: si un elemento se sale del ancho en un teléfono, la página
@@ -416,4 +609,131 @@ body {
 .goog-text-highlight {
   background: none !important;
   box-shadow: none !important;
+}
+
+/**
+ * Entrada del hero (`hero-banner.tsx`).
+ *
+ * El titular aparece palabra por palabra, saliendo de una bruma: sube un poco,
+ * se enfoca y gana opacidad. Es la imagen del sitio —algo que brota— y no un
+ * efecto de máquina de escribir, que en un titular de seis u ocho palabras se
+ * hace eterno. Después entra el resto (`.cascada-hero`), y el antetítulo va
+ * primero de todos.
+ *
+ * Todo es CSS y arranca con el primer pintado: no espera a que hidrate React,
+ * así que no hay parpadeo de «se ve, se esconde, aparece». Sin JavaScript se
+ * anima igual; con `prefers-reduced-motion` no se anima nada y el texto está
+ * desde el principio.
+ *
+ * `filter: blur` se anima solo en el titular (seis a diez spans): es caro en
+ * una lista larga, y por eso `Revelar` no lo usa.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .palabra-hero {
+    display: inline-block;
+    animation: brotar 820ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(140ms + var(--i, 0) * 70ms);
+  }
+
+  .entrada-hero {
+    animation: emerger 600ms ease-out both;
+  }
+
+  .cascada-hero {
+    animation: emerger 700ms ease-out both;
+    animation-delay: var(--retraso, 600ms);
+  }
+}
+
+@keyframes brotar {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes emerger {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/**
+ * Efectos de puntero (`efectos-puntero.tsx`), solo donde hay ratón de verdad y
+ * movimiento permitido. En un teléfono no existe el cursor: un brillo que siguiera
+ * al dedo se quedaría clavado donde se tocó por última vez.
+ *
+ * `[data-brillo]` — luz que se cuela entre las hojas: un claro verde muy tenue
+ * que sigue al cursor por la tarjeta. Va en `::after` con `pointer-events:
+ * none` para no robarle el clic al enlace, y en `multiply` para que sobre la
+ * foto oscurezca un poco en vez de lavarla.
+ *
+ * `[data-iman]` — el botón se acerca unos píxeles al cursor. Usa la propiedad
+ * `translate`, no `transform`, por la misma razón que explica `desplegar`
+ * arriba: son propiedades distintas y se componen con lo que el botón ya
+ * tenga. La transición de `translate` ya la trae la utilidad `transition` de
+ * Tailwind 4.
+ */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-brillo] {
+    position: relative;
+  }
+
+  [data-brillo]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      260px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-brand-100) 70%, transparent),
+      transparent 70%
+    );
+    mix-blend-mode: multiply;
+    transition: opacity 300ms ease-out;
+  }
+
+  [data-brillo]:hover::after {
+    opacity: 1;
+  }
+
+  /* En oscuro, «multiplicar» un verde sobre una tarjeta oscura la apaga en vez
+     de iluminarla: ahí la luz se suma (`screen`). */
+  html[data-tema="oscuro"] [data-brillo]::after {
+    background: radial-gradient(
+      260px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--color-brand-300) 60%, transparent),
+      transparent 70%
+    );
+    mix-blend-mode: screen;
+  }
+
+  [data-iman] {
+    translate: var(--iman-x, 0) var(--iman-y, 0);
+  }
+}
+
+/* Hojas que salen del botón al agregar a la cesta (`src/lib/hojas.ts`). Fijas y
+   por encima de todo, incluido el encabezado pegajoso. La forma de hoja es un
+   cuadrado con dos esquinas opuestas redondeadas. */
+.hoja-al-vuelo {
+  position: fixed;
+  z-index: 60;
+  width: 9px;
+  height: 9px;
+  border-radius: 0 100% 0 100%;
+  pointer-events: none;
 }
