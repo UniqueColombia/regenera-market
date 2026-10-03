@@ -38,6 +38,7 @@ export default async function ProveedoresPage() {
         foto="/img/secciones/hero-proveedores.webp"
         encabezado="Quiénes producen"
         titulo="Proveedores aliados"
+        fondo="luciernagas"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
           Cooperativas campesinas, consejos comunitarios, empresas B y talleres
@@ -53,6 +54,7 @@ export default async function ProveedoresPage() {
           <Revelar as="li" key={p.id} retraso={(i % 2) * 90} className="grid">
             <Link
               href={`/proveedor/${p.slug}`}
+              data-brillo
               className="group flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-md active:ring-brand-300 active:shadow-md"
             >
               <div className="flex items-start gap-3">

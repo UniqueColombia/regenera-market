@@ -86,7 +86,10 @@ export function Revelar({
       // transición: ponerlo solo mientras está oculto lo dejaría sin efecto
       // justo en el cambio que había que escalonar.
       style={estado === "suelto" || !retraso ? undefined : { transitionDelay: `${retraso}ms` }}
-      className={`motion-safe:transition-[opacity,transform] motion-safe:duration-700 motion-safe:ease-out ${
+      // La curva arranca rápido y se posa despacio (ease-out «quint»): con
+      // `ease-out` a secas el bloque llegaba y frenaba de golpe, como algo
+      // mecánico. Es la misma familia de curva que usa el titular del hero.
+      className={`motion-safe:transition-[opacity,transform] motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] ${
         estado === "oculto" ? "opacity-0 translate-y-3" : "opacity-100 translate-y-0"
       } ${className}`}
     >
