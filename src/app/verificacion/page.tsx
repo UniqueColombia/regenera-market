@@ -68,6 +68,7 @@ export default function VerificacionPage() {
         foto="/img/secciones/hero-verificacion.webp"
         encuadreMovil="object-[80%_50%]"
         encabezado="Metodología"
+        fondo="hojas"
         titulo="Cómo sabemos que un proveedor es realmente regenerativo"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">

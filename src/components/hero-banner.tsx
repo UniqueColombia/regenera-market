@@ -1,4 +1,7 @@
 import Image from "next/image";
+import { Fragment, type CSSProperties } from "react";
+import { FondoHero, type VarianteFondo } from "./fondo-hero";
+import { FundidoFotos, type FotoHero } from "./fundido-fotos";
 
 /**
  * Franja de cabecera con fotografía de fondo, para las páginas que cuentan algo
@@ -46,6 +49,8 @@ export function HeroBanner({
   encabezado,
   distintivo,
   titulo,
+  fondo,
+  fotosExtra,
   children,
 }: {
   foto: string;
@@ -65,10 +70,34 @@ export function HeroBanner({
       sello de nivel en la ficha de un proveedor. Se pinta tal cual. */
   distintivo?: React.ReactNode;
   titulo: string;
+  /**
+   * Capa viva entre el velo y el texto (`fondo-hero.tsx`). Se elige por lo que
+   * cuenta la página, no por gusto: semillas donde se habla de crecer,
+   * luciérnagas donde se habla de gente y territorio, hojas que caen donde se
+   * habla del trabajo en campo. Sin ella, el hero es el de siempre.
+   */
+  fondo?: VarianteFondo;
+  /**
+   * Fotos que se turnan con `foto` mediante un fundido lento
+   * (`fundido-fotos.tsx`). `foto` sigue siendo la primera y la que sale del
+   * servidor; estas se montan después. Solo la portada lo usa: en una página
+   * interior la foto ilustra un tema concreto y cambiarla lo diluiría.
+   */
+  fotosExtra?: FotoHero[];
   children?: React.ReactNode;
 }) {
+  /* El titular entra palabra por palabra (`.palabra-hero` en globals.css) y lo
+     demás —bajada, buscador, botones, cifras— entra cuando él termina. El
+     retraso del resto se calcula aquí, en el servidor, con tope: en un titular
+     largo no se puede hacer esperar al buscador más de un segundo. */
+  const palabras = titulo.split(/\s+/);
+  const retrasoResto = 160 + Math.min(palabras.length, 8) * 70;
+
   return (
-    <section className="relative isolate overflow-hidden bg-brand-900">
+    <section
+      className="relative isolate overflow-hidden bg-brand-900"
+      data-hero-fotos={fotosExtra?.length ? "" : undefined}
+    >
       <Image
         src={foto}
         alt=""
@@ -77,14 +106,18 @@ export function HeroBanner({
         sizes="100vw"
         className={`object-cover ${encuadreMovil} md:object-center`}
       />
+      {/* Debajo del velo, para que el titular se lea igual sobre todas. */}
+      {fotosExtra && fotosExtra.length > 0 && <FundidoFotos fotos={fotosExtra} />}
       <div
         aria-hidden
         className="absolute inset-0 bg-gradient-to-b from-brand-900/95 via-brand-900/88 to-brand-900/80 md:bg-gradient-to-r md:from-brand-900 md:via-brand-900/90 md:to-brand-900/60"
       />
 
+      {fondo && <FondoHero variante={fondo} />}
+
       <div className={`container-page relative ${TAMANOS[tamano].relleno}`}>
         {encabezado && (
-          <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-300">
+          <p className="entrada-hero flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-300">
             {encabezado}
           </p>
         )}
@@ -92,9 +125,24 @@ export function HeroBanner({
         <h1
           className={`mt-3 max-w-3xl font-display text-white ${TAMANOS[tamano].titular}`}
         >
-          {titulo}
+          {/* Cada palabra es un span con su orden en `--i`. El texto sigue siendo
+              texto: un lector de pantalla y un buscador leen el titular entero,
+              con sus espacios, sin que haga falta un aria-label. */}
+          {palabras.map((palabra, i) => (
+            <Fragment key={i}>
+              {i > 0 && " "}
+              <span className="palabra-hero" style={{ "--i": i } as CSSProperties}>
+                {palabra}
+              </span>
+            </Fragment>
+          ))}
         </h1>
-        {children}
+        <div
+          className="cascada-hero"
+          style={{ "--retraso": `${retrasoResto}ms` } as CSSProperties}
+        >
+          {children}
+        </div>
       </div>
     </section>
   );
