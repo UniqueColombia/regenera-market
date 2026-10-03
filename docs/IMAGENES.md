@@ -835,10 +835,10 @@ Dos cambios respecto al plan:
 
 | Foto | Se ve en |
 |---|---|
-| `hero-home` | Portada, detrás del velo. También el banner de LinkedIn personal y la tarjeta de compartir |
-| `hero-verificacion` | Cabecera de `/verificacion`. También el banner de YouTube |
-| `hero-vender` | Cabecera de `/vender`. También el banner de Facebook |
-| `hero-proveedores` | Cabecera de `/proveedores`, y respaldo de la ficha de un proveedor sin ofertas con foto. También el banner de X |
+| `hero-home` | Portada, detrás del velo, y la primera del fundido. También el banner de LinkedIn personal y la tarjeta de compartir |
+| `hero-verificacion` | Cabecera de `/verificacion`, y una de las que se turnan en la portada. También el banner de YouTube |
+| `hero-vender` | Cabecera de `/vender`, y una de las que se turnan en la portada. También el banner de Facebook |
+| `hero-proveedores` | Cabecera de `/proveedores`, una de las que se turnan en la portada, y respaldo de la ficha de un proveedor sin ofertas con foto. También el banner de X |
 | `vertical-*` (5) | Tarjetas de «Soluciones para cada tipo de negocio» en la portada |
 | Las 18 de oferta | Tarjeta del catálogo y ficha de la oferta |
 

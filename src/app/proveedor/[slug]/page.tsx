@@ -84,6 +84,7 @@ export default async function ProveedorPage(
         foto={portada}
         distintivo={<TierBadge tier={provider.tier} size="md" />}
         titulo={provider.name}
+        fondo="luciernagas"
       >
         <p className="mt-2 text-lg text-brand-100">{provider.tagline}</p>
 

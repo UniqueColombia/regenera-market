@@ -59,6 +59,7 @@ export default function NivelesPage() {
         foto="/img/secciones/hero-vender.webp"
         encuadreMovil="object-[35%_50%]"
         encabezado="Niveles"
+        fondo="semillas"
         titulo="Tu nivel sube con lo que vendes y entregas"
       >
         <p className="mt-4 max-w-2xl text-lg text-brand-100">
@@ -70,6 +71,7 @@ export default function NivelesPage() {
         <div className="mt-8">
           <Link
             href="/vender#postular"
+            data-iman
             className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-800 transition hover:bg-brand-50 active:bg-brand-50"
           >
             Crear mi cuenta de proveedor

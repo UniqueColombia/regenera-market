@@ -15,7 +15,9 @@ export function ListingCard({
   provider?: Provider;
 }) {
   return (
-    <article className="group flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/5">
+    <article
+      data-brillo
+      className="group flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/5">
       {/* El grupo con nombre `/foto` cuelga del propio enlace, no del <article>:
           `:active` en táctil es fiable sobre el elemento que se toca, y aquí lo
           que se toca es el ancla. Colgarlo del artículo dependería de que el
