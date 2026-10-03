@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { DatosDelSitio } from "@/components/datos-estructurados";
 import { HeroBanner } from "@/components/hero-banner";
+import { CampoBusquedaHero } from "@/components/campo-busqueda-hero";
+import { Contador } from "@/components/contador";
 import { ListingCard } from "@/components/listing-card";
 import { TarjetaPublicacion } from "@/components/tarjeta-publicacion";
 import { TierBadge } from "@/components/tier-badge";
@@ -72,11 +74,19 @@ export default async function HomePage() {
           es más alto que ancho y object-cover descarta cerca del 70 %: con el
           centro por defecto, el rancho y la pareja —que están a la derecha— se
           salen del cuadro y solo queda niebla. El velo y su cambio de eje viven
-          en HeroBanner. Ver docs/IMAGENES.md. */}
+          en HeroBanner. Ver docs/IMAGENES.md.
+          Las otras tres fotos se turnan con esta en un fundido lento, cada una
+          con el encuadre móvil de la tabla de esa misma guía. */}
       <HeroBanner
         foto="/img/secciones/hero-home.webp"
         encuadreMovil="object-[78%_50%]"
         tamano="portada"
+        fondo="primavera"
+        fotosExtra={[
+          { src: "/img/secciones/hero-verificacion.webp", encuadreMovil: "object-[80%_50%]" },
+          { src: "/img/secciones/hero-vender.webp", encuadreMovil: "object-[62%_50%]" },
+          { src: "/img/secciones/hero-proveedores.webp" },
+        ]}
         encabezado={
           <>
             <Sprout className="size-4" />
@@ -98,10 +108,10 @@ export default async function HomePage() {
           <label htmlFor="hero-search" className="sr-only">
             Buscar en el catálogo
           </label>
-          <input
+          <CampoBusquedaHero
             id="hero-search"
-            name="q"
             placeholder="Amenities, compostaje, guadua, Amazonas…"
+            sugerencias={["Amenities", "Compostaje", "Guadua", "Amazonas"]}
             className="flex-1 rounded-full bg-transparent px-4 text-sm text-ink outline-none placeholder:text-muted"
           />
           <button
@@ -114,10 +124,10 @@ export default async function HomePage() {
         </form>
 
         <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-6 sm:flex sm:flex-wrap sm:gap-x-12 md:mt-12">
-          <Stat value={`${stats.providers}`} label="Proveedores verificados" />
-          <Stat value={`${stats.listings}`} label="Ofertas publicadas" />
-          <Stat value={`${stats.departments}`} label="Departamentos" />
-          <Stat value={`${stats.verifiedShare}%`} label="Con nivel asignado" />
+          <Stat valor={stats.providers} label="Proveedores verificados" />
+          <Stat valor={stats.listings} label="Ofertas publicadas" />
+          <Stat valor={stats.departments} label="Departamentos" />
+          <Stat valor={stats.verifiedShare} sufijo="%" label="Con nivel asignado" />
         </dl>
       </HeroBanner>
 
@@ -332,11 +342,21 @@ export default async function HomePage() {
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({
+  valor,
+  sufijo,
+  label,
+}: {
+  valor: number;
+  sufijo?: string;
+  label: string;
+}) {
   return (
     <div>
       <dt className="sr-only">{label}</dt>
-      <dd className="font-display text-3xl text-white tabular-nums">{value}</dd>
+      <dd className="font-display text-3xl text-white tabular-nums">
+        <Contador valor={valor} sufijo={sufijo} />
+      </dd>
       <p className="mt-1 text-sm text-brand-200">{label}</p>
     </div>
   );

@@ -24,12 +24,25 @@ existe como token, la decisión es agregarlo al tema, no incrustarlo.
 **Blanco** se reserva para superficies elevadas sobre `cream`: tarjetas,
 paneles, menús desplegables.
 
-## Modo claro, a propósito
+## Claro por defecto, oscuro a elección
 
-`color-scheme: light` está declarado en `:root` (`globals.css:42`). El sitio
-**no tiene modo oscuro** y esa es una decisión de producto: los productos se
-juzgan por su foto y su ficha, y una inversión a oscuras cambia cómo se leen los
-materiales naturales. No agregues variantes `dark:` — quedan muertas y confunden.
+El sitio se diseñó en claro y **ese es el tema por defecto**: los productos se
+juzgan por su foto y su ficha. Desde el 2026-10-03 hay un modo oscuro que solo
+aparece si alguien lo elige con el botón del encabezado (hito
+[modo oscuro](../../hitos/2026-10-03-modo-oscuro.md)).
+
+**No escribas `dark:`.** El oscuro no son variantes: es la misma paleta
+remapeada en `globals.css` (bloque «Modo oscuro»). Si usas los tokens de esta
+skill, tu componente ya funciona en los dos temas sin hacer nada. Tres cosas que
+sí tienes que saber:
+
+- **Una superficie oscura nueva** (fondo verde o terracota con letra blanca) con
+  una clase que no esté en la «capa 3» de ese bloque se verá clara en oscuro.
+  Agrega la clase a la lista o ponle `data-tema-fijo`.
+- **Un color de Tailwind fuera de la paleta** (un rojo o un ámbar que no esté
+  remapeado) se verá igual en los dos temas. Agrégale su valor oscuro.
+- Antes de cerrar algo visual, míralo también en oscuro (cookie
+  `sgr_tema=oscuro`, o el botón de la luna).
 
 ## Tipografía
 
@@ -112,6 +125,41 @@ llegas a: tu cuenta, tu empresa, administración (si toca), el carrito y salir.
 - Móvil primero: se maqueta la columna estrecha y se agregan `md:` / `lg:`. El
   comprador de un glamping mira el catálogo desde el teléfono.
 
+## Movimiento
+
+El movimiento cuenta el tema —algo que brota, crece, se ilumina— y nunca
+compite con el producto. Lo que ya existe, y dónde:
+
+| Necesitas… | Usa |
+|---|---|
+| Que un bloque entre al hacer scroll | `<Revelar>` (`retraso` para escalonar una lista) |
+| Capa viva en un hero | `fondo` del `HeroBanner`: `primavera` (portada), `semillas` (crecer), `luciernagas` (gente, territorio), `hojas` (bosque, trabajo en campo) |
+| Que el hero turne varias fotos | `fotosExtra` del `HeroBanner` — solo fotos 16:9 encuadradas para el velo; solo en la portada |
+| Que una tarjeta reaccione al cursor | atributo `data-brillo` — la tarjeta sigue siendo de servidor |
+| Que un botón destacado se acerque al cursor | atributo `data-iman` — solo CTA del hero, dos o tres por página |
+| Una cifra que sube | `<Contador valor={n} sufijo="%" />` |
+| Celebrar una acción del usuario | `soltarHojas(boton, x, y)` de `src/lib/hojas.ts`, desde el manejador del evento |
+| Un desplegable, un aviso, un pulso | `animate-desplegar`, `animate-aviso`, `animate-latido` (tema en `globals.css`) |
+
+Reglas, cada una con su porqué en el hito
+[heros vivos](../../hitos/2026-10-03-heros-vivos-y-movimiento-tematico.md):
+
+- **`prefers-reduced-motion` apaga, no suaviza.** Todo lo de arriba lo respeta;
+  lo nuevo también. Lo que depende del cursor, además, solo con
+  `(hover: hover) and (pointer: fine)`.
+- **Lo que ya se ve al cargar no se esconde con JavaScript.** Si tiene que
+  entrar animado, que sea CSS desde el primer pintado (como el titular del
+  hero); si es JS, que actúe solo debajo del pliegue (como `Revelar`).
+- **Se anima `transform` y `opacity`.** `filter: blur` solo en un puñado de
+  elementos (el titular), nunca en una lista.
+- **El titular del hero es texto liso.** Se parte en palabras para animarlo;
+  con `bg-clip-text` desaparecería.
+- **Nada de efectos de cursor globales** (estelas, cursores propios): en un
+  catálogo son ruido y en un teléfono no existen.
+- **Un fondo animado nuevo**: canvas 2D o CSS antes que una librería; se pausa
+  fuera de pantalla y con la pestaña oculta; los colores salen de los tokens
+  (`getComputedStyle` sobre `--color-*`), nunca un hex.
+
 ## Antes de cerrar
 
 - [ ] Cero hex y cero colores fuera de la paleta
@@ -120,3 +168,5 @@ llegas a: tu cuenta, tu empresa, administración (si toca), el carrito y salir.
 - [ ] Toda acción del menú de escritorio se alcanza también desde el de móvil
 - [ ] Interactivos alcanzables con teclado y con foco visible
 - [ ] Ningún texto visible dice "Regenera Market"
+- [ ] Todo movimiento nuevo se apaga con `prefers-reduced-motion`
+- [ ] Se ve bien también en modo oscuro
