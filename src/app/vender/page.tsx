@@ -197,7 +197,7 @@ export default async function VenderPage() {
       {/* ------------------------------------------------------------------ */}
       {/* Niveles y comisión                                                  */}
       {/* ------------------------------------------------------------------ */}
-      <section className="bg-brand-900 py-16 text-white">
+      <section className="banda-bosque bg-brand-900 py-16 text-white">
         <div className="container-page">
           <Revelar>
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-300">
@@ -285,7 +285,7 @@ export default async function VenderPage() {
       {/* ------------------------------------------------------------------ */}
       {/* Qué pedimos                                                         */}
       {/* ------------------------------------------------------------------ */}
-      <section className="bg-sand py-14">
+      <section className="banda-sand bg-sand py-14">
         <div className="container-page">
           <Revelar>
             <h2 className="font-display text-3xl text-ink">Qué pedimos</h2>

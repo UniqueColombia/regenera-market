@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Onda } from "./onda";
 import { Fragment, type CSSProperties } from "react";
 import { FondoHero, type VarianteFondo } from "./fondo-hero";
 import { FundidoFotos, type FotoHero } from "./fundido-fotos";
@@ -33,11 +34,11 @@ import { FundidoFotos, type FotoHero } from "./fundido-fotos";
  */
 const TAMANOS = {
   seccion: {
-    relleno: "py-12 md:py-16",
+    relleno: "pt-12 pb-16 md:pt-16 md:pb-20",
     titular: "text-3xl sm:text-4xl md:text-5xl",
   },
   portada: {
-    relleno: "py-14 md:py-28",
+    relleno: "pt-14 pb-20 md:py-28",
     titular: "text-3xl leading-[1.1] sm:text-4xl md:text-6xl",
   },
 } as const;
@@ -114,6 +115,10 @@ export function HeroBanner({
       />
 
       {fondo && <FondoHero variante={fondo} />}
+
+      {/* El borde de abajo es una ola y no una recta. Rellena con el color de la
+          página, así que sigue al modo oscuro. */}
+      <Onda className="onda-hero" />
 
       <div className={`container-page relative ${TAMANOS[tamano].relleno}`}>
         {encabezado && (

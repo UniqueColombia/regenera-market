@@ -106,7 +106,7 @@ export default function VerificacionPage() {
         </p>
       </section>
 
-      <section className="bg-sand py-14">
+      <section className="banda-sand bg-sand py-14">
         <div className="container-page">
           <h2 className="font-display text-3xl text-ink">
             Las seis dimensiones
@@ -216,7 +216,7 @@ export default function VerificacionPage() {
         </p>
       </section>
 
-      <section className="bg-sand py-14">
+      <section className="banda-sand bg-sand py-14">
         <div className="container-page">
           <h2 className="font-display text-3xl text-ink">
             Calcula tu puntaje ahora
