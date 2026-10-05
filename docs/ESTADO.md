@@ -567,7 +567,8 @@ entran.
 
 ### 🟠 Solo Ivan (`UniqueColombia`)
 
-**1. SMTP de Google Workspace — el remitente definitivo.** Authentication → SMTP
+**1. SMTP de Google Workspace — el remitente definitivo.** *Paso a paso completo,
+con las `SMTP_*` de Vercel incluidas, en [`docs/CORREOS.md`](CORREOS.md).* Authentication → SMTP
 Settings: `smtp.gmail.com`, puerto 587, con contraseña de aplicación de una
 cuenta `@uniquecolombia` (exige verificación en dos pasos activa). Remitente tipo
 `no-responder@uniquecolombia.com`, nombre visible «Seregenera».

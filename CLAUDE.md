@@ -49,6 +49,7 @@ agente del otro.
 | `docs/ROADMAP.md` | Camino del producto por fases, con criterio de salida | Humanos y agentes |
 | `docs/BETA.md` | Cómo se ejecutan las Fases 1 y 2, bloque por bloque | Humanos y agentes |
 | `docs/DEPLOY.md` | Stack de despliegue, por qué se eligió y qué se descartó | Humanos y agentes |
+| `docs/CORREOS.md` | Paso a paso para pasar el remitente a Google Workspace y editar cada plantilla de correo, la de Supabase o la de la app | Humanos y agentes |
 | `docs/IMAGENES.md` | Qué imágenes faltan, con qué prompt se generan y dónde van | Humanos y agentes |
 | `docs/NIVELES.md` | Cómo se gana el nivel de proveedor, el gemelo SQL/TS y sus trampas | Humanos y agentes |
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
