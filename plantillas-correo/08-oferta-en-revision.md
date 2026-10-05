@@ -4,11 +4,11 @@
 **Se dispara cuando:** una empresa manda una oferta a revisión desde
 `/cuenta/empresa/ofertas`.
 
-> **Escrito y sin conectar.** La función `correoOfertaEnRevision()` existe en
-> `src/lib/correo/plantillas.ts`, pero ninguna acción la llama todavía. Iría en
-> `src/app/cuenta/empresa/ofertas/actions.ts`, después de guardar con
-> `status = "pending_review"`, y con el mismo patrón que el correo del pedido en
-> `src/app/carrito/actions.ts`: fuera del camino crítico, dentro de un `try`.
+> **Conectado.** Lo manda `correoOfertaEnRevision()` (en
+> `src/lib/correo/plantillas.ts`) desde `src/app/cuenta/empresa/ofertas/actions.ts`,
+> a quien envió la oferta, justo después de guardarla con
+> `status = "pending_review"`. Un borrador no manda nada. Si el correo falla, la
+> oferta queda guardada igual.
 
 ## Asunto
 
@@ -35,3 +35,5 @@ Mis ofertas: {sitio}/cuenta/empresa/ofertas
 - «Si la editas, vuelve a la cola de revisión» es **verdad por diseño**
   (ver la cabecera de `ofertas/actions.ts`). Si cambia esa regla, cambia este texto.
 - El título de la oferta lo escribe la empresa: pasa por `escapar()`.
+- Cada vez que se **reenvía** a revisión (por ejemplo, tras editarla) llega otro
+  correo. Es lo esperado: cada envío es una cola nueva.

@@ -41,3 +41,4 @@ referencie al anterior.
 | 2026-09-26 | [La `0012` está aplicada y la compra quedó probada con una cuenta real](2026-09-26-cierre-de-la-revision-0012-aplicada.md) | Jesús Seiler | 1 y 2 — cierre de la revisión |
 | 2026-10-03 | [Los heros cobran vida y el movimiento cuenta el tema del sitio](2026-10-03-heros-vivos-y-movimiento-tematico.md) | Jesús Seiler | — |
 | 2026-10-03 | [El sitio tiene modo oscuro, a elección de quien lo visita](2026-10-03-modo-oscuro.md) | Jesús Seiler | — |
+| 2026-10-05 | [Los avisos de ofertas y pedidos salen solos, y Ivan tiene la guía para el remitente](2026-10-05-correos-del-pedido-y-las-ofertas-y-guia-de-workspace.md) | Jesús Seiler | — |

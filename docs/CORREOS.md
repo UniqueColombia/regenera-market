@@ -21,7 +21,7 @@ credenciales:
 | Quién lo manda | Qué correos | Dónde viven sus credenciales | Dónde vive su texto |
 |---|---|---|---|
 | **Supabase** | Código de acceso, confirmación de registro, invitación, cambio de correo, recuperar clave, confirmar operación | Supabase → Authentication → Emails → **SMTP Settings** | Supabase → Authentication → Emails → **Templates** (copias en `plantillas-correo/`) |
-| **La aplicación** | Bienvenida, pedido recibido, postulación recibida (y las ofertas, cuando se conecten) | Variables `SMTP_*` en **Vercel** | `src/lib/correo/plantillas.ts` |
+| **La aplicación** | Bienvenida, pedido recibido, postulación recibida, ofertas en revisión y publicadas, cambios de estado del pedido y aviso al proveedor | Variables `SMTP_*` en **Vercel** | `src/lib/correo/plantillas.ts` |
 
 La aplicación no puede leer lo que hay en el panel de Supabase, así que las
 mismas credenciales se escriben **en los dos sitios**. Mientras falten las
@@ -91,7 +91,26 @@ guarda las comillas literalmente y rompe el valor):
 Marca **Production y Preview** en cada una. Luego `Deployments` → el último →
 **Redeploy**: un despliegue ya hecho no toma variables nuevas.
 
-### A4. Comprobar que quedó
+### A4. Que no caigan en spam: SPF y DKIM del dominio
+
+Sin esto, un correo que sale de `@uniquecolombia.com` puede llegar a la carpeta
+de spam aunque todo lo anterior esté bien. Se hace una sola vez y lo hace quien
+administre el DNS del dominio.
+
+1. **DKIM.** `admin.google.com` → Aplicaciones → Google Workspace → Gmail →
+   **Autenticar correo electrónico**. Elige el dominio, *Generar nuevo registro*
+   (clave de 2048 bits) y copia el registro TXT que te da.
+2. **Publica ese TXT en el DNS** del dominio (donde esté registrado: GoDaddy,
+   Cloudflare, etc.) con el nombre que Google indica (`google._domainkey`). Espera
+   a que propague (puede tardar hasta unas horas) y vuelve a Google a pulsar
+   **Iniciar autenticación**. Tiene que decir «Autenticando correo».
+3. **SPF.** El dominio debe tener **un solo** registro TXT que empiece por
+   `v=spf1` y que incluya `include:_spf.google.com`. Si ya existe uno, se le
+   **añade** el `include`; dos registros SPF se anulan entre sí.
+4. **Comprueba:** manda un correo desde la cuenta a un Gmail personal, abre
+   «Mostrar original» y busca `SPF: PASS` y `DKIM: PASS`.
+
+### A5. Comprobar que quedó
 
 1. Regístrate en `/registro` con un correo real que no hayas usado.
 2. Tiene que llegar el **código de 6 dígitos** (lo manda Supabase) **y** la
@@ -106,6 +125,20 @@ Marca **Production y Preview** en cada una. Luego `Deployments` → el último �
 ---
 
 ## Parte B — Editar el texto de un correo
+
+> **Antes de editar nada, una pasada por las seis pestañas.** Nadie dejó anotado
+> cuáles están pegadas hoy en el panel. En `Authentication` → `Emails` →
+> `Templates`, abre cada una y márcala aquí:
+>
+> - [ ] Confirm sign up: trae el logo, los seis dígitos y el botón
+> - [ ] Magic link or OTP: igual
+> - [ ] Invite user: no dice «Follow this link» en inglés
+> - [ ] Change email address: igual
+> - [ ] Reset password: igual
+> - [ ] Reauthentication: **es la que casi seguro sigue con el texto de fábrica**
+>
+> Si una está en inglés o sin logo, es que es la de fábrica: pega la de su archivo
+> (tabla de abajo).
 
 Primero averigua **quién lo manda**, porque se edita en sitios distintos.
 
@@ -129,7 +162,7 @@ Para cambiar uno:
    alguien recrea el proyecto de Supabase, es lo único que queda).
 2. Copia el bloque ` ```html ` completo al *Message body* de la pestaña y el asunto
    a *Subject heading*. Guarda.
-3. Pruébalo con el paso A4.
+3. Pruébalo con el paso A5.
 4. Commitea el archivo, para que el repositorio y el panel digan lo mismo.
 
 **Lo que se rompe si no se respeta** (el detalle está en `plantillas-correo/README.md`):
@@ -156,8 +189,10 @@ pega nada en ningún panel.**
 | `correoBienvenida()` | — (ver `plantillas.ts`) | Conectado: se manda al crear la cuenta |
 | `correoPedidoRecibido()` | — (ver `plantillas.ts`) | Conectado: se manda al hacer un pedido |
 | `correoPostulacionRecibida()` | `plantillas-correo/06-postulacion-recibida.md` | Conectado: se manda al enviar `/vender` |
-| `correoOfertaEnRevision()` | `plantillas-correo/08-oferta-en-revision.md` | **Escrito, sin conectar** |
-| `correoOfertaPublicada()` | `plantillas-correo/09-oferta-publicada.md` | **Escrito, sin conectar** |
+| `correoOfertaEnRevision()` | `plantillas-correo/08-oferta-en-revision.md` | Conectado: se manda al enviar una oferta a revisión |
+| `correoOfertaPublicada()` | `plantillas-correo/09-oferta-publicada.md` | Conectado: se manda al aprobarla el equipo |
+| `correoEstadoPedido()` | `plantillas-correo/10-estado-del-pedido.md` | Conectado: se manda al comprador al cambiar el estado |
+| `correoPedidoPagadoProveedor()` | `plantillas-correo/11-pedido-pagado-proveedor.md` | Conectado: se manda a cada empresa al confirmarse el pago |
 
 Para cambiar uno:
 
@@ -194,17 +229,26 @@ voz alta como si se lo dijeras a un hotelero: si suena raro, está mal.
 | Bienvenida | Aplicación | ✅ conectado |
 | Pedido recibido | Aplicación | ✅ conectado |
 | Postulación recibida | Aplicación | ✅ conectado |
-| Oferta enviada a revisión | Aplicación | 🟡 escrito, **falta conectar** |
-| Oferta publicada | Aplicación | 🟡 escrito, **falta conectar** (resolver a quién se le manda) |
-| Oferta no aprobada | Aplicación | ❌ falta un campo de motivo en la base |
-| Cambio de estado del pedido (pagado, entregado…) | Aplicación | ❌ sin escribir |
-| Aviso al proveedor de un pedido nuevo | Aplicación | ❌ sin escribir |
+| Oferta enviada a revisión | Aplicación | ✅ conectado |
+| Oferta publicada | Aplicación | ✅ conectado |
+| Cambio de estado del pedido (pagado, preparación, entregado, cancelado, devuelto) | Aplicación | ✅ conectado |
+| Aviso al proveedor de un pedido pagado | Aplicación | ✅ conectado |
+| Oferta no aprobada | Aplicación | ❌ falta un campo de motivo en la base: una migración y una decisión de los dos |
 
-**Conectar** una plantilla no es editar texto: es llamarla desde la acción que
-corresponde, con el mismo patrón del correo del pedido
-(`src/app/carrito/actions.ts`): fuera del camino crítico, dentro de un `try`, sin
-que un fallo del correo deshaga lo que ya se guardó. Se pide como una tarea
-aparte, y quien la haga prueba con una cuenta real.
+**Dónde está conectado cada uno:** los de ofertas y de pedidos salen de
+`src/lib/correo/notificaciones.ts`, que se llama **después** de guardar el
+cambio y **nunca lanza**: un correo que falla queda en los registros del servidor y
+no deshace nada. Los avisos a una empresa se mandan a **cada persona que la
+gestiona** (`provider_members`); una empresa sin nadie asignado no recibe nada y no
+da error.
+
+**Para probarlos con una cuenta real**, sin esperar a que ocurra solo:
+
+1. Con una cuenta de proveedor, manda una oferta a revisión → llega el 08.
+2. Como administrador, apruébala en `/admin/ofertas` → llega el 09 a quien gestione la empresa.
+3. Compra algo con otra cuenta; en `/admin/ordenes`, marca la orden como pagada →
+   el comprador recibe el 10 y la empresa el 11. Pásala a «en preparación» y
+   «entregada» y llega un 10 por cada cambio.
 
 ---
 

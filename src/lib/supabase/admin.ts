@@ -1,7 +1,8 @@
 // ⚠️ ESTE CLIENTE SE SALTA RLS. Lee y escribe la base entera, como si fuera el
 // dueño. Importarlo desde una página o un componente expone todos los datos de
 // todos los usuarios. Solo para tareas de servidor que lo necesiten de verdad:
-// el seed del catálogo, la confirmación de un pago, asignar un rol.
+// el seed del catálogo, la confirmación de un pago, asignar un rol, y leer el
+// correo de quien gestiona una empresa para avisarle (`src/lib/correo/notificaciones.ts`).
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
