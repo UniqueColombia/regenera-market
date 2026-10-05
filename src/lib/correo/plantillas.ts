@@ -414,3 +414,108 @@ export function correoPedidoRecibido(d: {
     ].join("\n"),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Ofertas: en revisión y publicada
+// ---------------------------------------------------------------------------
+
+/**
+ * Una oferta que la empresa mandó a revisión.
+ *
+ * **Escrita y sin conectar todavía**: ninguna acción la llama. El sitio donde
+ * iría es `src/app/cuenta/empresa/ofertas/actions.ts`, justo después de guardar
+ * con `status = "pending_review"`. Está aquí para que el texto se pueda revisar y
+ * ajustar antes de que alguien la reciba (ver `docs/CORREOS.md`).
+ *
+ * Dice qué pasa ahora y qué no hace falta que la persona haga: la oferta no se
+ * ve en el catálogo hasta que el equipo la revise, y editarla la devuelve a
+ * revisión.
+ */
+export function correoOfertaEnRevision(d: {
+  nombre: string;
+  correo: string;
+  titulo: string;
+}): Mensaje {
+  const url = sitio();
+  const titulo = escapar(d.titulo);
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+
+  const cuerpo =
+    seccion(
+      h1("Tu oferta está en revisión") +
+        p(
+          `${nombre}, recibimos <strong style="color:${TINTA};">${titulo}</strong>. El equipo la revisa antes de mostrarla en el catálogo y te avisamos apenas esté publicada.`,
+        ) +
+        p("Mientras tanto no tienes que hacer nada. Si la editas, vuelve a la cola de revisión."),
+    ) +
+    boton(`${url}/cuenta/empresa/ofertas`, "Ver mis ofertas");
+
+  return {
+    para: d.correo,
+    asunto: `Recibimos tu oferta «${d.titulo}»`,
+    html: envolver({
+      titulo: "Tu oferta está en revisión",
+      preencabezado: `${d.titulo} · te avisamos cuando esté publicada`,
+      cuerpo,
+    }),
+    texto: [
+      "Tu oferta está en revisión",
+      "",
+      `Recibimos «${d.titulo}». El equipo la revisa antes de mostrarla en el catálogo y te avisamos apenas esté publicada.`,
+      "Si la editas, vuelve a la cola de revisión.",
+      "",
+      `Mis ofertas: ${url}/cuenta/empresa/ofertas`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
+
+/**
+ * Una oferta aprobada: ya está en el catálogo.
+ *
+ * **Escrita y sin conectar todavía.** Iría en `cambiarEstadoOferta()` de
+ * `src/app/admin/ofertas/actions.ts` cuando el estado nuevo es `approved`, y
+ * hace falta resolver antes a quién se le manda: la acción hoy no lee el correo
+ * de los miembros de la empresa.
+ */
+export function correoOfertaPublicada(d: {
+  nombre: string;
+  correo: string;
+  titulo: string;
+  slug: string;
+}): Mensaje {
+  const url = sitio();
+  const titulo = escapar(d.titulo);
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+  const enlace = `${url}/oferta/${encodeURIComponent(d.slug)}`;
+
+  const cuerpo =
+    seccion(
+      h1("Tu oferta ya está publicada") +
+        p(
+          `${nombre}, <strong style="color:${TINTA};">${titulo}</strong> ya aparece en el catálogo y se puede comprar.`,
+        ) +
+        p("Compártela con tus clientes: el enlace es tuyo."),
+    ) +
+    boton(enlace, "Ver mi oferta");
+
+  return {
+    para: d.correo,
+    asunto: `«${d.titulo}» ya está en Seregenera`,
+    html: envolver({
+      titulo: "Tu oferta ya está publicada",
+      preencabezado: `${d.titulo} ya se puede comprar`,
+      cuerpo,
+    }),
+    texto: [
+      "Tu oferta ya está publicada",
+      "",
+      `«${d.titulo}» ya aparece en el catálogo y se puede comprar.`,
+      "",
+      `Ver mi oferta: ${enlace}`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
