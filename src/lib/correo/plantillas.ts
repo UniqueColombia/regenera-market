@@ -519,3 +519,133 @@ export function correoOfertaPublicada(d: {
     ].join("\n"),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Pedido: cambio de estado y aviso al proveedor
+// ---------------------------------------------------------------------------
+
+/**
+ * Los estados de una orden que se le cuentan a quien compró.
+ *
+ * `pending_payment` no está: es el estado de origen, y volver a él desde
+ * «cancelada» es una corrección del equipo, no algo que deba llegarle al comprador.
+ */
+export type EstadoAvisable = "paid" | "in_progress" | "fulfilled" | "cancelled" | "refunded";
+
+const TEXTO_ESTADO: Record<EstadoAvisable, { asunto: string; titulo: string; frase: string }> = {
+  paid: {
+    asunto: "Confirmamos el pago de tu pedido",
+    titulo: "Recibimos tu pago",
+    frase: "Ya confirmamos el pago. Los proveedores pueden empezar a preparar tu pedido.",
+  },
+  in_progress: {
+    asunto: "Tu pedido está en preparación",
+    titulo: "Tu pedido está en preparación",
+    frase: "Los proveedores ya están preparando lo que pediste.",
+  },
+  fulfilled: {
+    asunto: "Tu pedido fue entregado",
+    titulo: "Tu pedido fue entregado",
+    frase: "Marcamos tu pedido como entregado. Gracias por comprar a quienes regeneran.",
+  },
+  cancelled: {
+    asunto: "Cancelamos tu pedido",
+    titulo: "Tu pedido fue cancelado",
+    frase: "Tu pedido quedó cancelado y no se te cobrará nada por él.",
+  },
+  refunded: {
+    asunto: "Devolvimos tu pedido",
+    titulo: "Registramos la devolución de tu pedido",
+    frase: "Tu pedido quedó marcado como devuelto.",
+  },
+};
+
+/**
+ * Cada vez que el equipo mueve una orden a un estado que le importa al comprador.
+ *
+ * Hoy el pago se confirma a mano, así que este correo es lo que le dice a quien
+ * transfirió que su dinero llegó. Se manda desde `cambiarEstadoOrden()`.
+ */
+export function correoEstadoPedido(d: {
+  nombre: string;
+  correo: string;
+  referencia: string;
+  estado: EstadoAvisable;
+}): Mensaje {
+  const url = sitio();
+  const t = TEXTO_ESTADO[d.estado];
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+  const enlace = `${url}/orden/${encodeURIComponent(d.referencia)}`;
+
+  const cuerpo =
+    seccion(
+      h1(t.titulo) +
+        p(
+          `${nombre}, tu pedido <strong style="color:${TINTA};">${escapar(d.referencia)}</strong>: ${escapar(t.frase)}`,
+        ),
+    ) + boton(enlace, "Ver mi pedido");
+
+  return {
+    para: d.correo,
+    asunto: `${t.asunto} · ${d.referencia}`,
+    html: envolver({ titulo: t.titulo, preencabezado: `Pedido ${d.referencia}`, cuerpo }),
+    texto: [
+      t.titulo,
+      "",
+      `Pedido ${d.referencia}: ${t.frase}`,
+      "",
+      `Ver mi pedido: ${enlace}`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
+
+/**
+ * Le avisa a una empresa que un pedido con sus productos ya está pagado.
+ *
+ * Se manda al **confirmar el pago**, no al crear el pedido: antes de eso no hay
+ * nada que preparar, y avisar de una orden sin pagar invita a despachar algo
+ * que puede cancelarse. Lleva solo lo que es de esa empresa y ningún importe: las
+ * cifras las calcula la base (invariantes 1 y 2) y el correo no las repite.
+ */
+export function correoPedidoPagadoProveedor(d: {
+  nombre: string;
+  correo: string;
+  empresa: string;
+  referencia: string;
+  lineas: { titulo: string; qty: number }[];
+}): Mensaje {
+  const url = sitio();
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+  const lista = d.lineas.map((l) => `${l.qty} × ${escapar(l.titulo)}`).join("<br>");
+
+  const cuerpo =
+    seccion(
+      h1("Tienes un pedido pagado") +
+        p(
+          `${nombre}, el pedido <strong style="color:${TINTA};">${escapar(d.referencia)}</strong> ya está pagado y incluye productos de ${escapar(d.empresa)}:`,
+        ) +
+        p(lista),
+    ) + boton(`${url}/cuenta/empresa`, "Ir a mi empresa");
+
+  return {
+    para: d.correo,
+    asunto: `Pedido pagado ${d.referencia} · ${d.empresa}`,
+    html: envolver({
+      titulo: "Tienes un pedido pagado",
+      preencabezado: `Pedido ${d.referencia} · ${d.empresa}`,
+      cuerpo,
+    }),
+    texto: [
+      "Tienes un pedido pagado",
+      "",
+      `El pedido ${d.referencia} ya está pagado y incluye productos de ${d.empresa}:`,
+      ...d.lineas.map((l) => `${l.qty} × ${l.titulo}`),
+      "",
+      `Tu empresa: ${url}/cuenta/empresa`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}

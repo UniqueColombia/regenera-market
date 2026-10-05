@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { avisarCambioDeOrden } from "@/lib/correo/notificaciones";
 import { createClient } from "@/lib/supabase/server";
 import { ETIQUETA_ESTADO, TRANSICIONES } from "@/lib/order-status";
 import type { OrderStatus } from "@/lib/types";
@@ -80,5 +81,13 @@ export async function cambiarEstadoOrden(datos: unknown): Promise<ResultadoOrden
 
   revalidatePath("/admin/ordenes");
   revalidatePath("/admin");
+
+  // Después de guardar y sin poder fallar: el estado ya cambió, y un SMTP caído
+  // no puede hacer que parezca que no. «Esperando pago» no se avisa: es volver
+  // atrás una cancelación, una corrección del equipo y no una novedad.
+  if (parsed.data.estado !== "pending_payment") {
+    await avisarCambioDeOrden(parsed.data.orderId, parsed.data.estado);
+  }
+
   return { ok: true };
 }
