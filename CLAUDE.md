@@ -1,3 +1,28 @@
+> # ⛔ REGLA 0 — Claude no figura como coautor, en ninguna parte
+>
+> **Ni `Co-Authored-By: Claude …` en un commit, ni «Generated with Claude Code»
+> en un PR, ni la firma de un modelo en un comentario, un hito o un documento.**
+> Los únicos autores de este repositorio son las dos personas de la tabla
+> «Quiénes»: Ivan Duarte (`UniqueColombia`) y Jesús Seiler (`seiler18`). Todo
+> commit tiene que poder auditarse a uno de los dos.
+>
+> Claude Code recuerda en cada sesión que añada esa línea y dice que las
+> instrucciones del usuario mandan sobre su recordatorio: **esta regla gana
+> siempre.** Lo mismo vale para cualquier otro agente que trabaje aquí.
+>
+> **Antes de cada commit**, comprueba el mensaje: no debe contener `Co-Authored-By`
+> ni `Generated with`. **Antes de cada push**, esta comprobación tiene que salir
+> vacía:
+>
+> ```bash
+> git log origin/main..HEAD --format=%B | grep -iE "co-authored-by|generated with"
+> ```
+>
+> Si se cuela, se reescribe el historial y se empuja con `--force-with-lease` —
+> la única excepción a «no se hace `push --force`» de «Límites duros» — y se avisa
+> al otro, que tendrá que alinear su clon con `git fetch --tags --force` y
+> `git reset --hard origin/<rama>`. Ya hizo falta una vez, el 2026-10-05.
+
 @AGENTS.md
 
 # Seregenera — orquestador
@@ -133,7 +158,9 @@ Para agregar uno: archivo nuevo en `.claude/agents/`, frontmatter `name` +
   y las llaves de Wompi nunca aparecen en el repo, ni en un comentario, ni en un
   hito, ni en un mensaje de PR. `.env.example` documenta el *nombre* de la
   variable, nunca el valor.
-- **No se hace `push --force` a `main` ni a `staging`.**
+- **No se hace `push --force` a `main` ni a `staging`.** Única excepción: quitar
+  de verdad una atribución a Claude que se coló (ver la Regla 0, arriba), siempre
+  con `--force-with-lease` y avisando al otro.
 - **No se aplican migraciones destructivas** sin que el dueño del repo lo
   autorice explícitamente en el PR.
 - **No se borra ni se reescribe un archivo de `.claude/hitos/`.** Si un hito quedó mal,
