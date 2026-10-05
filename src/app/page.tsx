@@ -289,9 +289,12 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <ul className="mt-8 grid gap-5 md:grid-cols-3">
+          {/* `grid-cols-1` y `min-w-0` explícitos: sin ellos la columna implícita
+              es `auto` y una palabra larga de una publicación la ensancha más
+              que la pantalla en móvil. Es el mismo arreglo de `/comunidad`. */}
+          <ul className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
             {posts.map((post) => (
-              <li key={post.id}>
+              <li key={post.id} className="min-w-0">
                 <TarjetaPublicacion post={post} haySesion={haySesion} />
               </li>
             ))}
