@@ -11,6 +11,52 @@ qué hacer, empieza aquí y no en el ROADMAP.
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
   empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.
 
+> ## 🟠 Para Ivan, en este orden
+>
+> ### Paso 0 — Antes de su primer `git pull`: alinear el clon
+>
+> **El 2026-10-05 se reescribió el historial de `main`, `staging` y los tags**, por
+> dos motivos: quitar de los commits el crédito a Claude como coautor (ver la
+> «Regla 0» de `CLAUDE.md`) y dejar el repositorio con solo dos autores — antes
+> cinco commits figuraban a nombre de «Dimension Natural SAS», que ahora son de
+> Ivan Duarte con su mismo correo. El contenido de los archivos no cambió: solo los
+> hashes. Quien tenga un clon de antes **no puede hacer `git pull`**: Git vería dos
+> historias distintas y daría conflictos o commits duplicados.
+>
+> ```bash
+> git fetch origin --tags --force
+> git switch staging && git reset --hard origin/staging
+> git switch main && git reset --hard origin/main
+> git switch staging
+> ```
+>
+> Se hace **una sola vez**; después `git pull` vuelve a ser normal. El
+> `reset --hard` descarta lo que haya en local, y está acordado: lo que importa es
+> lo que ya está en GitHub. Si su Claude duda por la regla «no `push --force`»,
+> es un `reset` local y no un force push, y lo autorizaron los dos.
+>
+> ### Paso 1 — Los correos, de punta a punta
+>
+> Todo el detalle, con los valores exactos y cómo comprobar cada paso, está en
+> **[`docs/CORREOS.md`](CORREOS.md)**. Pídele a tu Claude: «guíame con
+> `docs/CORREOS.md`». En orden:
+>
+> 1. **Remitente de Google Workspace** (parte A1): cuenta `@uniquecolombia`,
+>    verificación en dos pasos y contraseña de aplicación.
+> 2. **Ponerlo en Supabase** (A2) y **en Vercel** (A3, las cinco `SMTP_*`, en
+>    Production y Preview) y **redesplegar**. Sin las `SMTP_*` no sale ningún correo
+>    de la aplicación: ni bienvenida, ni pedido, ni los avisos de ofertas.
+> 3. **SPF y DKIM del dominio** (A4), para que no caigan en spam.
+> 4. **Probar** (A5): registrarse con un correo real y mirar el remitente.
+> 5. **Pasar por las seis pestañas de plantillas** de Supabase (lista al
+>    principio de la parte B) y pegar la que siga en su texto de fábrica.
+> 6. **Probar los cuatro correos nuevos** de ofertas y pedidos con cuentas reales
+>    (parte C): oferta a revisión, oferta publicada, cambio de estado del pedido y
+>    aviso al proveedor al confirmar el pago.
+>
+> Lo demás que es solo suyo (variables de Preview, `SESION_SECRETO`, protección de
+> ramas…) sigue más abajo, en «Solo Ivan».
+
 > ## Lo que sigue: las `SMTP_*` en Vercel, y repensar el impacto ambiental
 >
 > La revisión del 2026-09-26 quedó cerrada ese mismo día: `v0.10.0` en
