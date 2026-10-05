@@ -737,3 +737,80 @@ body {
   border-radius: 0 100% 0 100%;
   pointer-events: none;
 }
+
+/* Entrada y salida de lo que se despliega (`presencia.tsx`).
+
+   `.desplegable`: paneles flotantes. Anima `transform` y no `translate`, para
+   componerse con el `-translate-x-1/2` del panel de categorías.
+   `.plegable`: bloques que empujan lo de abajo; su alto va de 0fr a 1fr, la forma
+   de animar `auto` sin medirlo.
+   Ambos usan `visibility` con retardo: tras la salida dejan de recibir foco y
+   clics aunque el nodo siga montado unos milisegundos. */
+.desplegable {
+  opacity: 0;
+  transform: translateY(-0.375rem);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms ease-out,
+    visibility 0s linear 160ms;
+}
+.desplegable[data-visible] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.plegable {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 220ms ease,
+    opacity 180ms ease,
+    visibility 0s linear 220ms;
+}
+.plegable[data-visible] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.plegable > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* `<details>` sin JavaScript: el contenido se pliega y despliega con alto
+   animado. Solo Chromium (`::details-content` + `interpolate-size`); en los
+   demás abre y cierra de golpe, como antes. */
+@supports selector(details::details-content) {
+  details.detalles-animados {
+    interpolate-size: allow-keywords;
+  }
+  details.detalles-animados::details-content {
+    block-size: 0;
+    overflow: clip;
+    opacity: 0;
+    transition:
+      block-size 220ms ease,
+      opacity 180ms ease,
+      content-visibility 220ms allow-discrete;
+  }
+  details.detalles-animados[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desplegable,
+  .plegable,
+  details.detalles-animados::details-content {
+    transition: none;
+  }
+}

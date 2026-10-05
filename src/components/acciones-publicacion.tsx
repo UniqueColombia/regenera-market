@@ -90,7 +90,7 @@ export function AccionesPublicacion({
 
   return (
     <form onSubmit={guardar} className="basis-full space-y-3 rounded-lg bg-sand p-4">
-      <fieldset disabled={pendiente} className="space-y-3">
+      <fieldset disabled={pendiente} className="min-w-0 space-y-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-muted" htmlFor={`t-${postId}`}>
             Título
