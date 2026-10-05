@@ -419,6 +419,37 @@ body {
   overflow-x: clip;
 }
 
+/* ---------------------------------------------------------------------------
+ * Contenido que se sale de su columna
+ *
+ * **La causa de los recortes de «Comunidad» y «Tu cuenta».** Un elemento de grid
+ * tiene `min-width: auto`: no se encoge por debajo de su contenido más ancho. Si
+ * ese contenido es un correo largo, una palabra sin cortes o un título con
+ * `truncate`, el elemento se sale de su columna —y de la pantalla— y el
+ * `overflow-x: clip` de arriba lo corta en lugar de dejarlo visible. Pasa igual con
+ * las columnas `1.6fr_1fr`: una `fr` es `minmax(auto, …)`, así que tampoco protege.
+ *
+ * Con `min-width: 0` en los hijos directos de cualquier grid, la columna manda y el
+ * contenido se ajusta a ella. Va en `@layer base` para que un `min-w-*` explícito de
+ * una utilidad siga ganando.
+ *
+ * **Solo grid, no flex.** En una fila flex el mínimo automático protege a botones y
+ * etiquetas de aplastarse; ahí se pone `min-w-0` a mano, solo en el hijo con texto
+ * que puede ser largo.
+ *
+ * `overflow-wrap: break-word` parte una palabra que de otro modo desbordaría —un
+ * correo, una dirección, un nombre largo escrito por un usuario— y no toca el texto
+ * normal.
+ * ------------------------------------------------------------------------- */
+@layer base {
+  .grid > * {
+    min-width: 0;
+  }
+  body {
+    overflow-wrap: break-word;
+  }
+}
+
 body {
   /* El color de la página, ya resuelto en el tema vigente. Se guarda aquí porque
      dentro del hero, el pie y las bandas oscuras `--color-cream` vuelve a su valor

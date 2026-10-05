@@ -164,8 +164,8 @@ export default async function CuentaPage() {
           <div className="mt-3 rounded-xl bg-white p-6 ring-1 ring-hairline">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="flex items-center gap-2 font-display text-lg text-ink">
-                <Building2 className="size-4 text-brand-600" aria-hidden />
-                {empresa.name}
+                <Building2 className="size-4 shrink-0 text-brand-600" aria-hidden />
+                <span className="min-w-0">{empresa.name}</span>
               </p>
             </div>
             <div className="mt-4">
