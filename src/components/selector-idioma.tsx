@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Globe } from "lucide-react";
+import { Flotante } from "./presencia";
 
 /**
  * Selector de idioma propio, con Google Translate como motor y sin su interfaz.
@@ -258,12 +259,11 @@ export function SelectorIdioma() {
         />
       </button>
 
-      {abierto && (
-        <ul
-          role="listbox"
-          translate="no"
-          className="animate-desplegar absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-2xl border border-hairline bg-white py-1 shadow-lg motion-reduce:animate-none"
-        >
+      <Flotante
+        abierto={abierto}
+        className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-2xl border border-hairline bg-white py-1 shadow-lg"
+      >
+        <ul role="listbox" translate="no">
           {IDIOMAS.map((i) => (
             <li key={i.codigo} role="option" aria-selected={i.codigo === actual}>
               <button
@@ -281,7 +281,7 @@ export function SelectorIdioma() {
             </li>
           ))}
         </ul>
-      )}
+      </Flotante>
 
       {fallo && (
         <p

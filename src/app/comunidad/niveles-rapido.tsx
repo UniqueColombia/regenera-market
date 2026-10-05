@@ -28,7 +28,7 @@ export function NivelesRapido() {
   const publicar = eventoExperiencia("articulo_publicado");
 
   return (
-    <details className="group rounded-xl bg-white ring-1 ring-hairline [&_summary::-webkit-details-marker]:hidden">
+    <details className="detalles-animados group rounded-xl bg-white ring-1 ring-hairline [&_summary::-webkit-details-marker]:hidden">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl p-5 transition hover:bg-sand">
         <span className="flex items-center gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600">

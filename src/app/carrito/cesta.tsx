@@ -24,6 +24,7 @@ import {
   useCartLines,
 } from "@/components/cart";
 import { ImpactChips } from "@/components/impact-chips";
+import { Plegable } from "@/components/presencia";
 import { ListingMedia } from "@/components/listing-media";
 import { money, shortDate } from "@/lib/format";
 import { KIND_LABEL } from "@/lib/taxonomy";
@@ -518,8 +519,8 @@ function CheckoutPanel({
           </div>
           <input type="hidden" name="como" value={comoEmpresa ? "empresa" : "persona"} />
 
-          {comoEmpresa && (
-            <div className="animate-desplegar space-y-3 rounded-lg bg-sand p-3 motion-reduce:animate-none">
+          <Plegable abierto={comoEmpresa}>
+            <div className="space-y-3 rounded-lg bg-sand p-3">
               {comprador.empresas.length > 0 && (
                 <div>
                   <label
@@ -561,7 +562,7 @@ function CheckoutPanel({
                 error={errors.documento}
               />
             </div>
-          )}
+          </Plegable>
 
           <TextField
             name="name"

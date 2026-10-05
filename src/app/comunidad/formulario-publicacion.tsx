@@ -77,7 +77,7 @@ export function FormularioPublicacion({
       onSubmit={enviar}
       className="rounded-xl bg-white p-6 ring-1 ring-hairline"
     >
-      <fieldset disabled={pendiente} className="space-y-4">
+      <fieldset disabled={pendiente} className="min-w-0 space-y-4">
         <legend className="font-display text-lg text-ink">
           Publicar en la Comunidad
         </legend>
