@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useOptimistic, useTransition } from "react";
 import { Check, ShieldCheck } from "lucide-react";
 import { IconoCategoria } from "@/components/icono-categoria";
-import { CATEGORIAS, categoriaPorId } from "@/lib/taxonomy";
+import { CATEGORIAS, categoriaPorId, type Categoria } from "@/lib/taxonomy";
 import type { ListingFilters } from "@/lib/types";
 
 /**
@@ -11,23 +15,47 @@ import type { ListingFilters } from "@/lib/types";
  * nombres como «Tecnología» o «Servicios» que no decían qué había dentro. Aquí
  * cada una es una tarjeta con su icono, y **al pasar por encima dice a qué hace
  * referencia** y qué subcategorías agrupa: «Agua» es ahorro, tratamiento,
- * reutilización, captación y monitoreo.
- *
- * ## Sin JavaScript
- *
- * Es de servidor. La descripción flotante es CSS (`group-hover` y
- * `group-focus-visible`), así que llega también con teclado —al tabular sobre la
- * tarjeta— y no hace falta hidratar nada. En un teléfono no hay «pasar por
+ * reutilización, captación y monitoreo. En un teléfono no hay «pasar por
  * encima»: ahí la descripción va escrita debajo del nombre, recortada a dos
- * líneas, que es lo que sustituye al hover en táctil (regla de paridad de
- * `diseno-visual`).
+ * líneas (regla de paridad de `diseno-visual`).
  *
- * Cada tarjeta es un enlace GET que **conserva los demás filtros**: elegir
- * «Energía» después de haber filtrado por hoteles en Antioquia no los borra. Es
- * el contrato de la invariante 19 — cada combinación, una URL.
+ * ## Por qué es un componente de cliente
+ *
+ * Era de servidor y cada tarjeta, un enlace común. En el teléfono eso fallaba
+ * de dos maneras: (1) **cada clic llevaba al inicio de la página**, y quien había
+ * bajado hasta «Energía» tenía que volver a bajar; (2) las subcategorías salían
+ * **debajo de las ocho tarjetas**, fuera de pantalla, y la página parecía
+ * recargarse sin mostrar nada de lo elegido.
+ *
+ * Ahora la elección se refleja **al instante** (`useOptimistic`), sin esperar la
+ * respuesta del servidor; la navegación sigue ocurriendo —cada combinación sigue
+ * siendo una URL, invariante 19— pero sin saltar (`scroll: false`). Y en una
+ * columna las subcategorías se abren **justo debajo de la tarjeta elegida**.
+ *
+ * Los enlaces siguen siendo enlaces: con clic derecho, clic con Ctrl o sin
+ * JavaScript funcionan como siempre. Y cada uno **conserva los demás filtros**:
+ * elegir «Energía» después de filtrar por hoteles en Antioquia no los borra.
  */
 export function Categorias({ filters }: { filters: ListingFilters }) {
-  const activa = categoriaPorId(filters.category);
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  // Lo que se pinta: lo elegido ya, aunque el servidor todavía no haya contestado.
+  // Cuando la navegación termina, `vista` vuelve a ser `filters`, ya actualizado.
+  const [vista, elegir] = useOptimistic(
+    filters,
+    (actual: ListingFilters, cambios: Partial<ListingFilters>) => ({ ...actual, ...cambios }),
+  );
+  const activa = categoriaPorId(vista.category);
+
+  function ir(e: React.MouseEvent, cambios: Partial<ListingFilters>) {
+    // Ctrl, Cmd, Shift, clic del medio: el navegador abre en otra pestaña, como siempre.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    startTransition(() => {
+      elegir(cambios);
+      router.push(conFiltros(vista, cambios), { scroll: false });
+    });
+  }
 
   return (
     <section aria-labelledby="titulo-categorias" className="mt-8">
@@ -38,15 +66,17 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
       <ul className="mt-4 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4">
         {CATEGORIAS.map((c) => {
           const elegida = activa?.id === c.id;
-          const href = conFiltros(filters, {
+          const cambios: Partial<ListingFilters> = {
             category: elegida ? undefined : c.id,
             subcategory: undefined,
-          });
+          };
 
           return (
             <li key={c.id} className="group relative">
               <Link
-                href={href}
+                href={conFiltros(vista, cambios)}
+                scroll={false}
+                onClick={(e) => ir(e, cambios)}
                 aria-current={elegida ? "true" : undefined}
                 aria-describedby={`desc-${c.id}`}
                 className={`flex h-full items-start gap-3 rounded-xl p-4 ring-1 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-900/5 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
@@ -85,13 +115,25 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
                 </span>
               </Link>
 
-              {/* La descripción flotante. `pointer-events-none` para que no
-                  robe el clic de la tarjeta de abajo cuando se despliega
-                  encima. */}
+              {/* En una sola columna las subcategorías se abren aquí, justo
+                  debajo de la tarjeta elegida: es lo que se ve sin tener que
+                  bajar. Desde dos columnas el panel va debajo de la rejilla,
+                  a todo el ancho, porque dentro de la tarjeta quedaría estrecho. */}
+              {elegida && activa && (
+                <div className="min-[480px]:hidden">
+                  <PanelSubcategorias activa={activa} vista={vista} ir={ir} />
+                </div>
+              )}
+
+              {/* La descripción flotante, solo con puntero. En táctil el foco se
+                  queda en la tarjeta tras tocarla y la dejaría abierta encima de
+                  la siguiente; ahí ya está escrita dentro de la tarjeta.
+                  `pointer-events-none` para que no robe el clic de la tarjeta
+                  de abajo. */}
               <div
                 id={`desc-${c.id}`}
                 role="tooltip"
-                className="pointer-events-none invisible absolute left-0 right-0 top-full z-30 mt-2 translate-y-1 rounded-xl bg-ink p-4 text-left opacity-0 shadow-xl transition duration-150 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none"
+                className="pointer-events-none invisible absolute left-0 right-0 top-full z-30 mt-2 translate-y-1 rounded-xl bg-ink p-4 text-left opacity-0 shadow-xl transition duration-150 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none [@media(hover:none)]:hidden"
               >
                 <p className="text-sm leading-relaxed text-white">{c.descripcion}</p>
                 <p className="mt-2 text-xs text-brand-200">
@@ -104,48 +146,83 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
       </ul>
 
       {activa && (
-        <div className="mt-4 animate-desplegar motion-reduce:animate-none">
-          <p className="text-sm text-muted">{activa.descripcion}</p>
-          <ul className="mt-3 flex flex-wrap gap-2" aria-label={`Subcategorías de ${activa.label}`}>
-            <li>
-              <Chip
-                href={conFiltros(filters, { subcategory: undefined })}
-                activo={!filters.subcategory}
-              >
-                Todo {activa.label.toLowerCase()}
-              </Chip>
-            </li>
-            {activa.subcategorias.map((s) => (
-              <li key={s.id}>
-                <Chip
-                  href={conFiltros(filters, {
-                    subcategory: filters.subcategory === s.id ? undefined : s.id,
-                  })}
-                  activo={filters.subcategory === s.id}
-                >
-                  {s.label}
-                </Chip>
-              </li>
-            ))}
-          </ul>
+        <div className="hidden min-[480px]:block">
+          <PanelSubcategorias activa={activa} vista={vista} ir={ir} />
         </div>
       )}
     </section>
   );
 }
 
+/**
+ * Las subcategorías de la categoría elegida.
+ *
+ * **Se abre con una animación** (`animate-abrir`: crece y aparece) en lugar de
+ * aparecer de golpe, que es lo que hacía parecer que la página se recargaba. Se
+ * vuelve a animar al cambiar de categoría porque el `key` cambia con ella.
+ * El `overflow-hidden` es lo que permite que crezca; los `-mx-1 px-1 pb-1` dejan
+ * sitio al anillo de los chips, que de otro modo se recortaría.
+ */
+function PanelSubcategorias({
+  activa,
+  vista,
+  ir,
+}: {
+  activa: Categoria;
+  vista: ListingFilters;
+  ir: (e: React.MouseEvent, cambios: Partial<ListingFilters>) => void;
+}) {
+  return (
+    <div
+      key={activa.id}
+      className="-mx-1 mt-3 animate-abrir overflow-hidden px-1 pb-1 min-[480px]:mt-4 motion-reduce:animate-none"
+    >
+      <p className="text-sm text-muted">{activa.descripcion}</p>
+      <ul className="mt-3 flex flex-wrap gap-2" aria-label={`Subcategorías de ${activa.label}`}>
+        <li>
+          <Chip
+            href={conFiltros(vista, { subcategory: undefined })}
+            activo={!vista.subcategory}
+            onClick={(e) => ir(e, { subcategory: undefined })}
+          >
+            Todo {activa.label.toLowerCase()}
+          </Chip>
+        </li>
+        {activa.subcategorias.map((s) => {
+          const cambios = { subcategory: vista.subcategory === s.id ? undefined : s.id };
+          return (
+            <li key={s.id}>
+              <Chip
+                href={conFiltros(vista, cambios)}
+                activo={vista.subcategory === s.id}
+                onClick={(e) => ir(e, cambios)}
+              >
+                {s.label}
+              </Chip>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function Chip({
   href,
   activo,
+  onClick,
   children,
 }: {
   href: string;
   activo: boolean;
+  onClick: (e: React.MouseEvent) => void;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
+      scroll={false}
+      onClick={onClick}
       aria-current={activo ? "true" : undefined}
       className={`block rounded-full px-3.5 py-1.5 text-sm transition ${
         activo
@@ -159,10 +236,7 @@ function Chip({
 }
 
 /** La URL del catálogo con estos filtros, cambiando solo los que se pasan. */
-export function conFiltros(
-  actuales: ListingFilters,
-  cambios: Partial<ListingFilters>,
-): string {
+function conFiltros(actuales: ListingFilters, cambios: Partial<ListingFilters>): string {
   const todos = { ...actuales, ...cambios };
   const sp = new URLSearchParams();
   for (const [clave, valor] of Object.entries(todos)) {
