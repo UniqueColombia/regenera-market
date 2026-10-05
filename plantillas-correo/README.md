@@ -26,8 +26,10 @@ Esta carpeta es la copia de referencia. Se pega a mano en el panel.
 | [`05-recuperar-clave.md`](05-recuperar-clave.md) | **Reset Password** | Hoy no se usa — ver la advertencia de ese archivo |
 | [`06-postulacion-recibida.md`](06-postulacion-recibida.md) | — (la manda la app) | Alguien envía el formulario de `/vender` |
 | [`07-confirmar-operacion.md`](07-confirmar-operacion.md) | **Reauthentication** | Hoy no se usa — ver la advertencia de ese archivo |
-| [`08-oferta-en-revision.md`](08-oferta-en-revision.md) | — (la manda la app) | Una empresa manda una oferta a revisión. **Sin conectar** |
-| [`09-oferta-publicada.md`](09-oferta-publicada.md) | — (la manda la app) | El equipo aprueba una oferta. **Sin conectar** |
+| [`08-oferta-en-revision.md`](08-oferta-en-revision.md) | — (la manda la app) | Una empresa manda una oferta a revisión |
+| [`09-oferta-publicada.md`](09-oferta-publicada.md) | — (la manda la app) | El equipo aprueba una oferta |
+| [`10-estado-del-pedido.md`](10-estado-del-pedido.md) | — (la manda la app) | El equipo cambia el estado de una orden: avisa al comprador |
+| [`11-pedido-pagado-proveedor.md`](11-pedido-pagado-proveedor.md) | — (la manda la app) | El equipo confirma el pago: avisa a cada empresa con productos en la orden |
 
 La guía paso a paso para cambiar el remitente y editar cada plantilla está en
 [`docs/CORREOS.md`](../docs/CORREOS.md).

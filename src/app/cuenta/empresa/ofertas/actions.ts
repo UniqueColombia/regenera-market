@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getUser } from "@/lib/auth";
+import { enviarCorreo } from "@/lib/correo";
+import { correoOfertaEnRevision } from "@/lib/correo/plantillas";
 import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 import { CamposOferta, erroresDeOferta, filaDeOferta, reglasDeOferta } from "@/lib/ofertas";
 import { getMiEmpresa, getOfertaDeEmpresa } from "@/lib/repo";
@@ -141,6 +143,28 @@ export async function guardarOfertaDeEmpresa(
     // Una oferta publicada que se edita vuelve a revisión y sale del catálogo:
     // el catálogo tiene que enterarse ya, no en la próxima revalidación.
     revalidatePath("/catalogo");
+
+    // Solo si la mandó a revisión: un borrador no le promete nada a nadie. Va
+    // fuera del camino crítico, como el correo del pedido: la oferta ya está
+    // guardada y un SMTP caído no puede hacer que la persona la reenvíe.
+    if (status === "pending_review") {
+      try {
+        const usuario = await getUser();
+        if (usuario?.email) {
+          const meta = usuario.user_metadata as { full_name?: string } | undefined;
+          const envio = await enviarCorreo(
+            correoOfertaEnRevision({
+              nombre: meta?.full_name || usuario.email.split("@")[0],
+              correo: usuario.email,
+              titulo: d.title,
+            }),
+          );
+          if (!envio.ok) console.error(`[oferta-correo] no enviado (${envio.via}): ${envio.error}`);
+        }
+      } catch (e) {
+        registrarFallo("oferta-correo", e);
+      }
+    }
 
     return { ok: true, id: data[0].id, slug: data[0].slug };
   } catch (e) {

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
 import type { ResultadoImagenUI } from "@/components/selector-imagen";
+import { avisarOfertaPublicada } from "@/lib/correo/notificaciones";
 import { createClient } from "@/lib/supabase/server";
 import { slugLibre, slugify } from "@/lib/slug";
 import { CamposOferta, erroresDeOferta, filaDeOferta, reglasDeOferta } from "@/lib/ofertas";
@@ -141,6 +142,15 @@ export async function cambiarEstadoOferta(datos: unknown): Promise<
   }
 
   const supabase = await createClient();
+
+  // El estado de antes decide si hay algo que contar: aprobar lo que ya estaba
+  // aprobado no es una novedad, y sin esto cada clic repetido mandaría el correo.
+  const { data: previa } = await supabase
+    .from("listings")
+    .select("status")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+
   const { data, error } = await supabase
     .from("listings")
     .update({ status: parsed.data.status })
@@ -153,6 +163,11 @@ export async function cambiarEstadoOferta(datos: unknown): Promise<
   }
 
   revalidatePath("/", "layout");
+
+  if (parsed.data.status === "approved" && previa?.status !== "approved") {
+    await avisarOfertaPublicada(parsed.data.id);
+  }
+
   return { ok: true };
 }
 
