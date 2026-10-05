@@ -2,12 +2,15 @@ import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { BotonCookies } from "./aviso-cookies";
 import { Isotipo } from "./isotipo";
+import { Onda } from "./onda";
 import { CONTACTO } from "@/lib/legal";
 import { VERTICALS } from "@/lib/taxonomy";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-20 bg-brand-900 text-brand-100">
+    <footer className="pie-suave mt-20 bg-brand-900 text-brand-100">
+      {/* La misma ola del hero, espejada: sube desde el pie hacia la página. */}
+      <Onda className="onda-pie" />
       <div className="container-page grid gap-10 py-14 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2">

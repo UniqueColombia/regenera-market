@@ -140,7 +140,7 @@ export default function NivelesPage() {
       {/* ------------------------------------------------------------------ */}
       {/* Qué suma puntos                                                     */}
       {/* ------------------------------------------------------------------ */}
-      <section className="bg-sand py-14">
+      <section className="banda-sand bg-sand py-14">
         <div className="container-page">
           <Revelar>
             <h2 className="font-display text-3xl text-ink">Qué suma puntos</h2>
@@ -238,7 +238,7 @@ export default function NivelesPage() {
       {/* ------------------------------------------------------------------ */}
       {/* Los puntos no bajan                                                 */}
       {/* ------------------------------------------------------------------ */}
-      <section className="bg-brand-900 py-14 text-white">
+      <section className="banda-bosque bg-brand-900 py-14 text-white">
         <div className="container-page flex flex-wrap items-start gap-6">
           <Infinito className="size-8 shrink-0 text-brand-300" aria-hidden />
           <div className="max-w-3xl">
