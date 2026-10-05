@@ -22,6 +22,7 @@ import { CATEGORIAS } from "@/lib/taxonomy";
 import { IconoCategoria } from "./icono-categoria";
 import { SelectorIdioma } from "./selector-idioma";
 import { SelectorTema } from "./selector-tema";
+import { Flotante, Plegable, usePresencia } from "./presencia";
 import type { Tema } from "@/lib/tema";
 
 const NAV = [
@@ -104,7 +105,7 @@ export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema
             <span className="block font-display text-lg font-semibold text-brand-700 transition-colors group-hover:text-brand-500 group-active:text-brand-500">
               Seregenera
             </span>
-            <span className="block text-[11px] text-muted">
+            <span className="hidden text-[11px] text-muted min-[400px]:block">
               Turismo que regenera
             </span>
           </span>
@@ -125,21 +126,22 @@ export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema
               <Subrayado activo={openCategories} />
             </button>
 
-            {openCategories && (
-              // Agrupado por lo que resuelve —agua, energía, residuos…— y no
-              // por tipo de negocio: es la misma taxonomía de las tarjetas del
-              // catálogo (`src/lib/taxonomy.ts`), y cada categoría dice debajo
-              // a qué hace referencia. Las verticales siguen como filtro dentro
-              // del catálogo.
-              <div
-                // Elegir una categoría o subcategoría cierra la lista. La ruta
-                // no siempre cambia (de /catalogo a /catalogo?category=x el
-                // `pathname` es el mismo), así que el cierre por cambio de ruta
-                // de arriba no alcanza y la lista se quedaba tapando lo elegido.
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest("a")) setOpenCategories(false);
-                }}
-                className="absolute left-1/2 top-full mt-2 w-[60rem] max-w-[calc(100vw-2.5rem)] -translate-x-1/2 animate-desplegar rounded-xl bg-white p-5 shadow-xl ring-1 ring-hairline motion-reduce:animate-none">
+            {/* Agrupado por lo que resuelve —agua, energía, residuos…— y no
+                por tipo de negocio: es la misma taxonomía de las tarjetas del
+                catálogo (`src/lib/taxonomy.ts`), y cada categoría dice debajo
+                a qué hace referencia. Las verticales siguen como filtro dentro
+                del catálogo. */}
+            <Flotante
+              abierto={openCategories}
+              // Elegir una categoría o subcategoría cierra la lista. La ruta
+              // no siempre cambia (de /catalogo a /catalogo?category=x el
+              // `pathname` es el mismo), así que el cierre por cambio de ruta
+              // de arriba no alcanza y la lista se quedaba tapando lo elegido.
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest("a")) setOpenCategories(false);
+              }}
+              className="absolute left-1/2 top-full mt-2 w-[60rem] max-w-[calc(100vw-2.5rem)] -translate-x-1/2 rounded-xl bg-white p-5 shadow-xl ring-1 ring-hairline"
+            >
                 <div className="grid grid-cols-4 gap-x-6 gap-y-6">
                   {CATEGORIAS.map((c) => {
                     return (
@@ -171,8 +173,7 @@ export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema
                     );
                   })}
                 </div>
-              </div>
-            )}
+            </Flotante>
           </div>
 
           {NAV.map((item) => {
@@ -219,14 +220,12 @@ export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema
         </div>
       </div>
 
-      {openMenu && (
-        <MenuMovil
-          sesion={sesion}
-          tema={tema}
-          pathname={pathname}
-          cerrar={() => setOpenMenu(false)}
-        />
-      )}
+      <MenuMovil
+        abierto={openMenu}
+        sesion={sesion}
+        pathname={pathname}
+        cerrar={() => setOpenMenu(false)}
+      />
     </header>
   );
 }
@@ -270,19 +269,22 @@ function Subrayado({ activo }: { activo: boolean }) {
  * un teléfono bajo, el panel hace scroll en vez de salirse de la pantalla.
  */
 function MenuMovil({
+  abierto,
   sesion,
-  tema,
   pathname,
   cerrar,
 }: {
+  abierto: boolean;
   sesion: Sesion | null;
-  tema: Tema;
   pathname: string;
   cerrar: () => void;
 }) {
+  const { montado, visible } = usePresencia(abierto, 260);
   const [abierta, setAbierta] = useState<"categorias" | "cuenta" | null>(null);
   const alternar = (id: "categorias" | "cuenta") =>
     setAbierta(abierta === id ? null : id);
+
+  if (!montado) return null;
 
   return (
     <nav
@@ -291,8 +293,12 @@ function MenuMovil({
       onClick={(e) => {
         if ((e.target as HTMLElement).closest("a")) cerrar();
       }}
-      className="animate-desplegar max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-hairline bg-white motion-reduce:animate-none lg:hidden"
+      data-visible={visible ? "" : undefined}
+      className="plegable border-t border-hairline bg-white lg:hidden"
     >
+      {/* El desplazamiento va en este div y no en el `<nav>`: `.plegable` recorta
+          su contenido para poder animar el alto. */}
+      <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto">
       <ul className="container-page divide-y divide-hairline py-1">
         {NAV.map((item) => (
           <li key={item.href}>
@@ -402,13 +408,8 @@ function MenuMovil({
             </li>
           </>
         )}
-
-        {/* El tema, solo por debajo de `sm`: desde ahí el botón está en la
-            barra. Ver la cabecera de selector-tema.tsx. */}
-        <li className="sm:hidden">
-          <SelectorTema inicial={tema} variante="fila" />
-        </li>
       </ul>
+      </div>
     </nav>
   );
 }
@@ -442,7 +443,9 @@ function FilaAcordeon({
           }`}
         />
       </button>
-      {abierta && <div className="pl-3.5">{children}</div>}
+      <Plegable abierto={abierta}>
+        <div className="pl-3.5">{children}</div>
+      </Plegable>
     </>
   );
 }
@@ -531,8 +534,11 @@ function MenuUsuario({ sesion }: { sesion: Sesion }) {
         />
       </button>
 
-      {abierto && (
-        <div className="absolute right-0 top-full mt-2 w-60 animate-desplegar rounded-xl bg-white p-2 shadow-xl ring-1 ring-hairline motion-reduce:animate-none">
+      <Flotante
+        abierto={abierto}
+        className="absolute right-0 top-full mt-2 w-60 rounded-xl bg-white p-2 shadow-xl ring-1 ring-hairline"
+      >
+        <>
           <p className="truncate px-3 py-2 text-xs text-muted">{sesion.email}</p>
 
           {sesion.esAdmin && (
@@ -578,8 +584,8 @@ function MenuUsuario({ sesion }: { sesion: Sesion }) {
               Salir
             </button>
           </form>
-        </div>
-      )}
+        </>
+      </Flotante>
     </div>
   );
 }

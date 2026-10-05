@@ -48,7 +48,7 @@ export function GraficoDiario({
         <span>{shortDate(dias[dias.length - 1].dia)}</span>
       </div>
 
-      <details className="mt-4 text-sm">
+      <details className="detalles-animados mt-4 text-sm">
         <summary className="cursor-pointer font-medium text-brand-700">
           Ver las cifras día por día
         </summary>

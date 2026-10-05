@@ -24,24 +24,14 @@ const EVENTO = "sgr:tema";
  * reglas en `globals.css`). Donde el navegador no lo soporta, o con
  * `prefers-reduced-motion`, cambia sin animación.
  *
- * ## Dos copias, un tema
+ * ## Un solo botón, en todos los anchos
  *
- * - `icono` va en la barra, **desde `sm`**: a 375 px no cabe junto al idioma, la
- *   cesta y el menú sin partir en dos el lema del logo.
- * - `fila` va dentro del menú móvil, **solo por debajo de `sm`**. Así la acción
- *   existe en todos los anchos (paridad móvil de `diseno-visual`).
- *
- * Las dos leen el tema del `<html>` y no de su propio estado al pulsar, y se
- * avisan con un evento: si se cambia desde el menú y luego se ensancha la
- * ventana, el icono de la barra ya muestra lo correcto.
+ * Va en la barra junto al selector de idioma, también en teléfono: antes se
+ * escondía bajo `sm` y vivía como una fila dentro del menú móvil. Se sacó de ahí
+ * porque es una preferencia de uso constante y no una sección de navegación.
+ * Cualquier copia futura sigue enterándose de los cambios por el evento `sgr:tema`.
  */
-export function SelectorTema({
-  inicial,
-  variante = "icono",
-}: {
-  inicial: Tema;
-  variante?: "icono" | "fila";
-}) {
+export function SelectorTema({ inicial }: { inicial: Tema }) {
   // En el servidor manda la cookie (`inicial`). En el navegador manda el
   // `<html>`, que es la verdad aunque esta copia se monte tarde (el menú móvil
   // se monta al abrirlo, quizá después de un cambio).
@@ -95,24 +85,6 @@ export function SelectorTema({
   const Icono = oscuro ? Sun : Moon;
   const etiqueta = oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
 
-  if (variante === "fila") {
-    return (
-      <button
-        type="button"
-        onClick={alternar}
-        aria-pressed={oscuro}
-        className="flex min-h-11 w-full items-center gap-3 text-left text-sm font-medium text-ink transition-colors hover:text-brand-700 active:text-brand-700"
-      >
-        {/* El mismo hueco que deja el indicador de `FilaMovil`: así el texto
-            cae en la columna de las demás filas, y el icono va a la derecha,
-            donde la fila de «Categorías» lleva su flecha. */}
-        <span aria-hidden className="h-4 w-0.5" />
-        {oscuro ? "Modo claro" : "Modo oscuro"}
-        <Icono aria-hidden className="ml-auto size-4 text-muted" />
-      </button>
-    );
-  }
-
   return (
     <button
       type="button"
@@ -120,7 +92,7 @@ export function SelectorTema({
       aria-pressed={oscuro}
       aria-label={etiqueta}
       title={oscuro ? "Modo claro" : "Modo oscuro"}
-      className="hidden rounded-full p-2 text-ink transition-colors hover:bg-sand hover:text-brand-700 active:bg-sand sm:inline-flex"
+      className="inline-flex rounded-full p-2 text-ink transition-colors hover:bg-sand hover:text-brand-700 active:bg-sand"
     >
       <Icono className="size-5" />
     </button>

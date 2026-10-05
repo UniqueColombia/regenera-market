@@ -74,7 +74,7 @@ export function TarjetaPublicacion({
   const tema = TEMAS[post.topic];
 
   return (
-    <article className="flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300">
+    <article className="flex h-full min-w-0 flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300">
       <header className="flex items-start gap-3">
         {/* La imagen es de quien firma: el logo de la empresa cuando publica
             en su nombre, y la foto de la persona cuando publica a título
@@ -129,7 +129,7 @@ export function TarjetaPublicacion({
         )}
       </div>
 
-      <h3 className="mt-3 font-display text-lg leading-snug text-ink">
+      <h3 className="mt-3 break-words font-display text-lg leading-snug text-ink">
         {post.title}
       </h3>
 
@@ -137,7 +137,7 @@ export function TarjetaPublicacion({
           escribe en el muro son párrafos, y meter un intérprete de marcado
           significa además tener que sanearlo. Los saltos de línea se respetan,
           que es lo único que la gente usa. */}
-      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
+      <p className="mt-2 whitespace-pre-line break-words text-sm leading-relaxed text-muted">
         {post.body}
       </p>
 
