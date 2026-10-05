@@ -251,7 +251,7 @@ export function Cesta({ comprador }: { comprador: Comprador | null }) {
                     key={l.listingId}
                     className="flex items-center justify-between gap-4 rounded-xl bg-clay-100 p-4 ring-1 ring-clay-300/60"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="font-medium text-ink">{l.title}</h3>
                       <p className="text-sm text-muted">
                         Desde {money(l.unitPriceCop)} / {l.unit}
