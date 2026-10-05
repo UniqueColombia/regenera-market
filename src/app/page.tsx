@@ -204,7 +204,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mt-16 bg-sand py-16">
+      <section className="banda-sand mt-8 bg-sand py-16">
         <div className="container-page">
           <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
             <ShieldCheck className="size-4" />

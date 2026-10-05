@@ -420,6 +420,11 @@ body {
 }
 
 body {
+  /* El color de la página, ya resuelto en el tema vigente. Se guarda aquí porque
+     dentro del hero, el pie y las bandas oscuras `--color-cream` vuelve a su valor
+     original (capa 3 del modo oscuro), y un fundido hacia «la página» tiene que
+     terminar en el color de la página y no en el de esa superficie. */
+  --pagina: var(--color-cream);
   background: var(--color-cream);
   color: var(--color-ink);
   font-family: var(--font-sans);
@@ -813,4 +818,84 @@ body {
   details.detalles-animados::details-content {
     transition: none;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Transiciones suaves entre secciones
+ *
+ * Una banda de otro color que empieza y termina en seco se lee como un bloque
+ * pegado a la página. Aquí cada borde se funde con la página en lugar de cortarla.
+ * El único borde recto que se queda es el de la barra de navegación.
+ *
+ * Todo se hace con degradados **de cinco paradas**, no de dos: un degradado
+ * lineal entre dos colores deja una línea apenas visible donde empieza y donde
+ * termina, y las paradas intermedias lo redondean (aproxima una curva suave).
+ *
+ * Los fundidos van **dentro** de la propia banda y de su relleno vertical, nunca
+ * encima de la sección vecina: así no tapan contenido de nadie. Por eso las
+ * bandas llevan `py-14` o más (56 px) y el fundido mide 3,5 rem (56 px): si se
+ * baja el relleno de una banda, hay que bajar `--fundido` con él.
+ * ------------------------------------------------------------------------- */
+
+/* Banda de color a todo el ancho. La clase de color decide el tono; `--pagina`
+   es el color de la página en el tema vigente. */
+.banda-sand,
+.banda-bosque {
+  --fundido: 3.5rem;
+  background-image: linear-gradient(
+    to bottom,
+    var(--pagina) 0,
+    color-mix(in srgb, var(--banda) 10%, var(--pagina)) calc(var(--fundido) * 0.2),
+    color-mix(in srgb, var(--banda) 50%, var(--pagina)) calc(var(--fundido) * 0.5),
+    color-mix(in srgb, var(--banda) 90%, var(--pagina)) calc(var(--fundido) * 0.8),
+    var(--banda) var(--fundido),
+    var(--banda) calc(100% - var(--fundido)),
+    color-mix(in srgb, var(--banda) 90%, var(--pagina)) calc(100% - var(--fundido) * 0.8),
+    color-mix(in srgb, var(--banda) 50%, var(--pagina)) calc(100% - var(--fundido) * 0.5),
+    color-mix(in srgb, var(--banda) 10%, var(--pagina)) calc(100% - var(--fundido) * 0.2),
+    var(--pagina) 100%
+  );
+}
+.banda-sand {
+  --banda: var(--color-sand);
+}
+/* La banda verde oscura mantiene su color original en los dos temas, como el
+   hero y el pie (capa 3 del modo oscuro): por eso `--orig-brand-900`. */
+.banda-bosque {
+  --banda: var(--orig-brand-900);
+}
+
+/* La ola entre secciones (`src/components/onda.tsx`). Va en el hero, en su borde
+   de abajo, y en el pie, en su borde de arriba y espejada. `-1px` tapa la línea de
+   píxel que algunos navegadores dejan entre la foto y la forma. La altura cabe en
+   el relleno inferior del hero (`pb-16` / `pb-20`) y en el margen del pie
+   (`mt-20`) para no tapar contenido: si se sube una, hay que subir la otra. */
+.onda {
+  position: absolute;
+  inset-inline: 0;
+  display: block;
+  width: 100%;
+  height: 4rem;
+  pointer-events: none;
+}
+.onda-fondo {
+  fill-opacity: 0.4;
+}
+@media (min-width: 768px) {
+  .onda {
+    height: 5rem;
+  }
+}
+.onda-hero {
+  bottom: -1px;
+  fill: var(--pagina);
+}
+/* Dentro del pie `--color-brand-900` ya es el verde original en los dos temas. */
+.pie-suave {
+  position: relative;
+}
+.onda-pie {
+  bottom: calc(100% - 1px);
+  fill: var(--color-brand-900);
+  transform: scaleX(-1);
 }
