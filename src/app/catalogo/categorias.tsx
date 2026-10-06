@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useOptimistic, useTransition } from "react";
+import { useLayoutEffect, useOptimistic, useRef, useTransition } from "react";
 import { Check, ShieldCheck } from "lucide-react";
 import { IconoCategoria } from "@/components/icono-categoria";
 import { CATEGORIAS, categoriaPorId, type Categoria } from "@/lib/taxonomy";
@@ -47,10 +47,32 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
   );
   const activa = categoriaPorId(vista.category);
 
-  function ir(e: React.MouseEvent, cambios: Partial<ListingFilters>) {
+  // La tarjeta que se tocó y a qué altura de la pantalla estaba, para dejarla ahí.
+  const ancla = useRef<{ id: string; arriba: number } | null>(null);
+
+  // **Al cambiar de categoría, la tarjeta tocada no se mueve de la pantalla.** El
+  // panel de la categoría anterior se cierra —y si estaba más arriba, todo lo de
+  // debajo sube— en el mismo cuadro en que se abre el nuevo. Sin esto, la tarjeta
+  // se va de debajo del dedo unos 200 px y la lista parece colapsar y volver a
+  // crecer. Se corrige el scroll por la diferencia, antes de pintar.
+  useLayoutEffect(() => {
+    const a = ancla.current;
+    if (!a) return;
+    ancla.current = null;
+    const tarjeta = document.getElementById(`cat-${a.id}`);
+    if (!tarjeta) return;
+    const desvio = tarjeta.getBoundingClientRect().top - a.arriba;
+    if (Math.abs(desvio) > 1) window.scrollBy({ top: desvio, behavior: "instant" });
+  }, [activa?.id]);
+
+  function ir(e: React.MouseEvent, cambios: Partial<ListingFilters>, tarjetaId?: string) {
     // Ctrl, Cmd, Shift, clic del medio: el navegador abre en otra pestaña, como siempre.
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
+    if (tarjetaId) {
+      const tarjeta = document.getElementById(`cat-${tarjetaId}`);
+      if (tarjeta) ancla.current = { id: tarjetaId, arriba: tarjeta.getBoundingClientRect().top };
+    }
     startTransition(() => {
       elegir(cambios);
       router.push(conFiltros(vista, cambios), { scroll: false });
@@ -58,7 +80,7 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
   }
 
   return (
-    <section aria-labelledby="titulo-categorias" className="mt-8">
+    <section aria-labelledby="titulo-categorias" className="mt-8 [overflow-anchor:none]">
       <h2 id="titulo-categorias" className="font-display text-xl text-ink">
         ¿Qué quieres resolver?
       </h2>
@@ -72,14 +94,18 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
           };
 
           return (
-            <li key={c.id} className="group relative">
+            <li key={c.id} id={`cat-${c.id}`} className="group relative">
               <Link
                 href={conFiltros(vista, cambios)}
                 scroll={false}
-                onClick={(e) => ir(e, cambios)}
+                onClick={(e) => ir(e, cambios, c.id)}
                 aria-current={elegida ? "true" : undefined}
                 aria-describedby={`desc-${c.id}`}
-                className={`flex h-full items-start gap-3 rounded-xl p-4 ring-1 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-900/5 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
+                // `h-full` solo desde dos columnas, donde las tarjetas de una fila igualan su alto.
+                // En una columna el <li> también lleva el panel de subcategorías, y con `h-full` la
+                // tarjeta se estiraba hasta ocuparlo: el panel quedaba debajo de ella, fuera del <li> y
+                // tapado por la tarjeta siguiente.
+                className={`flex items-start gap-3 rounded-xl p-4 ring-1 min-[480px]:h-full transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-900/5 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
                   elegida
                     ? "bg-brand-50 ring-brand-400"
                     : "bg-white ring-hairline hover:ring-brand-300"
@@ -170,7 +196,7 @@ function PanelSubcategorias({
 }: {
   activa: Categoria;
   vista: ListingFilters;
-  ir: (e: React.MouseEvent, cambios: Partial<ListingFilters>) => void;
+  ir: (e: React.MouseEvent, cambios: Partial<ListingFilters>, tarjetaId?: string) => void;
 }) {
   return (
     <div
