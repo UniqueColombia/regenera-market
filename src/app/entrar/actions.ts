@@ -504,9 +504,10 @@ export async function verificarCodigo(datos: unknown): Promise<ResultadoCodigo> 
  *
  * Dos condiciones, y hacen falta las dos:
  *
- * - `user_metadata.bienvenida` sin marcar. Se marca **solo si el correo salió
- *   de verdad por SMTP**: si el enviador es la consola —faltan las `SMTP_*`—,
- *   nadie lo recibió y marcarlo lo perdería para siempre.
+ * - `user_metadata.bienvenida` sin marcar. Se marca antes de mandar y **se
+ *   desmarca si el correo no salió de verdad por SMTP**: si el enviador es la
+ *   consola —faltan las `SMTP_*`—, nadie lo recibió y dejarlo marcado lo
+ *   perdería para siempre.
  * - La cuenta tiene menos de una semana. Sin esto, todas las cuentas creadas
  *   antes de que existiera este correo recibirían una «bienvenida» en su
  *   próximo acceso con código, meses después de llegar.
@@ -530,11 +531,19 @@ async function darLaBienvenida(
       (typeof meta.full_name === "string" && meta.full_name.trim()) ||
       user.email.split("@")[0];
 
+    // **La marca va antes del envío, no después.** Al revés, dos accesos casi
+    // simultáneos (el teléfono y el computador, o un reintento) leían los dos
+    // «sin marcar» y mandaban dos bienvenidas; y si el correo salía pero la
+    // marca fallaba, se repetía en el acceso siguiente. Marcar primero achica
+    // la ventana a lo que tarda esta llamada, y si al final no salió por SMTP
+    // se desmarca para no perderla.
+    const { error: errorMarca } = await supabase.auth.updateUser({ data: { bienvenida: true } });
+    if (errorMarca) return;
+
     const envio = await enviarCorreo(correoBienvenida({ nombre, correo: user.email }));
-    if (envio.ok && envio.via === "smtp") {
-      await supabase.auth.updateUser({ data: { bienvenida: true } });
-    } else if (!envio.ok) {
-      console.error(`[bienvenida] no enviada (${envio.via}): ${envio.error}`);
+    if (!envio.ok || envio.via !== "smtp") {
+      await supabase.auth.updateUser({ data: { bienvenida: false } });
+      if (!envio.ok) console.error(`[bienvenida] no enviada (${envio.via}): ${envio.error}`);
     }
   } catch (e) {
     registrarFallo("bienvenida", e);

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import {
   ArrowLeft,
   Building2,
@@ -27,7 +27,8 @@ import { ImpactChips } from "@/components/impact-chips";
 import { Plegable } from "@/components/presencia";
 import { ListingMedia } from "@/components/listing-media";
 import { money, shortDate } from "@/lib/format";
-import { KIND_LABEL } from "@/lib/taxonomy";
+import { plazoDeEntrega, textoCostoEnvio } from "@/lib/envios";
+import { DEPARTMENTS, KIND_LABEL } from "@/lib/taxonomy";
 
 /**
  * Quién está comprando, resuelto en el servidor por `page.tsx`.
@@ -199,6 +200,15 @@ export function Cesta({ comprador }: { comprador: Comprador | null }) {
                   {l.wholesaleApplied && (
                     <p className="mt-1 inline-block rounded bg-brand-50 px-1.5 py-0.5 text-xs text-brand-700">
                       Precio mayorista aplicado
+                    </p>
+                  )}
+                  {/* Cuánto cuesta que llegue y cuándo, en la misma línea que
+                      el producto: es la pregunta que decide si se compra. */}
+                  {priced.pideDestino && l.kind === "product" && (
+                    <p className="mt-1 text-xs text-muted">
+                      {textoCostoEnvio(l.envio, money)}
+                      {plazoDeEntrega(l.envio?.diasMin, l.envio?.diasMax) &&
+                        ` · llega ${plazoDeEntrega(l.envio?.diasMin, l.envio?.diasMax)}`}
                     </p>
                   )}
 
@@ -374,10 +384,37 @@ function QtyInput({
  * Es lo que impide que un pedido se duplique; la comprobación de verdad la hace
  * `crear_orden()` en la base.
  *
- * Si la cesta cambia, la llave cambia: es otro pedido. Se guarda en un `ref` y
- * se genera en el manejador del envío, no durante el render, porque
- * `crypto.randomUUID()` no es puro y React puede repetir un render.
+ * Si la cesta cambia, la llave cambia: es otro pedido. Se genera en el
+ * manejador del envío, no durante el render, porque `crypto.randomUUID()` no es
+ * puro y React puede repetir un render.
+ *
+ * **Vive en `sessionStorage`, no en un `ref`.** En un `ref` se perdía al
+ * recargar: quien confirmaba, no veía la respuesta (red lenta) y recargaba la
+ * página para volver a intentarlo mandaba una llave nueva, y la base creaba un
+ * segundo pedido con su segunda reserva de stock. En `sessionStorage` la llave
+ * sobrevive a la recarga de esa pestaña y muere al cerrarla; se borra al
+ * confirmar el pedido.
  */
+const LLAVE_PEDIDO = "sgr:llave-pedido";
+
+function llaveDelPedido(cesta: string): string {
+  try {
+    const guardada = JSON.parse(sessionStorage.getItem(LLAVE_PEDIDO) ?? "null") as {
+      para: string;
+      id: string;
+    } | null;
+    if (guardada && guardada.para === cesta) return guardada.id;
+  } catch {
+    // Sin sessionStorage (modo privado estricto) o con basura dentro: llave nueva.
+  }
+  const id = crypto.randomUUID();
+  try {
+    sessionStorage.setItem(LLAVE_PEDIDO, JSON.stringify({ para: cesta, id }));
+  } catch {
+    // Si no se puede guardar, la llave vale igual para este intento.
+  }
+  return id;
+}
 function CheckoutPanel({
   priced,
   comprador,
@@ -393,21 +430,21 @@ function CheckoutPanel({
   const [empresaElegida, setEmpresaElegida] = useState(
     comprador?.empresas[0]?.id ?? "otra",
   );
-  const clave = useRef<{ para: string; id: string } | null>(null);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const cesta = JSON.stringify(lines);
-    if (!clave.current || clave.current.para !== cesta) {
-      clave.current = { para: cesta, id: crypto.randomUUID() };
-    }
     const data = {
       ...Object.fromEntries(new FormData(e.currentTarget)),
-      clave: clave.current.id,
+      clave: llaveDelPedido(JSON.stringify(lines)),
     };
     startTransition(async () => {
       const result = await checkout(lines, data);
       if (result.ok) {
+        try {
+          sessionStorage.removeItem(LLAVE_PEDIDO);
+        } catch {
+          // Nada que limpiar.
+        }
         clearCart();
         router.push(`/orden/${result.reference}?nuevo=1`);
       } else {
@@ -433,6 +470,14 @@ function CheckoutPanel({
           <dt className="text-muted">Subtotal</dt>
           <dd className="tabular-nums">{money(priced.subtotalCop)}</dd>
         </div>
+        {priced.pideDestino && (
+          <div className="flex justify-between">
+            <dt className="text-muted">Envío</dt>
+            <dd className="tabular-nums">
+              {priced.envioTotalCop === 0 ? "Gratis" : money(priced.envioTotalCop)}
+            </dd>
+          </div>
+        )}
         <div className="flex items-baseline justify-between border-t border-hairline pt-3">
           <dt className="font-semibold">Total a pagar</dt>
           <dd className="font-display text-2xl tabular-nums text-brand-800">
@@ -579,6 +624,62 @@ function CheckoutPanel({
             error={errors.phone}
             required
           />
+
+          {/* A dónde va. Solo si hay algo que despachar: una experiencia o un
+              servicio no necesitan dirección, y pedírsela a quien solo
+              reserva un tour es un campo de más que hace dudar. */}
+          {priced.pideDestino && (
+            <div className="space-y-3 rounded-lg bg-sand p-3">
+              <p className="text-xs font-medium text-muted">¿A dónde te lo mandamos?</p>
+              <div>
+                <label
+                  htmlFor="departamento"
+                  className="mb-1 block text-xs font-medium text-muted"
+                >
+                  Departamento
+                </label>
+                <select
+                  id="departamento"
+                  name="departamento"
+                  required
+                  defaultValue=""
+                  aria-invalid={errors.departamento ? true : undefined}
+                  className={`w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 ${
+                    errors.departamento ? "border-red-500" : "border-control"
+                  }`}
+                >
+                  <option value="" disabled>
+                    Elige…
+                  </option>
+                  {DEPARTMENTS.map((dep) => (
+                    <option key={dep} value={dep}>
+                      {dep}
+                    </option>
+                  ))}
+                </select>
+                {errors.departamento && (
+                  <p className="mt-1 text-xs text-red-700">{errors.departamento}</p>
+                )}
+              </div>
+              <TextField
+                name="ciudad"
+                label="Ciudad o municipio"
+                error={errors.ciudad}
+                required
+              />
+              <TextField
+                name="direccion"
+                label="Dirección"
+                error={errors.direccion}
+                required
+              />
+              <TextField
+                name="indicaciones"
+                label="Indicaciones para llegar (opcional)"
+                error={errors.indicaciones}
+              />
+            </div>
+          )}
           <div>
             <label
               htmlFor="notes"

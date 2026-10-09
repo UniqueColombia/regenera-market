@@ -11,7 +11,8 @@ import {
   VERTICALS,
   categoriaPorId,
 } from "@/lib/taxonomy";
-import type { Listing, ListingKind } from "@/lib/types";
+import { TRANSPORTADORAS } from "@/lib/envios";
+import type { Despacho, Listing, ListingKind } from "@/lib/types";
 import { ImagenesOferta } from "./imagenes-oferta";
 import type { ResultadoImagenUI } from "./selector-imagen";
 
@@ -76,6 +77,7 @@ export function FormularioOferta({
   destino,
   verificada = false,
   subirImagen,
+  logistica = false,
 }: {
   modo?: "admin" | "empresa";
   proveedores?: ProveedorOpcion[];
@@ -88,14 +90,20 @@ export function FormularioOferta({
   verificada?: boolean;
   /** Sube una foto de la oferta y devuelve su URL. Cambia según quién edite. */
   subirImagen: (datos: FormData) => Promise<ResultadoImagenUI>;
+  /** ¿Está la 0014? Entonces un producto dice cómo se despacha. */
+  logistica?: boolean;
 }) {
   const formulario = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const esEmpresa = modo === "empresa";
   const [kind, setKind] = useState<ListingKind>(oferta?.kind ?? "product");
   const [categoria, setCategoria] = useState(oferta?.category ?? "");
+  const [despacho, setDespacho] = useState<Despacho | "">(oferta?.envio?.despacho ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pendiente, iniciar] = useTransition();
+  // La llave de una oferta nueva: su `id`. Se genera al primer envío y se
+  // reutiliza en los reintentos, para que mandar dos veces no cree dos.
+  const clave = useRef<string | null>(null);
 
   const subcategorias = categoriaPorId(categoria)?.subcategorias ?? [];
 
@@ -142,6 +150,15 @@ export function FormularioOferta({
       includes: fd.get("includes"),
       deliveryTime: fd.get("deliveryTime"),
       scope: fd.get("scope"),
+      despacho: fd.get("despacho"),
+      transportadora: fd.get("transportadora"),
+      envioCop: fd.get("envioCop"),
+      entregaDiasMin: fd.get("entregaDiasMin"),
+      entregaDiasMax: fd.get("entregaDiasMax"),
+      // Como texto: el esquema lo convierte con `numeroOpcional`, igual que el
+      // resto de números del formulario.
+      version: oferta?.version !== undefined ? String(oferta.version) : null,
+      clave: oferta ? null : (clave.current ??= crypto.randomUUID()),
       enviar: boton?.value === "borrador" ? "borrador" : "revision",
     };
 
@@ -484,6 +501,116 @@ export function FormularioOferta({
           </Campo>
         </div>
       </fieldset>
+
+      {kind === "product" && logistica && (
+        <fieldset className="space-y-4 border-t border-hairline pt-8" disabled={pendiente}>
+          <legend className="font-display text-xl text-ink">Envío</legend>
+
+          <p className="rounded-xl bg-sand p-4 text-sm text-muted">
+            Tú decides cómo llega: lo llevas tú o lo mandas por la transportadora
+            que prefieras. El comprador paga el envío junto con el pedido y{" "}
+            <strong className="font-semibold">te llega entero, sin comisión</strong>.
+            Cuando lo despaches, cargas la guía en «Pedidos» y el comprador la ve.
+          </p>
+
+          <div>
+            <span className="mb-1 block text-xs font-medium text-muted">¿Quién lo lleva?</span>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(
+                [
+                  ["vendedor", "Lo llevo yo", "Con tu vehículo, un mensajero o en mano."],
+                  ["transportadora", "Por transportadora", "Aveonline, Servientrega, Coordinadora…"],
+                ] as const
+              ).map(([valor, titulo, detalle]) => (
+                <label
+                  key={valor}
+                  className={`flex cursor-pointer items-start gap-2 rounded-lg p-3 text-sm ring-1 transition ${
+                    despacho === valor ? "bg-brand-50 ring-brand-400" : "ring-control hover:bg-sand"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="despacho"
+                    value={valor}
+                    checked={despacho === valor}
+                    onChange={() => setDespacho(valor)}
+                    className="mt-0.5 size-4 text-brand-700 focus:ring-brand-500"
+                  />
+                  <span>
+                    <span className="block font-medium text-ink">{titulo}</span>
+                    <span className="block text-xs text-muted">{detalle}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            {errors.despacho && <span className="mt-1 block text-xs text-red-700">{errors.despacho}</span>}
+          </div>
+
+          {despacho === "transportadora" && (
+            <Campo
+              label="Transportadora"
+              error={errors.transportadora}
+              ayuda="Elige una de la lista o escribe otra."
+            >
+              <input
+                name="transportadora"
+                list="transportadoras-sugeridas"
+                defaultValue={oferta?.envio?.transportadora ?? ""}
+                maxLength={60}
+                className={entrada(errors.transportadora)}
+              />
+              <datalist id="transportadoras-sugeridas">
+                {TRANSPORTADORAS.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
+            </Campo>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Campo
+              label="Costo del envío"
+              error={errors.envioCop}
+              ayuda="Por pedido, sin importar cuántas unidades. 0 = gratis."
+            >
+              <input
+                name="envioCop"
+                type="number"
+                min={0}
+                step={1}
+                defaultValue={oferta?.envio?.costoCop ?? ""}
+                className={entrada(errors.envioCop)}
+              />
+            </Campo>
+            <Campo label="Llega desde (días)" error={errors.entregaDiasMin} ayuda="Opcional.">
+              <input
+                name="entregaDiasMin"
+                type="number"
+                min={0}
+                max={90}
+                step={1}
+                defaultValue={oferta?.envio?.diasMin ?? ""}
+                className={entrada(errors.entregaDiasMin)}
+              />
+            </Campo>
+            <Campo
+              label="Llega hasta (días)"
+              error={errors.entregaDiasMax}
+              ayuda="Días hábiles después del pago."
+            >
+              <input
+                name="entregaDiasMax"
+                type="number"
+                min={1}
+                max={90}
+                step={1}
+                defaultValue={oferta?.envio?.diasMax ?? ""}
+                className={entrada(errors.entregaDiasMax)}
+              />
+            </Campo>
+          </div>
+        </fieldset>
+      )}
 
       {kind === "experience" && (
         <fieldset className="space-y-4 border-t border-hairline pt-8" disabled={pendiente}>
@@ -830,6 +957,12 @@ const ETIQUETA_CAMPO: Record<string, string> = {
   includes: "Qué incluye",
   deliveryTime: "Tiempo de entrega",
   scope: "Alcance",
+  despacho: "Quién lo lleva",
+  transportadora: "Transportadora",
+  envioCop: "Costo del envío",
+  entregaDiasMin: "Llega desde",
+  entregaDiasMax: "Llega hasta",
+  version: "Versión",
   aporteAmbiental: "Lo que aporta al ambiente",
   consecuenciaAmbiental: "Lo que cuesta al ambiente",
   co2KgSaved: "CO₂ evitado",

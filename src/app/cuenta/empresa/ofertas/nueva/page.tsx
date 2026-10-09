@@ -5,7 +5,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { guardarOfertaDeEmpresa, subirImagenDeOferta } from "../actions";
 import { FormularioOferta } from "@/components/formulario-oferta";
 import { requireUser } from "@/lib/auth";
-import { getMiEmpresa } from "@/lib/repo";
+import { getMiEmpresa, logisticaDisponible } from "@/lib/repo";
 import { privada } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -59,6 +59,7 @@ export default async function NuevaOfertaDeEmpresaPage() {
         modo="empresa"
         guardar={guardarOfertaDeEmpresa}
         subirImagen={subirImagenDeOferta}
+        logistica={await logisticaDisponible()}
         destino="/cuenta/empresa/ofertas"
         verificada={empresa.evaluacionVerificada}
       />

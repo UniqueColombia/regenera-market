@@ -1,14 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CheckCircle2, Info, PartyPopper } from "lucide-react";
+import { CheckCircle2, Info, MapPin, PartyPopper } from "lucide-react";
+import { ConfirmarRecibido, FormularioResena } from "./acciones-item";
 import { ImpactChips } from "@/components/impact-chips";
 import { getSesion } from "@/lib/auth";
+import {
+  COLOR_ENVIO,
+  ETIQUETA_ENVIO,
+  hoyEnBogota,
+  plazoDeEntrega,
+  puedeResenar,
+} from "@/lib/envios";
 import { longDate, money, shortDate } from "@/lib/format";
 import { getOrderByReference } from "@/lib/orders";
 import { COLOR_ESTADO, ETIQUETA_ESTADO } from "@/lib/order-status";
 import { getGateway } from "@/lib/payments";
-import { getProviderById } from "@/lib/repo";
+import {
+  getListingsByIds,
+  getMisResenas,
+  getProviderById,
+  logisticaDisponible,
+} from "@/lib/repo";
 
 export const metadata: Metadata = {
   title: "Tu orden",
@@ -46,6 +59,18 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
   const providers = await Promise.all(
     order.items.map((i) => getProviderById(i.providerId)),
   );
+
+  // Lo de la 0014: envío por ítem, entrega y reseñas. Sin ella, todo esto sale
+  // vacío y la página queda como antes.
+  const logistica = await logisticaDisponible();
+  const esComprador = order.buyerId === sesion.id;
+  const idsItems = order.items.map((i) => i.id).filter((id): id is string => Boolean(id));
+  const [misResenas, ofertas] = await Promise.all([
+    esComprador ? getMisResenas(idsItems) : Promise.resolve(new Map()),
+    getListingsByIds(order.items.map((i) => i.listingId)),
+  ]);
+  const slugDe = new Map(ofertas.map((l) => [l.id, l.slug]));
+  const hoy = hoyEnBogota();
 
   const comprado = order.items.map((i) => `${i.qty} × ${i.titleSnapshot}`).join(", ");
 
@@ -123,6 +148,53 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
                     </Link>
                   </p>
                 )}
+
+                {/* Cómo va el envío: el estado, la guía cuando ya salió, o
+                    cuándo debería llegar mientras se prepara. */}
+                {item.envioEstado && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                    <span
+                      className={`rounded-full px-2 py-0.5 font-medium ring-1 ${COLOR_ENVIO[item.envioEstado]}`}
+                    >
+                      {ETIQUETA_ENVIO[item.envioEstado]}
+                    </span>
+                    {item.guia ? (
+                      <span className="text-muted">
+                        {item.transportadora ?? "Guía"}:{" "}
+                        <strong className="font-mono text-ink">{item.guia}</strong>
+                      </span>
+                    ) : (
+                      item.envioEstado === "pendiente" &&
+                      plazoDeEntrega(item.entregaDiasMin, item.entregaDiasMax) && (
+                        <span className="text-muted">
+                          Llega {plazoDeEntrega(item.entregaDiasMin, item.entregaDiasMax)} después
+                          de confirmado el pago
+                        </span>
+                      )
+                    )}
+                  </div>
+                )}
+
+                {esComprador &&
+                  item.id &&
+                  item.envioEstado &&
+                  item.envioEstado !== "entregado" &&
+                  ["paid", "in_progress"].includes(order.status) && (
+                    <ConfirmarRecibido itemId={item.id} reference={order.reference} />
+                  )}
+
+                {esComprador &&
+                  logistica &&
+                  item.id &&
+                  slugDe.has(item.listingId) &&
+                  puedeResenar(order.status, item.envioEstado, item.date, hoy) && (
+                    <FormularioResena
+                      itemId={item.id}
+                      reference={order.reference}
+                      slug={slugDe.get(item.listingId)}
+                      previa={misResenas.get(item.id)}
+                    />
+                  )}
               </div>
               <p className="shrink-0 font-display text-lg text-ink">
                 {money(item.unitPriceCop * item.qty)}
@@ -131,12 +203,39 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
           ))}
         </ul>
 
-        <div className="mt-4 flex justify-between border-t-2 border-ink/10 pt-4">
-          <span className="font-display text-lg">Total</span>
-          <span className="font-display text-2xl text-ink">
-            {money(order.totalCop)}
-          </span>
-        </div>
+        <dl className="mt-4 space-y-1 border-t-2 border-ink/10 pt-4">
+          {order.envioTotalCop > 0 || order.destino ? (
+            <>
+              <div className="flex justify-between text-sm text-muted">
+                <dt>Productos</dt>
+                <dd className="tabular-nums">{money(order.subtotalCop)}</dd>
+              </div>
+              <div className="flex justify-between text-sm text-muted">
+                <dt>Envío</dt>
+                <dd className="tabular-nums">
+                  {order.envioTotalCop === 0 ? "Gratis" : money(order.envioTotalCop)}
+                </dd>
+              </div>
+            </>
+          ) : null}
+          <div className="flex justify-between">
+            <dt className="font-display text-lg">Total</dt>
+            <dd className="font-display text-2xl text-ink">{money(order.totalCop)}</dd>
+          </div>
+        </dl>
+
+        {order.destino && (
+          <p className="mt-4 flex items-start gap-2 rounded-xl bg-sand p-4 text-sm text-ink">
+            <MapPin className="mt-0.5 size-4 shrink-0 text-brand-600" aria-hidden />
+            <span>
+              Lo enviamos a <strong>{order.destino.direccion}</strong>,{" "}
+              {order.destino.ciudad}, {order.destino.departamento}
+              {order.destino.indicaciones && (
+                <span className="block text-muted">{order.destino.indicaciones}</span>
+              )}
+            </span>
+          </p>
+        )}
 
           </div>
           <div className="space-y-6">
@@ -157,6 +256,12 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
                 </li>
               ))}
             </ol>
+            {logistica && (
+              <p className="mt-3 text-xs text-clay-700">
+                Si no recibimos el pago en 3 días, el pedido se cancela solo y lo
+                que reservaste vuelve al catálogo.
+              </p>
+            )}
           </div>
         )}
 

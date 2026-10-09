@@ -8,6 +8,7 @@ import {
   MapPin,
   Package,
   Sprout,
+  Truck,
   Users,
 } from "lucide-react";
 import { AddToCart, RequestQuote } from "@/components/add-to-cart";
@@ -15,12 +16,16 @@ import { DatosDeMiga, DatosDeOferta } from "@/components/datos-estructurados";
 import { ImpactChips } from "@/components/impact-chips";
 import { ListingCard } from "@/components/listing-card";
 import { ListingMedia } from "@/components/listing-media";
+import { Estrellas, ResumenCalificacion } from "@/components/estrellas";
 import { TierBadge } from "@/components/tier-badge";
-import { duration, num } from "@/lib/format";
+import { ETIQUETA_DESPACHO, plazoDeEntrega, textoCostoEnvio } from "@/lib/envios";
+import { duration, longDate, money, num } from "@/lib/format";
 import {
+  getCalificacionDeOferta,
   getListingBySlug,
   getProviderById,
   getRelatedListings,
+  getResenasDeOferta,
 } from "@/lib/repo";
 import { descripcion, publica } from "@/lib/seo";
 import {
@@ -64,14 +69,18 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
   const provider = await getProviderById(listing.providerId);
   const subcategoria = subcategoriaLabel(listing.category, listing.subcategory);
   const sesion = await getSesion();
-  const related = await getRelatedListings(listing);
+  const [related, calificacion, resenas] = await Promise.all([
+    getRelatedListings(listing),
+    getCalificacionDeOferta(listing.id),
+    getResenasDeOferta(listing.id),
+  ]);
   const relatedProviders = await Promise.all(
     related.map((l) => getProviderById(l.providerId)),
   );
 
   return (
     <div className="container-page py-8">
-      <DatosDeOferta listing={listing} provider={provider} />
+      <DatosDeOferta listing={listing} provider={provider} calificacion={calificacion} />
       {/* La miga declarada es la misma que se pinta debajo. Declarar una ruta
           distinta de la que ve una persona es describirle otra cosa al robot. */}
       <DatosDeMiga
@@ -139,6 +148,11 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
           <h1 className="mt-3 font-display text-3xl leading-tight text-ink sm:text-4xl">
             {listing.title}
           </h1>
+          {calificacion && (
+            <a href="#resenas" className="mt-2 inline-block hover:opacity-80">
+              <ResumenCalificacion calificacion={calificacion} />
+            </a>
+          )}
           <p className="mt-3 text-lg text-muted">{listing.summary}</p>
 
           {(listing.department || listing.city) && (
@@ -285,6 +299,36 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
             )}
           </section>
 
+          {/* Las reseñas son de quien compró y recibió: no hay otra forma de
+              escribirlas (`calificar()`, migración 0014). Por eso no llevan un
+              «compra verificada» en cada una: lo son todas, y se dice una vez. */}
+          {resenas.length > 0 && (
+            <section id="resenas" className="mt-8 scroll-mt-24">
+              <h2 className="font-display text-2xl text-ink">Lo que dicen quienes lo compraron</h2>
+              {calificacion && <ResumenCalificacion calificacion={calificacion} className="mt-2" />}
+              <ul className="mt-4 space-y-4">
+                {resenas.map((r) => (
+                  <li key={r.id} className="rounded-xl bg-white p-4 ring-1 ring-hairline">
+                    <p className="flex flex-wrap items-center gap-2 text-sm">
+                      <span aria-label={`${r.rating} de 5 estrellas`}>
+                        <Estrellas valor={r.rating} />
+                      </span>
+                      <span className="font-medium text-ink">{r.autorNombre}</span>
+                      <span className="text-muted">
+                        · {longDate(r.createdAt)}
+                        {r.editada && " · editada"}
+                      </span>
+                    </p>
+                    {r.body && <p className="mt-2 text-sm leading-relaxed text-ink">{r.body}</p>}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-muted">
+                Solo reseña quien compró en Seregenera y ya recibió su pedido.
+              </p>
+            </section>
+          )}
+
           <section className="mt-8">
             <h2 className="font-display text-2xl text-ink">Ideal para</h2>
             <ul className="mt-3 flex flex-wrap gap-2">
@@ -307,6 +351,39 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
             <RequestQuote listing={listing} />
           ) : (
             <AddToCart listing={listing} conSesion={Boolean(sesion)} />
+          )}
+
+          {/* Cómo llega, antes de que lo pregunten: cuánto cuesta, quién lo
+              lleva, en cuántos días y desde dónde sale. */}
+          {listing.kind === "product" && listing.envio && !listing.quoteOnly && (
+            <div className="mt-5 rounded-xl bg-white p-5 text-sm ring-1 ring-hairline">
+              <p className="flex items-center gap-2 font-medium text-ink">
+                <Truck className="size-4 text-brand-600" aria-hidden />
+                {textoCostoEnvio(listing.envio, money)}
+              </p>
+              <ul className="mt-2 space-y-1 text-muted">
+                {plazoDeEntrega(listing.envio.diasMin, listing.envio.diasMax) && (
+                  <li>
+                    Llega {plazoDeEntrega(listing.envio.diasMin, listing.envio.diasMax)} después
+                    de confirmado el pago.
+                  </li>
+                )}
+                {listing.envio.despacho && (
+                  <li>
+                    {ETIQUETA_DESPACHO[listing.envio.despacho]}
+                    {listing.envio.despacho === "transportadora" &&
+                      listing.envio.transportadora &&
+                      ` (${listing.envio.transportadora})`}
+                    . Recibes la guía para seguirlo.
+                  </li>
+                )}
+                {(listing.city || listing.department) && (
+                  <li>
+                    Sale desde {[listing.city, listing.department].filter(Boolean).join(", ")}.
+                  </li>
+                )}
+              </ul>
+            </div>
           )}
 
           {provider && (

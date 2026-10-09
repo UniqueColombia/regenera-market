@@ -6,8 +6,14 @@ import { getUser } from "@/lib/auth";
 import { enviarCorreo } from "@/lib/correo";
 import { correoOfertaEnRevision } from "@/lib/correo/plantillas";
 import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
-import { CamposOferta, erroresDeOferta, filaDeOferta, reglasDeOferta } from "@/lib/ofertas";
-import { getMiEmpresa, getOfertaDeEmpresa } from "@/lib/repo";
+import {
+  CamposOferta,
+  erroresDeOferta,
+  escribirOferta,
+  filaDeOferta,
+  reglasDeOferta,
+} from "@/lib/ofertas";
+import { getMiEmpresa, getOfertaDeEmpresa, logisticaDisponible } from "@/lib/repo";
 import { slugLibre } from "@/lib/slug";
 import { createClient } from "@/lib/supabase/server";
 import type { ResultadoGuardarOferta } from "@/components/formulario-oferta";
@@ -68,7 +74,8 @@ export async function guardarOfertaDeEmpresa(
   if (!parsed.success) return { ok: false, errors: erroresDeOferta(parsed.error) };
 
   const d = parsed.data;
-  const reglas = reglasDeOferta(d);
+  const logistica = await logisticaDisponible();
+  const reglas = reglasDeOferta(d, { logistica });
   if (Object.keys(reglas).length > 0) return { ok: false, errors: reglas };
 
   // Se comprueba aquí para dar el error en el campo; el trigger lo rechazaría
@@ -87,56 +94,62 @@ export async function guardarOfertaDeEmpresa(
 
   // Editar: la oferta tiene que ser de esta empresa. Sin esta comprobación RLS
   // la negaría igual, pero con cero filas y sin decir por qué.
+  let estadoPrevio: string | undefined;
   if (d.id) {
     const previa = await getOfertaDeEmpresa(empresa.id, d.id);
     if (!previa) return { ok: false, errors: { form: "Esa oferta no es de tu empresa." } };
+    estadoPrevio = previa.status;
   }
 
   const status = d.enviar === "borrador" ? "draft" : "pending_review";
 
   try {
-    const fila = { ...filaDeOferta(d), status };
+    const fila = { ...filaDeOferta(d, { logistica }), status };
 
-    const consulta = d.id
-      ? supabase.from("listings").update(fila).eq("id", d.id).select("id, slug")
-      : supabase
-          .from("listings")
-          .insert({
-            ...fila,
-            provider_id: empresa.id,
-            // El slug solo se calcula al crear. Al editar se respeta el que
-            // tiene: cambiarlo rompe los enlaces que ya circulan.
-            slug: await slugLibre(d.title, async (candidato) => {
-              const { data } = await supabase
-                .from("listings")
-                .select("id")
-                .eq("slug", candidato)
-                .maybeSingle();
-              return Boolean(data);
-            }),
-          })
-          .select("id, slug");
+    const escrita = await escribirOferta(
+      supabase,
+      d.id
+        ? { tipo: "editar", id: d.id, version: logistica ? d.version : null, fila }
+        : {
+            tipo: "crear",
+            clave: d.clave,
+            fila: {
+              ...fila,
+              provider_id: empresa.id,
+              // El slug solo se calcula al crear. Al editar se respeta el que
+              // tiene: cambiarlo rompe los enlaces que ya circulan.
+              slug: await slugLibre(d.title, async (candidato) => {
+                const { data } = await supabase
+                  .from("listings")
+                  .select("id")
+                  .eq("slug", candidato)
+                  .maybeSingle();
+                return Boolean(data);
+              }),
+            },
+          },
+    );
 
-    const { data, error } = await consulta;
-
-    if (error) {
-      if (error.message.includes("categoria-avanzada")) {
+    if (!escrita.ok) {
+      if (escrita.mensaje.includes("categoria-avanzada")) {
         return {
           ok: false,
           errors: { category: "Consultoría e implementación exige el sello verificado por Seregenera." },
         };
       }
-      if (error.message.includes("listings_slug_key")) {
+      if (escrita.motivo === "slug") {
         return { ok: false, errors: { title: "Ya hay otra oferta con ese título. Cámbialo un poco." } };
       }
-      const codigo = registrarFallo("oferta-empresa", error, { editando: Boolean(d.id), kind: d.kind });
+      if (escrita.motivo === "conflicto") {
+        return { ok: false, errors: { form: escrita.mensaje } };
+      }
+      const codigo = registrarFallo("oferta-empresa", escrita.mensaje, {
+        editando: Boolean(d.id),
+        kind: d.kind,
+      });
       return { ok: false, errors: { form: mensajeDeFallo(codigo) } };
     }
-
-    if (!data || data.length === 0) {
-      const codigo = registrarFallo("oferta-empresa", "sin filas", { editando: Boolean(d.id) });
-      return { ok: false, errors: { form: mensajeDeFallo(codigo) } };
-    }
+    const data = [{ id: escrita.id, slug: escrita.slug }];
 
     revalidatePath("/cuenta/empresa/ofertas");
     revalidatePath(`/proveedor/${empresa.slug}`);
@@ -144,10 +157,13 @@ export async function guardarOfertaDeEmpresa(
     // el catálogo tiene que enterarse ya, no en la próxima revalidación.
     revalidatePath("/catalogo");
 
-    // Solo si la mandó a revisión: un borrador no le promete nada a nadie. Va
-    // fuera del camino crítico, como el correo del pedido: la oferta ya está
-    // guardada y un SMTP caído no puede hacer que la persona la reenvíe.
-    if (status === "pending_review") {
+    // Solo si **entró** a revisión con este guardado: un borrador no le promete
+    // nada a nadie, y una oferta que ya estaba en revisión y se vuelve a
+    // guardar —o el mismo envío repetido— no es una novedad. Antes se mandaba
+    // en cada guardado. Va fuera del camino crítico, como el correo del
+    // pedido: la oferta ya está guardada y un SMTP caído no puede hacer que la
+    // persona la reenvíe.
+    if (status === "pending_review" && !escrita.repetida && estadoPrevio !== "pending_review") {
       try {
         const usuario = await getUser();
         if (usuario?.email) {

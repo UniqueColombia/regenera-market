@@ -76,6 +76,9 @@ export async function decidirPostulacion(
   }
 
   if (parsed.data.decision === "rejected") {
+    // `is("provider_id", null)`: no se rechaza lo que ya tiene empresa. Sin la
+    // condición, un rechazo que llegaba a la vez que una aprobación dejaba la
+    // postulación «rechazada» con su empresa publicada en el catálogo.
     const { data, error } = await supabase
       .from("provider_applications")
       .update({
@@ -85,19 +88,52 @@ export async function decidirPostulacion(
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", parsed.data.id)
+      .is("provider_id", null)
       .select("id");
 
     if (error) return { ok: false, error: error.message };
     if (!data || data.length === 0) {
-      return { ok: false, error: "No se pudo guardar la decisión." };
+      return {
+        ok: false,
+        error:
+          "No se pudo rechazar: o ya tiene una empresa creada (suspéndela desde Proveedores), o ya no tienes permiso.",
+      };
     }
 
     revalidatePath("/admin/postulaciones");
     return { ok: true };
   }
 
-  // Aprobar. Si ya se aprobó antes, no se crea una segunda empresa: la columna
-  // `provider_id` de la postulación es lo que lo impide.
+  // Aprobar, en una transacción de la base (`aprobar_postulacion()`, 0014).
+  // Bloquea la postulación antes de crear nada: dos aprobaciones a la vez —dos
+  // administradores, dos pestañas, un reintento— crean **una** empresa, y la
+  // segunda recibe la que ya existe.
+  const { data: rpc, error: errorRpc } = await supabase.rpc("aprobar_postulacion", {
+    _id: parsed.data.id,
+    _notas: parsed.data.notas || null,
+  });
+  if (!errorRpc) {
+    const r = rpc as { repetida: boolean; sin_dueno: boolean };
+    revalidatePath("/", "layout");
+    if (r.repetida) return { ok: true, aviso: "Ya estaba aprobada: no se creó otra empresa." };
+    return {
+      ok: true,
+      aviso: r.sin_dueno
+        ? "La empresa quedó creada sin dueño: quien postuló no tenía cuenta. " +
+          "Pídele que se registre con " +
+          postulacion.email +
+          " y enlázalo desde Usuarios."
+        : undefined,
+    };
+  }
+  if (errorRpc.code !== "PGRST202" && errorRpc.code !== "42883") {
+    return { ok: false, error: errorRpc.message };
+  }
+
+  // Sin la 0014: el camino de antes, en pasos sueltos. Si ya se aprobó antes,
+  // no se crea una segunda empresa: la columna `provider_id` de la postulación
+  // es lo que lo impide (aunque no a dos aprobaciones simultáneas — por eso la
+  // función de la base).
   if (postulacion.provider_id) {
     return { ok: false, error: "Esta postulación ya tenía una empresa creada." };
   }

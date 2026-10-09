@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { DEPARTMENTS, IDS_CATEGORIA, categoriaPorId } from "./taxonomy";
 
@@ -100,6 +101,28 @@ export const CamposOferta = z.object({
   includes: lineas,
   deliveryTime: textoOpcional,
   scope: lineas,
+  // Cómo se despacha un producto físico (0014). Las reglas que lo exigen van
+  // en `reglasDeOferta()`, porque dependen del tipo y de que la 0014 exista.
+  despacho: z
+    .union([z.enum(["vendedor", "transportadora"]), z.literal("")])
+    .nullish()
+    .transform((v) => (v ? v : null)),
+  transportadora: textoOpcional,
+  envioCop: numeroOpcional,
+  entregaDiasMin: numeroOpcional,
+  entregaDiasMax: numeroOpcional,
+  /**
+   * La versión sobre la que se editó (0014). Al guardar, la fila tiene que
+   * seguir en esa versión; si otro la cambió entretanto, no se pisa.
+   */
+  version: numeroOpcional,
+  /**
+   * La llave de una oferta nueva: el `id` que tendrá, generado por el
+   * navegador una vez por formulario. Mandar el formulario dos veces —doble
+   * clic, reintento tras un corte— encuentra la oferta ya creada en vez de
+   * crear «titulo-2».
+   */
+  clave: z.union([z.uuid(), z.literal("")]).nullish(),
 });
 
 export type Campos = z.infer<typeof CamposOferta>;
@@ -115,8 +138,37 @@ export type Campos = z.infer<typeof CamposOferta>;
  *
  * Devuelve `{}` si no hay nada que objetar.
  */
-export function reglasDeOferta(d: Campos): Record<string, string> {
+export function reglasDeOferta(
+  d: Campos,
+  opciones: { logistica: boolean } = { logistica: false },
+): Record<string, string> {
   const errores: Record<string, string> = {};
+
+  // Un producto físico dice cómo llega: quién lo lleva, cuánto cuesta y en
+  // cuántos días. Solo con la 0014; sin ella el formulario no lo pregunta.
+  if (opciones.logistica && d.kind === "product" && !d.quoteOnly) {
+    if (!d.despacho) errores.despacho = "Elige quién lleva el producto";
+    if (d.despacho === "transportadora" && !d.transportadora) {
+      errores.transportadora = "Escribe con qué transportadora lo mandas";
+    }
+    if (d.envioCop === null) {
+      errores.envioCop = "Escribe cuánto cuesta el envío (0 si es gratis)";
+    } else if (d.envioCop < 0 || !Number.isInteger(d.envioCop)) {
+      errores.envioCop = "El envío va en pesos enteros, sin puntos";
+    }
+    if (d.entregaDiasMax === null) {
+      errores.entregaDiasMax = "Di en cuántos días hábiles llega, como máximo";
+    } else if (d.entregaDiasMax < 1 || d.entregaDiasMax > 90) {
+      errores.entregaDiasMax = "Entre 1 y 90 días hábiles";
+    }
+    if (
+      d.entregaDiasMin !== null &&
+      d.entregaDiasMax !== null &&
+      d.entregaDiasMin > d.entregaDiasMax
+    ) {
+      errores.entregaDiasMin = "El mínimo no puede ser mayor que el máximo";
+    }
+  }
 
   // Espeja el `check wholesale_needs_qty` de `0001_init.sql`: un precio
   // mayorista sin cantidad mínima nunca se aplica (invariante 4).
@@ -160,12 +212,29 @@ export function erroresDeOferta(error: z.ZodError): Record<string, string> {
  * convertida en producto conserva su punto de encuentro y la ficha pública
  * enseña un dato que ya no significa nada.
  */
-export function filaDeOferta(d: Campos) {
+export function filaDeOferta(
+  d: Campos,
+  opciones: { logistica: boolean } = { logistica: false },
+) {
   const esExperiencia = d.kind === "experience";
   const esServicio = d.kind === "service";
+  const esProducto = d.kind === "product";
   const entero = (v: number | null) => (v === null ? null : Math.round(v));
 
+  // Las columnas de la 0014 solo se escriben si existen: mandarlas sin la
+  // migración haría fallar el guardado entero con «column does not exist».
+  const envio = opciones.logistica
+    ? {
+        despacho: esProducto ? d.despacho : null,
+        transportadora: esProducto && d.despacho === "transportadora" ? d.transportadora : null,
+        envio_cop: esProducto ? entero(d.envioCop) : null,
+        entrega_dias_min: esProducto ? entero(d.entregaDiasMin) : null,
+        entrega_dias_max: esProducto ? entero(d.entregaDiasMax) : null,
+      }
+    : {};
+
   return {
+    ...envio,
     kind: d.kind,
     title: d.title,
     summary: d.summary ?? "",
@@ -198,4 +267,85 @@ export function filaDeOferta(d: Campos) {
     delivery_time: esServicio ? d.deliveryTime : null,
     scope: esServicio ? d.scope : [],
   };
+}
+
+/**
+ * Escribe la fila de una oferta, nueva o editada, sin duplicar ni pisar.
+ *
+ * La comparten las dos acciones (panel y empresa), porque las dos tienen los
+ * mismos dos problemas:
+ *
+ * - **Crear dos veces.** Un doble clic o un reintento tras un corte mandaban el
+ *   formulario otra vez, y `slugLibre()` le daba al segundo «titulo-2»: dos
+ *   ofertas iguales. Ahora el `id` lo pone el navegador (`clave`); el segundo
+ *   `insert` choca con la clave primaria y se devuelve la oferta del primero.
+ * - **Pisar lo que otro guardó.** El formulario manda la fila entera, stock
+ *   incluido. Con la 0014 el `update` exige la versión sobre la que se editó:
+ *   si entretanto la cambió otra persona —o una compra descontó stock—, no se
+ *   escribe nada y se dice por qué.
+ *
+ * Sin la 0014 no hay versión y edita como antes: la última escritura gana.
+ */
+export async function escribirOferta(
+  db: SupabaseClient,
+  op:
+    | { tipo: "crear"; clave?: string | null; fila: Record<string, unknown> }
+    | { tipo: "editar"; id: string; version: number | null; fila: Record<string, unknown> },
+): Promise<
+  | { ok: true; id: string; slug: string; repetida: boolean }
+  | { ok: false; motivo: "conflicto" | "denegado" | "slug" | "error"; mensaje: string }
+> {
+  if (op.tipo === "crear") {
+    const fila = op.clave ? { ...op.fila, id: op.clave } : op.fila;
+    const { data, error } = await db.from("listings").insert(fila).select("id, slug");
+    if (error) {
+      if (op.clave && error.code === "23505" && error.message.includes("listings_pkey")) {
+        // La misma oferta, mandada otra vez. Si la puede leer quien llama, es suya.
+        const { data: previa } = await db
+          .from("listings")
+          .select("id, slug")
+          .eq("id", op.clave)
+          .maybeSingle();
+        if (previa) return { ok: true, id: previa.id, slug: previa.slug, repetida: true };
+      }
+      if (error.message.includes("listings_slug_key")) {
+        return { ok: false, motivo: "slug", mensaje: error.message };
+      }
+      return { ok: false, motivo: "error", mensaje: error.message };
+    }
+    if (!data || data.length === 0) {
+      return { ok: false, motivo: "denegado", mensaje: "sin filas" };
+    }
+    return { ok: true, id: data[0].id, slug: data[0].slug, repetida: false };
+  }
+
+  let consulta = db.from("listings").update(op.fila).eq("id", op.id);
+  if (op.version !== null) consulta = consulta.eq("version", op.version);
+  const { data, error } = await consulta.select("id, slug");
+  if (error) {
+    if (error.message.includes("listings_slug_key")) {
+      return { ok: false, motivo: "slug", mensaje: error.message };
+    }
+    return { ok: false, motivo: "error", mensaje: error.message };
+  }
+  if (!data || data.length === 0) {
+    // Cero filas: o no tiene permiso (RLS niega en silencio) o la versión ya no
+    // es la que editó. Se distingue leyendo la fila.
+    if (op.version !== null) {
+      const { data: actual } = await db
+        .from("listings")
+        .select("version")
+        .eq("id", op.id)
+        .maybeSingle();
+      if (actual && actual.version !== op.version) {
+        return {
+          ok: false,
+          motivo: "conflicto",
+          mensaje: "Alguien cambió esta oferta mientras la editabas (o se vendió una unidad). Recarga la página para ver la versión nueva y vuelve a hacer tus cambios.",
+        };
+      }
+    }
+    return { ok: false, motivo: "denegado", mensaje: "sin filas" };
+  }
+  return { ok: true, id: data[0].id, slug: data[0].slug, repetida: false };
 }

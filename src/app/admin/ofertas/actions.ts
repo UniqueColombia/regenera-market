@@ -8,7 +8,14 @@ import type { ResultadoImagenUI } from "@/components/selector-imagen";
 import { avisarOfertaPublicada } from "@/lib/correo/notificaciones";
 import { createClient } from "@/lib/supabase/server";
 import { slugLibre, slugify } from "@/lib/slug";
-import { CamposOferta, erroresDeOferta, filaDeOferta, reglasDeOferta } from "@/lib/ofertas";
+import {
+  CamposOferta,
+  erroresDeOferta,
+  escribirOferta,
+  filaDeOferta,
+  reglasDeOferta,
+} from "@/lib/ofertas";
+import { logisticaDisponible } from "@/lib/repo";
 
 /**
  * Crear y editar ofertas: el CRUD que convierte esto en algo operable.
@@ -57,7 +64,8 @@ export async function guardarOferta(datos: unknown): Promise<ResultadoOferta> {
   if (!parsed.success) return { ok: false, errors: erroresDeOferta(parsed.error) };
 
   const d = parsed.data;
-  const reglas = reglasDeOferta(d);
+  const logistica = await logisticaDisponible();
+  const reglas = reglasDeOferta(d, { logistica });
   if (Object.keys(reglas).length > 0) return { ok: false, errors: reglas };
 
   const supabase = await createClient();
@@ -78,36 +86,34 @@ export async function guardarOferta(datos: unknown): Promise<ResultadoOferta> {
       });
 
   const fila = {
-    ...filaDeOferta(d),
+    ...filaDeOferta(d, { logistica }),
     provider_id: d.providerId,
     slug,
     status: d.status,
     featured: d.featured ?? false,
   };
 
-  const consulta = editando
-    ? supabase.from("listings").update(fila).eq("id", d.id!).select("id, slug")
-    : supabase.from("listings").insert(fila).select("id, slug");
+  const escrita = await escribirOferta(
+    supabase,
+    editando
+      ? { tipo: "editar", id: d.id!, version: logistica ? d.version : null, fila }
+      : { tipo: "crear", clave: d.clave, fila },
+  );
 
-  const { data, error } = await consulta;
-
-  if (error) {
+  if (!escrita.ok) {
     return {
       ok: false,
       errors: {
-        form: error.message.includes("listings_slug_key")
-          ? "Ya hay otra oferta con esa dirección. Cambia el título o el slug."
-          : error.message,
+        form:
+          escrita.motivo === "slug"
+            ? "Ya hay otra oferta con esa dirección. Cambia el título o el slug."
+            : escrita.motivo === "conflicto"
+              ? escrita.mensaje
+              : escrita.motivo === "denegado"
+                ? // RLS no da error cuando niega: devuelve cero filas.
+                  "No se pudo guardar. ¿Sigues teniendo permiso de administrador?"
+                : escrita.mensaje,
       },
-    };
-  }
-
-  // RLS no da error cuando niega: devuelve cero filas. Sin esto, un intento
-  // denegado se vería como un guardado correcto.
-  if (!data || data.length === 0) {
-    return {
-      ok: false,
-      errors: { form: "No se pudo guardar. ¿Sigues teniendo permiso de administrador?" },
     };
   }
 
@@ -116,12 +122,18 @@ export async function guardarOferta(datos: unknown): Promise<ResultadoOferta> {
   // aprobada aparece en sitios que esta acción no conoce.
   revalidatePath("/", "layout");
 
-  return { ok: true, id: data[0].id, slug: data[0].slug };
+  return { ok: true, id: escrita.id, slug: escrita.slug };
 }
+
+const ESTADOS_OFERTA = ["draft", "pending_review", "approved", "rejected", "suspended"] as const;
 
 const EstadoSchema = z.object({
   id: z.uuid("Identificador de oferta inválido"),
-  status: z.enum(["draft", "pending_review", "approved", "rejected", "suspended"]),
+  status: z.enum(ESTADOS_OFERTA),
+  /** El estado que la persona vio en la lista al pulsar el botón. */
+  desde: z.enum(ESTADOS_OFERTA),
+  /** La versión que vio (0014). Sin ella, solo se comprueba el estado. */
+  version: z.number().int().optional(),
 });
 
 /**
@@ -130,6 +142,20 @@ const EstadoSchema = z.object({
  * Es la operación que más se repite —aprobar lo que mandó un proveedor, retirar
  * algo que se agotó— y obligarla a pasar por el formulario entero sería pedir
  * seis clics para cambiar una palabra.
+ *
+ * ## Lo que se aprueba es lo que se vio
+ *
+ * El `update` exige que la oferta siga en el estado y la versión que había en
+ * pantalla. Sin eso:
+ *
+ * - si la empresa la editó mientras el equipo la revisaba, aprobar publicaba
+ *   la versión nueva sin que nadie la hubiera mirado;
+ * - si la empresa la retiró entretanto, aprobar la volvía a poner en el
+ *   catálogo contra su voluntad;
+ * - dos pestañas que aprobaban a la vez mandaban dos correos de «publicada».
+ *
+ * Con la condición, el segundo encuentra cero filas: si la oferta ya está como
+ * se pedía, es una repetición y no se avisa otra vez; si cambió, se dice.
  */
 export async function cambiarEstadoOferta(datos: unknown): Promise<
   { ok: true } | { ok: false; error: string }
@@ -140,32 +166,44 @@ export async function cambiarEstadoOferta(datos: unknown): Promise<
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
+  const { id, status, desde, version } = parsed.data;
 
   const supabase = await createClient();
 
-  // El estado de antes decide si hay algo que contar: aprobar lo que ya estaba
-  // aprobado no es una novedad, y sin esto cada clic repetido mandaría el correo.
-  const { data: previa } = await supabase
+  let consulta = supabase
     .from("listings")
-    .select("status")
-    .eq("id", parsed.data.id)
-    .maybeSingle();
-
-  const { data, error } = await supabase
-    .from("listings")
-    .update({ status: parsed.data.status })
-    .eq("id", parsed.data.id)
-    .select("id");
+    .update({ status })
+    .eq("id", id)
+    .eq("status", desde);
+  if (version !== undefined) consulta = consulta.eq("version", version);
+  const { data, error } = await consulta.select("id");
 
   if (error) return { ok: false, error: error.message };
   if (!data || data.length === 0) {
-    return { ok: false, error: "No se pudo actualizar. ¿Sigues siendo administrador?" };
+    const { data: actual } = await supabase
+      .from("listings")
+      .select("status")
+      .eq("id", id)
+      .maybeSingle();
+    if (!actual) {
+      return { ok: false, error: "No se pudo actualizar. ¿Sigues siendo administrador?" };
+    }
+    // Ya estaba como se pedía: otra pestaña o un doble clic llegó antes. No es
+    // un error, y no se avisa otra vez.
+    if (actual.status === status) return { ok: true };
+    revalidatePath("/admin/ofertas");
+    return {
+      ok: false,
+      error: "La oferta cambió mientras la mirabas (la empresa la editó o la retiró). Recarga la lista para ver cómo quedó antes de decidir.",
+    };
   }
 
   revalidatePath("/", "layout");
 
-  if (parsed.data.status === "approved" && previa?.status !== "approved") {
-    await avisarOfertaPublicada(parsed.data.id);
+  // Solo quien de verdad la publicó avisa: la condición del `update` garantiza
+  // que eso pasa una vez.
+  if (status === "approved" && desde !== "approved") {
+    await avisarOfertaPublicada(id);
   }
 
   return { ok: true };

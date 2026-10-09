@@ -103,7 +103,9 @@ Natural SAS.
 
 - Imágenes subidas por el proveedor (Supabase Storage), retirando el tapiz de
   `listing-media.tsx`
-- Interfaz de reseñas (tabla y política ya existen)
+- ~~Interfaz de reseñas~~ — adelantada el 2026-10-09 con la migración 0014,
+  junto con la logística: el vendedor declara el envío y despacha con guía
+  (`.claude/hitos/2026-10-09-envios-resenas-e-idempotencia.md`)
 - Correo transaccional: confirmación de orden, aviso al proveedor, cambios de
   estado
 - Primer lote real de onboarding, reemplazando `src/data/` como fuente de verdad

@@ -1,17 +1,21 @@
 import { cache } from "react";
+import { getUser } from "./auth";
 import { createClient } from "./supabase/server";
 import { nivelesDesde } from "./niveles";
 import { esReaccion, leerConteos, type ReaccionId } from "./comunidad";
 import type {
   AdminUsuario,
+  Calificacion,
   CommunityPost,
   CommunityTopic,
+  Despacho,
   Listing,
   ListingFilters,
   ListingKind,
   Provider,
   ProviderApplication,
   ProviderTrait,
+  Resena,
   ReviewStatus,
   Role,
   Tier,
@@ -85,6 +89,34 @@ const DE_LA_0012_PROVIDER = "giros";
  */
 let sondeo0012: { aplicada: boolean; hasta: number } | null = null;
 
+/** Lo que la 0014 agrega a `listings`: cómo se despacha y la versión de la fila. */
+const DE_LA_0014_LISTING =
+  "despacho, transportadora, envio_cop, entrega_dias_min, entrega_dias_max, version";
+
+let sondeo0014: { aplicada: boolean; hasta: number } | null = null;
+
+/**
+ * ¿Está aplicada la migración 0014 (envíos, reseñas, versión de las ofertas)?
+ *
+ * El mismo sondeo que el de la 0012, y por lo mismo: **sin la 0014 el sitio
+ * sigue como antes** —sin envío, sin reseñas, comprando por la `crear_orden()`
+ * vieja—, y cuando alguien la aplique se enciende sola en menos de un minuto,
+ * sin redesplegar. Lo usan el formulario de ofertas, la cesta, el pedido y la
+ * ficha para decidir si muestran lo nuevo.
+ */
+export async function logisticaDisponible(): Promise<boolean> {
+  const ahora = Date.now();
+  if (!sondeo0014 || (!sondeo0014.aplicada && ahora > sondeo0014.hasta)) {
+    const db = await createClient();
+    const { error } = await db.from("listings").select("despacho").limit(1);
+    sondeo0014 = { aplicada: error?.code !== "42703", hasta: ahora + 60_000 };
+    if (!sondeo0014.aplicada) {
+      console.warn("[repo] la migración 0014 no está aplicada: sin envíos ni reseñas");
+    }
+  }
+  return sondeo0014.aplicada;
+}
+
 async function columnas(): Promise<{ listing: string; provider: string }> {
   const ahora = Date.now();
   if (!sondeo0012 || (!sondeo0012.aplicada && ahora > sondeo0012.hasta)) {
@@ -96,12 +128,15 @@ async function columnas(): Promise<{ listing: string; provider: string }> {
     }
   }
 
-  return sondeo0012.aplicada
-    ? {
-        listing: `${COLUMNAS_LISTING_BASE}, ${DE_LA_0012_LISTING}`,
-        provider: `${COLUMNAS_PROVIDER_BASE}, ${DE_LA_0012_PROVIDER}`,
-      }
-    : { listing: COLUMNAS_LISTING_BASE, provider: COLUMNAS_PROVIDER_BASE };
+  if (!sondeo0012.aplicada) {
+    return { listing: COLUMNAS_LISTING_BASE, provider: COLUMNAS_PROVIDER_BASE };
+  }
+
+  const con0014 = await logisticaDisponible();
+  return {
+    listing: `${COLUMNAS_LISTING_BASE}, ${DE_LA_0012_LISTING}${con0014 ? `, ${DE_LA_0014_LISTING}` : ""}`,
+    provider: `${COLUMNAS_PROVIDER_BASE}, ${DE_LA_0012_PROVIDER}`,
+  };
 }
 
 interface FilaDisponibilidad {
@@ -148,6 +183,13 @@ interface FilaListing {
   aporte_ambiental?: string | null;
   consecuencia_ambiental?: string | null;
   huella_co2_kg?: number | string | null;
+  /** Las seis, desde la 0014. */
+  despacho?: Despacho | null;
+  transportadora?: string | null;
+  envio_cop?: number | null;
+  entrega_dias_min?: number | null;
+  entrega_dias_max?: number | null;
+  version?: number | null;
   listing_availability?: FilaDisponibilidad[] | null;
 }
 
@@ -253,6 +295,17 @@ function aListing(f: FilaListing): Listing {
       f.kind === "service" && f.delivery_time !== null
         ? { deliveryTime: f.delivery_time, scope: f.scope ?? [] }
         : undefined,
+    envio:
+      f.kind === "product" && (f.despacho || f.envio_cop != null || f.entrega_dias_max != null)
+        ? {
+            despacho: f.despacho ?? undefined,
+            transportadora: f.transportadora ?? undefined,
+            costoCop: f.envio_cop ?? undefined,
+            diasMin: f.entrega_dias_min ?? undefined,
+            diasMax: f.entrega_dias_max ?? undefined,
+          }
+        : undefined,
+    version: f.version ?? undefined,
   };
 }
 
@@ -1134,10 +1187,18 @@ export async function getAnaliticas(dias: number): Promise<Analiticas | null> {
  * y el sitio donde hacerlo es `/cuenta/empresa`, no cada página que la use.
  */
 export async function getMiEmpresa(): Promise<Provider | undefined> {
+  const user = await getUser();
+  if (!user) return undefined;
   const db = await createClient();
+  // **El `eq("user_id")` sí hace falta aquí**, al revés que en las lecturas
+  // del panel. RLS deja a un administrador leer todas las filas de
+  // `provider_members`, y sin el filtro esta función le devolvía la primera
+  // empresa de cualquiera: desde `/cuenta/empresa` habría editado el logo, el
+  // giro o las ofertas de otra empresa creyendo que eran las suyas.
   const { data, error } = await db
     .from("provider_members")
     .select("provider_id, is_owner")
+    .eq("user_id", user.id)
     .order("is_owner", { ascending: false })
     .limit(1);
   if (error || !data || data.length === 0) return undefined;
@@ -1244,4 +1305,140 @@ export async function getOfertaDeEmpresa(
     .maybeSingle();
   if (error) throw new Error(`getOfertaDeEmpresa: ${error.message}`);
   return data ? aListing(data as unknown as FilaListing) : undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Reseñas
+//
+// Desde la 0014. Todas devuelven vacío si la migración no está aplicada: una
+// ficha sin reseñas es una ficha normal, y tumbarla por una tabla que todavía
+// no se puede leer sería castigar la página entera por una sección.
+// ---------------------------------------------------------------------------
+
+interface FilaResena {
+  id: string;
+  listing_id: string;
+  rating: number;
+  body: string;
+  autor_nombre: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+function aResena(f: FilaResena): Resena {
+  return {
+    id: f.id,
+    listingId: f.listing_id,
+    rating: f.rating,
+    body: f.body,
+    autorNombre: f.autor_nombre ?? "Comprador verificado",
+    createdAt: f.created_at,
+    editada: f.updated_at !== null,
+  };
+}
+
+const COLUMNAS_RESENA = "id, listing_id, rating, body, autor_nombre, created_at, updated_at";
+
+/** El promedio de una oferta. `undefined` si nadie la ha reseñado. */
+export async function getCalificacionDeOferta(
+  listingId: string,
+): Promise<Calificacion | undefined> {
+  if (!UUID.test(listingId) || !(await logisticaDisponible())) return undefined;
+  const db = await createClient();
+  const { data } = await db
+    .from("calificaciones_oferta")
+    .select("promedio, cantidad")
+    .eq("listing_id", listingId)
+    .maybeSingle();
+  return data ? { promedio: Number(data.promedio), cantidad: data.cantidad } : undefined;
+}
+
+/** El promedio de todo lo que vende una empresa. */
+export async function getCalificacionDeProveedor(
+  providerId: string,
+): Promise<Calificacion | undefined> {
+  if (!UUID.test(providerId) || !(await logisticaDisponible())) return undefined;
+  const db = await createClient();
+  const { data } = await db
+    .from("calificaciones_proveedor")
+    .select("promedio, cantidad")
+    .eq("provider_id", providerId)
+    .maybeSingle();
+  return data ? { promedio: Number(data.promedio), cantidad: data.cantidad } : undefined;
+}
+
+/**
+ * Las reseñas visibles de una oferta, las más recientes primero.
+ *
+ * `oculta = false` a mano y no solo por RLS: la política deja al autor ver la
+ * suya aunque el equipo la haya ocultado, y en la ficha pública no pinta nada.
+ */
+export async function getResenasDeOferta(listingId: string, limite = 20): Promise<Resena[]> {
+  if (!UUID.test(listingId) || !(await logisticaDisponible())) return [];
+  const db = await createClient();
+  const { data, error } = await db
+    .from("reviews")
+    .select(COLUMNAS_RESENA)
+    .eq("listing_id", listingId)
+    .eq("oculta", false)
+    .order("created_at", { ascending: false })
+    .limit(limite);
+  if (error) throw new Error(`getResenasDeOferta: ${error.message}`);
+  return (data as FilaResena[]).map(aResena);
+}
+
+/** Las reseñas que escribió quien mira, por ítem comprado. Para su pedido. */
+export async function getMisResenas(
+  orderItemIds: string[],
+): Promise<Map<string, { rating: number; body: string; oculta: boolean }>> {
+  const ids = orderItemIds.filter((id) => UUID.test(id));
+  if (ids.length === 0 || !(await logisticaDisponible())) return new Map();
+  const user = await getUser();
+  if (!user) return new Map();
+  const db = await createClient();
+  const { data, error } = await db
+    .from("reviews")
+    .select("order_item_id, rating, body, oculta")
+    .eq("author_id", user.id)
+    .in("order_item_id", ids);
+  if (error) throw new Error(`getMisResenas: ${error.message}`);
+  return new Map(
+    (data as { order_item_id: string; rating: number; body: string; oculta: boolean }[]).map(
+      (r) => [r.order_item_id, { rating: r.rating, body: r.body, oculta: r.oculta }],
+    ),
+  );
+}
+
+/** Una reseña vista desde la moderación: con su oferta y si está oculta. */
+export interface ResenaAdmin extends Resena {
+  oculta: boolean;
+  listingTitle: string;
+  listingSlug: string;
+}
+
+/**
+ * Todas las reseñas, para `/admin/resenas`. Sin comprobación de rol, como el
+ * resto de lecturas del panel: RLS decide. A quien no es admin le llegan solo
+ * las visibles, que es lo mismo que ve cualquiera.
+ */
+export async function getResenasParaModerar(limite = 200): Promise<ResenaAdmin[]> {
+  if (!(await logisticaDisponible())) return [];
+  const db = await createClient();
+  const { data, error } = await db
+    .from("reviews")
+    .select(`${COLUMNAS_RESENA}, oculta, listings(title, slug)`)
+    .order("created_at", { ascending: false })
+    .limit(limite);
+  if (error) throw new Error(`getResenasParaModerar: ${error.message}`);
+  return (
+    data as unknown as (FilaResena & {
+      oculta: boolean;
+      listings: { title: string; slug: string } | null;
+    })[]
+  ).map((f) => ({
+    ...aResena(f),
+    oculta: f.oculta,
+    listingTitle: f.listings?.title ?? "Oferta retirada",
+    listingSlug: f.listings?.slug ?? "",
+  }));
 }

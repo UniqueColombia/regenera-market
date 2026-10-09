@@ -4,6 +4,7 @@ import { enviarCorreo } from "./index";
 import {
   correoEstadoPedido,
   correoOfertaPublicada,
+  correoPedidoDespachado,
   correoPedidoPagadoProveedor,
   type EstadoAvisable,
 } from "./plantillas";
@@ -20,7 +21,9 @@ import type { Mensaje } from "./tipos";
  *
  * **Usa el cliente de servicio, y es a propósito**: el correo de una persona vive
  * en `auth.users`, que ninguna política RLS deja leer. Solo lee —nunca escribe— y
- * solo desde acciones que ya pasaron por `requireAdmin()`.
+ * solo desde acciones que ya pasaron por `requireAdmin()` o, en el caso del
+ * despacho, por `despachar_item()`, que comprobó en la base que quien despacha
+ * gestiona la empresa del ítem.
  */
 
 interface Destinatario {
@@ -145,5 +148,39 @@ export async function avisarCambioDeOrden(
     }
   } catch (e) {
     registrarFallo("orden-estado-correo", e, { estado });
+  }
+}
+
+/**
+ * Un ítem salió: se le cuenta al comprador con la guía. Se llama solo cuando
+ * `despachar_item()` devolvió `cambiado: true`, así que un despacho repetido o
+ * una guía corregida no lo vuelven a mandar.
+ */
+export async function avisarDespacho(itemId: string): Promise<void> {
+  try {
+    const db = createAdminClient();
+    const { data: item } = await db
+      .from("order_items")
+      .select("title_snapshot, transportadora, guia, orders(reference, buyer_name, buyer_email)")
+      .eq("id", itemId)
+      .maybeSingle();
+    const orden = item?.orders as unknown as
+      | { reference: string; buyer_name: string; buyer_email: string }
+      | null
+      | undefined;
+    if (!item || !orden) return;
+
+    await mandar("orden-despacho", [
+      correoPedidoDespachado({
+        nombre: orden.buyer_name,
+        correo: orden.buyer_email,
+        referencia: orden.reference,
+        titulo: item.title_snapshot,
+        transportadora: item.transportadora ?? undefined,
+        guia: item.guia ?? undefined,
+      }),
+    ]);
+  } catch (e) {
+    registrarFallo("orden-despacho-correo", e);
   }
 }
