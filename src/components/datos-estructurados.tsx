@@ -1,6 +1,6 @@
 import { categoriaLabel } from "@/lib/taxonomy";
 import { CONTACTO } from "@/lib/legal";
-import type { Listing, Provider } from "@/lib/types";
+import type { Calificacion, Listing, Provider } from "@/lib/types";
 
 /**
  * Datos estructurados (JSON-LD) para buscadores y asistentes.
@@ -18,8 +18,8 @@ import type { Listing, Provider } from "@/lib/types";
  * **Todo lo que se declara aquí tiene que estar también en la página, visible.**
  * Declarar un precio que la ficha no muestra, o una valoración que no existe, es
  * lo que los buscadores penalizan —y con razón: es describirle al robot algo
- * distinto de lo que ve una persona. Por eso aquí no hay `aggregateRating`: el
- * sitio todavía no muestra reseñas. El día que las muestre, se agrega.
+ * distinto de lo que ve una persona. Por eso el `aggregateRating` solo va cuando
+ * la ficha muestra reseñas (desde la 0014), con el mismo promedio que se pinta.
  *
  * ## Por qué se escapa el `<`
  *
@@ -123,9 +123,12 @@ export function DatosDelSitio() {
 export function DatosDeOferta({
   listing,
   provider,
+  calificacion,
 }: {
   listing: Listing;
   provider?: Provider;
+  /** Solo si hay reseñas: un `aggregateRating` inventado o vacío es motivo de penalización. */
+  calificacion?: Calificacion;
 }) {
   const imagenes = listing.images.filter((i) => i.startsWith("/")).map(url);
 
@@ -148,10 +151,24 @@ export function DatosDeOferta({
             url: url(`/oferta/${listing.slug}`),
             price: listing.priceCop,
             priceCurrency: "COP",
-            availability: "https://schema.org/InStock",
+            // Desde la 0014 el stock baja con cada compra, así que «agotado» es
+            // un dato real que vale la pena decirle al buscador.
+            availability:
+              listing.stock !== undefined && listing.stock <= 0
+                ? "https://schema.org/OutOfStock"
+                : "https://schema.org/InStock",
             ...(provider && {
               seller: { "@type": "Organization", name: provider.name },
             }),
+          },
+        }),
+        ...(calificacion && {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: calificacion.promedio,
+            reviewCount: calificacion.cantidad,
+            bestRating: 5,
+            worstRating: 1,
           },
         }),
       }}

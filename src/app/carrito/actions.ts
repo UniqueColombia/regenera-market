@@ -8,7 +8,8 @@ import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 import { generateReference } from "@/lib/payments";
 import { crearOrden, saveOrder, type MotivoRechazo } from "@/lib/orders";
 import { priceLine, totalsFor, type PricedLine } from "@/lib/pricing";
-import { getListingsByIds, getProviderTiers } from "@/lib/repo";
+import { getListingsByIds, getProviderTiers, logisticaDisponible } from "@/lib/repo";
+import { DEPARTMENTS } from "@/lib/taxonomy";
 import type { Order, OrderItem } from "@/lib/types";
 import { dentroDelRitmo } from "@/lib/ritmo";
 import type { CartLine, PricedCartDTO } from "./types";
@@ -51,6 +52,7 @@ async function valorizar(lines: CartLine[]) {
  */
 export async function priceCart(lines: CartLine[]): Promise<PricedCartDTO> {
   const { byId, priced, totals } = await valorizar(lines);
+  const conLogistica = totals.hayFisicos && (await logisticaDisponible());
 
   return {
     lines: priced.map((l) => ({
@@ -68,12 +70,16 @@ export async function priceCart(lines: CartLine[]): Promise<PricedCartDTO> {
       unitPriceCop: l.unitPriceCop,
       wholesaleApplied: l.wholesaleApplied,
       subtotalCop: l.subtotalCop,
+      envioCop: l.envioCop,
+      envio: l.listing.envio,
     })),
     subtotalCop: totals.subtotalCop,
+    envioTotalCop: totals.envioTotalCop,
     totalCop: totals.totalCop,
     commissionTotalCop: totals.commissionTotalCop,
     impact: totals.impact,
     providerCount: totals.providerCount,
+    pideDestino: conLogistica,
     dropped: lines
       .filter((l) => !byId.has(l.listingId))
       .map((l) => ({ listingId: l.listingId, date: l.date })),
@@ -98,6 +104,13 @@ const CheckoutSchema = z
     company: z.string().trim().max(160).optional(),
     documento: z.string().trim().max(40, "La identificación es demasiado larga").optional(),
     notes: z.string().trim().max(1000).optional(),
+    // A dónde va, si hay productos físicos. Opcionales aquí porque dependen de
+    // lo que hay en la cesta, que el esquema no ve: `cerrarCompra()` los exige
+    // cuando hacen falta, y `crear_orden()` vuelve a exigirlos en la base.
+    departamento: z.union([z.enum(DEPARTMENTS), z.literal("")]).optional(),
+    ciudad: z.string().trim().max(80).optional(),
+    direccion: z.string().trim().max(200).optional(),
+    indicaciones: z.string().trim().max(300).optional(),
   })
   .refine(
     (d) =>
@@ -140,6 +153,8 @@ function explicar(motivo: MotivoRechazo, oferta?: string): Record<string, string
       return {
         form: "Tienes varios pedidos esperando pago. Págalos o escríbenos para cancelar alguno antes de hacer otro.",
       };
+    case "falta-destino":
+      return { direccion: "Escribe a dónde te lo mandamos: departamento, ciudad y dirección." };
     case "clave-ajena":
     case "cesta-invalida":
     case "cantidad-invalida":
@@ -192,21 +207,20 @@ async function cerrarCompra(lines: CartLine[], form: unknown): Promise<CheckoutR
   const usuario = await getUser();
   if (!usuario) return { ok: false, errors: explicar("sin-sesion") };
 
-  // Por cuenta y no por IP: ahora que comprar exige sesión, la cuenta es la
-  // identidad que de verdad importa. Cinco pedidos en diez minutos es más de lo
-  // que hace nadie comprando de verdad, y mucho menos de lo que hace un guion.
-  if (!dentroDelRitmo(`checkout:${usuario.id}`, 5, 600)) {
-    return {
-      ok: false,
-      errors: {
-        form: "Recibimos varios pedidos seguidos desde tu cuenta. Espera unos minutos y vuelve a intentarlo.",
-      },
-    };
-  }
-
   const { priced, totals } = await valorizar(lines);
   if (totals.purchasable.length === 0) {
     return { ok: false, errors: explicar("nada-comprable") };
+  }
+
+  // El destino, si hay algo que despachar. Se comprueba aquí para marcar el
+  // campo que falta; `crear_orden()` lo vuelve a exigir en la base.
+  const pideDestino = totals.hayFisicos && (await logisticaDisponible());
+  if (pideDestino) {
+    const faltan: Record<string, string> = {};
+    if (!d.departamento) faltan.departamento = "Elige el departamento";
+    if (!d.ciudad || d.ciudad.length < 2) faltan.ciudad = "Escribe la ciudad o el municipio";
+    if (!d.direccion || d.direccion.length < 5) faltan.direccion = "Escribe la dirección de entrega";
+    if (Object.keys(faltan).length > 0) return { ok: false, errors: faltan };
   }
 
   const comoEmpresa = d.como === "empresa";
@@ -215,6 +229,12 @@ async function cerrarCompra(lines: CartLine[], form: unknown): Promise<CheckoutR
   const empresa = comoEmpresa && !providerId ? d.company || undefined : undefined;
   const documento = comoEmpresa ? d.documento || undefined : undefined;
 
+  // **Sin límite de ritmo aquí, y es a propósito.** Antes se contaba en memoria
+  // antes de llamar a la base, y eso castigaba al que reintentaba: el doble
+  // clic o el reintento tras un corte gastaban un turno aunque la base fuera a
+  // devolverle la misma orden. El límite de verdad lo pone `crear_orden()`
+  // después de comprobar la llave, con un candado por comprador que lo hace
+  // exacto aunque lleguen dos peticiones a la vez.
   const creada = await crearOrden({
     id: d.clave,
     lineas: lines,
@@ -224,6 +244,15 @@ async function cerrarCompra(lines: CartLine[], form: unknown): Promise<CheckoutR
     providerId,
     documento,
     notas: d.notes || undefined,
+    destino:
+      pideDestino && d.departamento && d.ciudad && d.direccion
+        ? {
+            departamento: d.departamento,
+            ciudad: d.ciudad,
+            direccion: d.direccion,
+            indicaciones: d.indicaciones || undefined,
+          }
+        : undefined,
   });
 
   let reference: string;
@@ -243,8 +272,12 @@ async function cerrarCompra(lines: CartLine[], form: unknown): Promise<CheckoutR
     }
   } else if (creada.motivo === "sin-funcion") {
     // La 0012 todavía no está aplicada. Se sigue vendiendo por el camino
-    // anterior en vez de dejar el sitio sin poder cerrar una compra.
+    // anterior en vez de dejar el sitio sin poder cerrar una compra. Ese camino
+    // no tiene el límite de la base, así que aquí sí se cuenta en memoria.
     console.warn("[checkout] crear_orden() no existe: usando saveOrder()");
+    if (!dentroDelRitmo(`checkout:${usuario.id}`, 5, 600)) {
+      return { ok: false, errors: explicar("demasiados-pedidos") };
+    }
     const guardada = await saveOrder(armarOrden(d.clave, usuario.email ?? "", d, priced, {
       empresa: providerId ? undefined : empresa,
     }));
@@ -309,7 +342,9 @@ function armarOrden(
     items,
     subtotalCop: totals.subtotalCop,
     commissionTotalCop: totals.commissionTotalCop,
-    totalCop: totals.totalCop,
+    // El camino viejo no cobra envío: no existe sin la 0012, y menos sin la 0014.
+    envioTotalCop: 0,
+    totalCop: totals.subtotalCop,
     status: "pending_payment",
     impact: totals.impact,
     notes: d.notes || undefined,

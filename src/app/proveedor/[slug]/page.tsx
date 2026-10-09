@@ -6,7 +6,9 @@ import { DatosDeMiga, DatosDeProveedor } from "@/components/datos-estructurados"
 import { ListingCard } from "@/components/listing-card";
 import { HeroBanner } from "@/components/hero-banner";
 import { TierBadge } from "@/components/tier-badge";
+import { Estrellas } from "@/components/estrellas";
 import {
+  getCalificacionDeProveedor,
   getListingsByProvider,
   getProviderBySlug,
 } from "@/lib/repo";
@@ -44,7 +46,10 @@ export default async function ProveedorPage(
   const provider = await getProviderBySlug(slug);
   if (!provider) notFound();
 
-  const listings = await getListingsByProvider(provider.id);
+  const [listings, calificacion] = await Promise.all([
+    getListingsByProvider(provider.id),
+    getCalificacionDeProveedor(provider.id),
+  ]);
 
   // La portada, en tres escalones y en este orden:
   //
@@ -93,6 +98,21 @@ export default async function ProveedorPage(
             <MapPin className="size-4" />
             {provider.city}, {provider.department}
           </li>
+          {/* El promedio de todo lo que vende, de quienes le compraron. Solo
+              si hay reseñas: «sin calificar» al lado del nombre se lee como
+              una mala nota. */}
+          {calificacion && (
+            <li
+              className="flex items-center gap-1.5"
+              aria-label={`${calificacion.promedio.toLocaleString("es-CO", { minimumFractionDigits: 1 })} de 5 estrellas en ${calificacion.cantidad} ${calificacion.cantidad === 1 ? "reseña" : "reseñas"}`}
+            >
+              <Estrellas valor={calificacion.promedio} />
+              <span aria-hidden>
+                {calificacion.promedio.toLocaleString("es-CO", { minimumFractionDigits: 1 })} ·{" "}
+                {calificacion.cantidad} {calificacion.cantidad === 1 ? "reseña" : "reseñas"}
+              </span>
+            </li>
+          )}
           {provider.foundedYear && (
             <li className="flex items-center gap-1.5">
               <Calendar className="size-4" />

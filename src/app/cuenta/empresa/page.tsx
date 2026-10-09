@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Building2, Plus, Tags } from "lucide-react";
+import { ArrowRight, BadgeCheck, Building2, Plus, Tags, Truck } from "lucide-react";
 import { Giros } from "./giros";
 import { Historial } from "./historial";
 import {
@@ -131,6 +131,16 @@ export default async function EmpresaPage() {
               >
                 Ver todas
                 <ArrowRight className="size-4" />
+              </Link>
+            )}
+            {ofertas.length > 0 && (
+              // Donde se despacha lo vendido y se carga la guía.
+              <Link
+                href="/cuenta/empresa/pedidos"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-brand-200 transition hover:bg-sand"
+              >
+                <Truck className="size-4" />
+                Pedidos
               </Link>
             )}
           </div>

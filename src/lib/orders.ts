@@ -2,7 +2,15 @@ import { createAdminClient } from "./supabase/admin";
 import { createClient } from "./supabase/server";
 import { getUser } from "./auth";
 import { COMMISSION_RATE } from "./pricing";
-import type { Order, OrderItem, OrderStatus } from "./types";
+import { logisticaDisponible } from "./repo";
+import type {
+  DestinoEnvio,
+  Despacho,
+  EnvioEstado,
+  Order,
+  OrderItem,
+  OrderStatus,
+} from "./types";
 
 /**
  * Órdenes, en Postgres.
@@ -64,9 +72,16 @@ interface FilaOrden {
   water_liters_saved: number | string | null;
   waste_kg_reduced: number | string | null;
   created_at: string;
+  /** Desde la 0014: llegan `undefined` mientras no esté aplicada. */
+  envio_total_cop?: number | null;
+  envio_departamento?: string | null;
+  envio_ciudad?: string | null;
+  envio_direccion?: string | null;
+  envio_indicaciones?: string | null;
 }
 
 interface FilaItem {
+  id?: string;
   listing_id: string | null;
   provider_id: string;
   title_snapshot: string;
@@ -76,6 +91,28 @@ interface FilaItem {
   commission_cop: number;
   /** Puede llegar null en las órdenes anteriores a los niveles de proveedor. */
   commission_rate: number | string | null;
+  /** Desde la 0014. */
+  envio_cop?: number | null;
+  despacho?: Despacho | null;
+  transportadora?: string | null;
+  entrega_dias_min?: number | null;
+  entrega_dias_max?: number | null;
+  envio_estado?: EnvioEstado | null;
+  guia?: string | null;
+  despachado_at?: string | null;
+  entregado_at?: string | null;
+}
+
+const COLUMNAS_ITEM_BASE =
+  "listing_id, provider_id, title_snapshot, unit_price_cop, qty, date, commission_cop, commission_rate";
+const COLUMNAS_ITEM_0014 =
+  "id, envio_cop, despacho, transportadora, entrega_dias_min, entrega_dias_max, envio_estado, guia, despachado_at, entregado_at";
+
+/** Las columnas de `order_items` que existen, según si la 0014 está aplicada. */
+async function columnasItem(): Promise<string> {
+  return (await logisticaDisponible())
+    ? `${COLUMNAS_ITEM_BASE}, ${COLUMNAS_ITEM_0014}`
+    : COLUMNAS_ITEM_BASE;
 }
 
 function numero(v: number | string | null): number | undefined {
@@ -84,32 +121,65 @@ function numero(v: number | string | null): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function aItem(i: FilaItem): OrderItem {
+  return {
+    id: i.id,
+    listingId: i.listing_id ?? "",
+    providerId: i.provider_id,
+    titleSnapshot: i.title_snapshot,
+    unitPriceCop: i.unit_price_cop,
+    qty: i.qty,
+    date: i.date ?? undefined,
+    commissionCop: i.commission_cop,
+    // Las órdenes creadas antes de que la comisión dependiera del nivel no
+    // guardaron la tasa. Se les atribuye la base, que es la que se les aplicó.
+    commissionRate: numero(i.commission_rate) ?? COMMISSION_RATE,
+    envioCop: i.envio_cop ?? undefined,
+    despacho: i.despacho ?? undefined,
+    transportadora: i.transportadora ?? undefined,
+    entregaDiasMin: i.entrega_dias_min ?? undefined,
+    entregaDiasMax: i.entrega_dias_max ?? undefined,
+    envioEstado: i.envio_estado ?? undefined,
+    guia: i.guia ?? undefined,
+    despachadoAt: i.despachado_at ?? undefined,
+    entregadoAt: i.entregado_at ?? undefined,
+  };
+}
+
+function aDestino(f: {
+  envio_departamento?: string | null;
+  envio_ciudad?: string | null;
+  envio_direccion?: string | null;
+  envio_indicaciones?: string | null;
+}): DestinoEnvio | undefined {
+  return f.envio_direccion && f.envio_ciudad && f.envio_departamento
+    ? {
+        departamento: f.envio_departamento,
+        ciudad: f.envio_ciudad,
+        direccion: f.envio_direccion,
+        indicaciones: f.envio_indicaciones ?? undefined,
+      }
+    : undefined;
+}
+
 function aOrden(fila: FilaOrden, items: FilaItem[]): Order {
   return {
     id: fila.id,
     reference: fila.reference,
+    buyerId: fila.buyer_id ?? undefined,
     buyerEmail: fila.buyer_email,
     buyerName: fila.buyer_name,
     buyerCompany: fila.buyer_company ?? undefined,
     buyerPhone: fila.buyer_phone ?? undefined,
     buyerProviderId: fila.buyer_provider_id ?? undefined,
     buyerTaxId: fila.buyer_tax_id ?? undefined,
-    items: items.map<OrderItem>((i) => ({
-      listingId: i.listing_id ?? "",
-      providerId: i.provider_id,
-      titleSnapshot: i.title_snapshot,
-      unitPriceCop: i.unit_price_cop,
-      qty: i.qty,
-      date: i.date ?? undefined,
-      commissionCop: i.commission_cop,
-      // Las órdenes creadas antes de que la comisión dependiera del nivel no
-      // guardaron la tasa. Se les atribuye la base, que es la que se les aplicó.
-      commissionRate: numero(i.commission_rate) ?? COMMISSION_RATE,
-    })),
+    items: items.map(aItem),
     subtotalCop: fila.subtotal_cop,
     commissionTotalCop: fila.commission_total_cop,
+    envioTotalCop: fila.envio_total_cop ?? 0,
     totalCop: fila.total_cop,
     status: fila.status,
+    destino: aDestino(fila),
     impact: {
       co2KgSaved: numero(fila.co2_kg_saved),
       waterLitersSaved: numero(fila.water_liters_saved),
@@ -140,7 +210,9 @@ export type MotivoRechazo =
   | "cesta-invalida"
   | "cantidad-invalida"
   | "demasiados-pedidos"
-  | "demasiados-pendientes";
+  | "demasiados-pendientes"
+  /** Desde la 0014: hay productos físicos y falta a dónde mandarlos. */
+  | "falta-destino";
 
 const MOTIVOS: readonly MotivoRechazo[] = [
   "sin-sesion",
@@ -155,6 +227,7 @@ const MOTIVOS: readonly MotivoRechazo[] = [
   "cantidad-invalida",
   "demasiados-pedidos",
   "demasiados-pendientes",
+  "falta-destino",
 ];
 
 export type ResultadoCrearOrden =
@@ -189,9 +262,11 @@ export async function crearOrden(datos: {
   providerId?: string;
   documento?: string;
   notas?: string;
+  /** Desde la 0014. Obligatorio si hay productos físicos: la base lo exige. */
+  destino?: DestinoEnvio;
 }): Promise<ResultadoCrearOrden> {
   const db = await createClient();
-  const { data, error } = await db.rpc("crear_orden", {
+  const comunes = {
     _id: datos.id,
     _lineas: datos.lineas.map((l) => ({
       listing_id: l.listingId,
@@ -204,7 +279,21 @@ export async function crearOrden(datos: {
     _provider_id: datos.providerId ?? null,
     _notas: datos.notas ?? null,
     _documento: datos.documento ?? null,
+  };
+
+  // Con la 0014 la función recibe también el destino. Sin ella, esos cuatro
+  // parámetros no existen y PostgREST no encuentra la firma: se vuelve a llamar
+  // con la de la 0012, que no cobra envío ni pide destino — igual que antes.
+  let { data, error } = await db.rpc("crear_orden", {
+    ...comunes,
+    _departamento: datos.destino?.departamento ?? null,
+    _ciudad: datos.destino?.ciudad ?? null,
+    _direccion: datos.destino?.direccion ?? null,
+    _indicaciones: datos.destino?.indicaciones ?? null,
   });
+  if (error && (error.code === "PGRST202" || error.code === "42883")) {
+    ({ data, error } = await db.rpc("crear_orden", comunes));
+  }
 
   if (error) {
     if (error.code === "PGRST202" || error.code === "42883") {
@@ -315,11 +404,11 @@ export async function getOrderByReference(
 
   const { data: items, error: errorItems } = await db
     .from("order_items")
-    .select("listing_id, provider_id, title_snapshot, unit_price_cop, qty, date, commission_cop, commission_rate")
+    .select(await columnasItem())
     .eq("order_id", data.id);
   if (errorItems) throw new Error(`getOrderByReference (items): ${errorItems.message}`);
 
-  return aOrden(data as FilaOrden, (items ?? []) as FilaItem[]);
+  return aOrden(data as FilaOrden, (items ?? []) as unknown as FilaItem[]);
 }
 
 /**
@@ -334,15 +423,13 @@ export async function getPedidosDe(userId: string, limite = 20): Promise<Order[]
   const db = await createClient();
   const { data, error } = await db
     .from("orders")
-    .select(
-      "*, order_items(listing_id, provider_id, title_snapshot, unit_price_cop, qty, date, commission_cop, commission_rate)",
-    )
+    .select(`*, order_items(${await columnasItem()})`)
     .eq("buyer_id", userId)
     .order("created_at", { ascending: false })
     .limit(limite);
   if (error) throw new Error(`getPedidosDe: ${error.message}`);
 
-  return (data as (FilaOrden & { order_items: FilaItem[] | null })[]).map((f) =>
+  return (data as unknown as (FilaOrden & { order_items: FilaItem[] | null })[]).map((f) =>
     aOrden(f, f.order_items ?? []),
   );
 }
@@ -362,13 +449,195 @@ export async function listOrders(): Promise<Order[]> {
 
   const { data, error } = await db
     .from("orders")
-    .select(
-      "*, order_items(listing_id, provider_id, title_snapshot, unit_price_cop, qty, date, commission_cop, commission_rate)",
-    )
+    .select(`*, order_items(${await columnasItem()})`)
     .order("created_at", { ascending: false });
   if (error) throw new Error(`listOrders: ${error.message}`);
 
-  return (data as (FilaOrden & { order_items: FilaItem[] | null })[]).map((f) =>
+  return (data as unknown as (FilaOrden & { order_items: FilaItem[] | null })[]).map((f) =>
     aOrden(f, f.order_items ?? []),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Despachar, entregar y reseñar (migración 0014)
+//
+// Las tres decisiones viven en funciones de la base que toman candado sobre la
+// orden: ahí es donde se resuelve que dos personas no despachen el mismo ítem,
+// que el último ítem entregado cierre el pedido aunque dos lleguen a la vez, y
+// que una reseña repetida no se duplique. Aquí solo se traduce lo que dicen.
+//
+// **`cambiado` es lo que decide si se avisa por correo.** Repetir una operación
+// devuelve `cambiado: false`, y quien llama no vuelve a mandar nada: es la
+// mitad de la idempotencia que la base no puede hacer por nosotros.
+// ---------------------------------------------------------------------------
+
+/** Por qué la base no despachó, no entregó o no guardó la reseña. */
+export type MotivoEnvio =
+  | "sin-sesion"
+  | "item-ajeno"
+  | "sin-envio"
+  | "orden-no-despachable"
+  | "falta-guia"
+  | "calificacion-invalida"
+  | "oferta-retirada"
+  | "todavia-no";
+
+const MOTIVOS_ENVIO: readonly MotivoEnvio[] = [
+  "sin-sesion",
+  "item-ajeno",
+  "sin-envio",
+  "orden-no-despachable",
+  "falta-guia",
+  "calificacion-invalida",
+  "oferta-retirada",
+  "todavia-no",
+];
+
+export type ResultadoEnvio =
+  | { ok: true; cambiado: boolean; ordenId: string; ordenCompletada: boolean }
+  | { ok: false; motivo: MotivoEnvio };
+
+function motivoEnvio(nombre: string, error: { code?: string; message: string }): MotivoEnvio {
+  const motivo = MOTIVOS_ENVIO.find((m) => error.message.includes(m));
+  if (motivo) return motivo;
+  throw new Error(`${nombre}: ${error.code ?? ""} ${error.message}`);
+}
+
+/** El vendedor marca un ítem como despachado, con su guía si va por transportadora. */
+export async function despacharItem(
+  itemId: string,
+  transportadora?: string,
+  guia?: string,
+): Promise<ResultadoEnvio> {
+  const db = await createClient();
+  const { data, error } = await db.rpc("despachar_item", {
+    _item_id: itemId,
+    _transportadora: transportadora ?? null,
+    _guia: guia ?? null,
+  });
+  if (error) return { ok: false, motivo: motivoEnvio("despacharItem", error) };
+  const r = data as { cambiado: boolean; orden_id: string };
+  return { ok: true, cambiado: r.cambiado, ordenId: r.orden_id, ordenCompletada: false };
+}
+
+/** El comprador («ya me llegó») o el vendedor (lo entregó en mano) cierran un ítem. */
+export async function confirmarEntrega(itemId: string): Promise<ResultadoEnvio> {
+  const db = await createClient();
+  const { data, error } = await db.rpc("confirmar_entrega", { _item_id: itemId });
+  if (error) return { ok: false, motivo: motivoEnvio("confirmarEntrega", error) };
+  const r = data as { cambiado: boolean; orden_id: string; orden_completada: boolean };
+  return {
+    ok: true,
+    cambiado: r.cambiado,
+    ordenId: r.orden_id,
+    ordenCompletada: r.orden_completada,
+  };
+}
+
+/**
+ * Guarda la reseña de un ítem comprado. Repetirla la corrige, no la duplica
+ * (`unique (order_item_id)` + `on conflict`).
+ */
+export async function calificarItem(
+  itemId: string,
+  rating: number,
+  comentario: string,
+): Promise<{ ok: true; nueva: boolean } | { ok: false; motivo: MotivoEnvio }> {
+  const db = await createClient();
+  const { data, error } = await db.rpc("calificar", {
+    _order_item_id: itemId,
+    _rating: rating,
+    _comentario: comentario,
+  });
+  if (error) return { ok: false, motivo: motivoEnvio("calificarItem", error) };
+  return { ok: true, nueva: (data as { nueva: boolean }).nueva };
+}
+
+/**
+ * Cancela los pedidos sin pagar de más de 72 horas, lo que devuelve su stock y
+ * su cupo (trigger `orders_liberar_reservas`). La corre `pg_cron` cada hora;
+ * el panel de órdenes la llama además al abrirse por si el proyecto no tiene
+ * `pg_cron`. Nunca lanza: un panel que no carga por esto sería peor que un
+ * pedido que vence una hora tarde.
+ */
+export async function vencerPedidosSinPago(): Promise<number> {
+  try {
+    if (!(await logisticaDisponible())) return 0;
+    const db = await createClient();
+    const { data, error } = await db.rpc("vencer_pedidos_sin_pago");
+    if (error) {
+      console.error(`[ordenes] vencer_pedidos_sin_pago: ${error.message}`);
+      return 0;
+    }
+    return (data as number) ?? 0;
+  } catch (e) {
+    console.error("[ordenes] vencer_pedidos_sin_pago", e);
+    return 0;
+  }
+}
+
+/** Un ítem que vende la empresa de quien mira, con lo que hace falta para despacharlo. */
+export interface ItemDeEmpresa extends OrderItem {
+  orderId: string;
+  reference: string;
+  orderStatus: OrderStatus;
+  createdAt: string;
+  buyerName: string;
+  buyerPhone?: string;
+  destino?: DestinoEnvio;
+}
+
+/**
+ * Lo que una empresa vendió: sus ítems, con el pedido al que pertenecen y a
+ * dónde van. Para `/cuenta/empresa/pedidos`.
+ *
+ * Con el cliente de sesión: `order_items_read` deja ver solo los ítems de la
+ * empresa (no los de otras empresas en el mismo pedido) y `orders_provider_read`
+ * solo las órdenes que los incluyen. El `eq("provider_id")` no es la barrera:
+ * separa la empresa que se mira de otras que la misma persona pudiera gestionar.
+ *
+ * Solo pedidos pagados en adelante: uno sin pagar no se prepara (puede vencer o
+ * cancelarse), y enseñarlo invita a despachar algo que nadie pagó.
+ */
+export async function getPedidosDeEmpresa(providerId: string): Promise<ItemDeEmpresa[]> {
+  if (!(await logisticaDisponible())) return [];
+  const db = await createClient();
+  const { data, error } = await db
+    .from("order_items")
+    .select(
+      `${COLUMNAS_ITEM_BASE}, ${COLUMNAS_ITEM_0014},
+       orders!inner(id, reference, status, created_at, buyer_name, buyer_phone,
+                    envio_departamento, envio_ciudad, envio_direccion, envio_indicaciones)`,
+    )
+    .eq("provider_id", providerId)
+    .in("orders.status", ["paid", "in_progress", "fulfilled"])
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(`getPedidosDeEmpresa: ${error.message}`);
+
+  type Fila = FilaItem & {
+    orders: {
+      id: string;
+      reference: string;
+      status: OrderStatus;
+      created_at: string;
+      buyer_name: string;
+      buyer_phone: string | null;
+      envio_departamento: string | null;
+      envio_ciudad: string | null;
+      envio_direccion: string | null;
+      envio_indicaciones: string | null;
+    };
+  };
+
+  return (data as unknown as Fila[]).map((f) => ({
+    ...aItem(f),
+    orderId: f.orders.id,
+    reference: f.orders.reference,
+    orderStatus: f.orders.status,
+    createdAt: f.orders.created_at,
+    buyerName: f.orders.buyer_name,
+    buyerPhone: f.orders.buyer_phone ?? undefined,
+    destino: aDestino(f.orders),
+  }));
 }

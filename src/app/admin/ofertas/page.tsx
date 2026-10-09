@@ -106,7 +106,7 @@ export default async function OfertasPage() {
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
-                <EstadoOferta id={o.id} estado={o.status} titulo={o.title} />
+                <EstadoOferta id={o.id} estado={o.status} titulo={o.title} version={o.version} />
                 <Link
                   href={`/admin/ofertas/${o.id}`}
                   aria-label={`Editar ${o.title}`}

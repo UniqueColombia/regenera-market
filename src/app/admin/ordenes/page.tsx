@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EstadoOrden } from "./estado-orden";
-import { listOrders } from "@/lib/orders";
+import { listOrders, vencerPedidosSinPago } from "@/lib/orders";
+import { ETIQUETA_ENVIO } from "@/lib/envios";
 import { money } from "@/lib/format";
 import { COLOR_ESTADO, ETIQUETA_ESTADO } from "@/lib/order-status";
 import { mostrarTelefono } from "@/lib/telefono";
@@ -24,6 +25,10 @@ export const dynamic = "force-dynamic";
  * de `dominio-regenera`.
  */
 export default async function OrdenesPage() {
+  // Los pedidos sin pagar de más de 72 horas se cancelan y devuelven lo que
+  // reservaban. Lo hace `pg_cron` cada hora; esto es la red por si el proyecto
+  // no lo tiene activo. Idempotente: si ya vencieron, no hace nada.
+  await vencerPedidosSinPago();
   const ordenes = await listOrders();
 
   const porCobrar = ordenes.filter((o) => o.status === "pending_payment");
@@ -120,6 +125,8 @@ export default async function OrdenesPage() {
                       <span className="min-w-0 truncate">
                         {i.qty} × {i.titleSnapshot}
                         {i.date && ` · ${i.date}`}
+                        {i.envioEstado && ` · ${ETIQUETA_ENVIO[i.envioEstado].toLowerCase()}`}
+                        {i.guia && ` (${i.transportadora ?? "guía"} ${i.guia})`}
                       </span>
                       <span className="shrink-0 tabular-nums">
                         {money(i.unitPriceCop * i.qty)}
@@ -127,6 +134,14 @@ export default async function OrdenesPage() {
                     </li>
                   ))}
                 </ul>
+
+                {(o.envioTotalCop > 0 || o.destino) && (
+                  <p className="mt-2 text-sm text-muted">
+                    Envío {o.envioTotalCop === 0 ? "gratis" : money(o.envioTotalCop)}
+                    {o.destino &&
+                      ` · a ${o.destino.direccion}, ${o.destino.ciudad}, ${o.destino.departamento}`}
+                  </p>
+                )}
 
                 {o.notes && (
                   <p className="mt-3 rounded-lg bg-sand p-3 text-sm text-muted">
