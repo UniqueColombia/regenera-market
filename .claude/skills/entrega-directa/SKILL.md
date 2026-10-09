@@ -34,10 +34,12 @@ git switch main && git pull origin main
 git merge --no-ff staging -m "release: <alcance> (staging → main)"
 git push origin main
 git switch staging
+git branch -d <rama>                     # la rama de trabajo no queda ni en local
 ```
 
-Solo se empujan `staging` y `main`. **La rama de trabajo no se sube**: queda
-local y evita ruido en GitHub.
+Solo se empujan `staging` y `main`. **La rama de trabajo no se sube y se borra
+al terminar** (Jesús, 2026-10-09: «no dejar la rama creada, ni en mi local ni en
+el repo»). Lo que queda son `staging` y `main` con los cambios.
 
 ## Qué NO se hace, salvo orden expresa
 
