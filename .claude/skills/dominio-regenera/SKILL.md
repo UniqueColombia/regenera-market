@@ -29,8 +29,10 @@ el cambio va en `priceLine()`, y la orden debe guardar la tasa aplicada, no
 solo el monto.
 
 **3. La comisión sale de lo que recibe el proveedor, no se suma al comprador.**
-Por eso en `totalsFor()`: `totalCop === subtotalCop`. No "corrijas" eso sumando
-la comisión: cambiaría el precio que ve el comprador respecto al de la ficha.
+Por eso en `totalsFor()`: `totalCop === subtotalCop + envioTotalCop`. No
+"corrijas" eso sumando la comisión: cambiaría el precio que ve el comprador
+respecto al de la ficha. **El envío (desde la 0014) sí se suma, y no lleva
+comisión**: es plata del vendedor para pagar la transportadora.
 
 **4. El precio mayorista es un umbral por cantidad, no un descuento.**
 `unitPriceFor()` aplica `wholesalePriceCop` solo si
@@ -60,21 +62,32 @@ humano; cuando exista el webhook de Wompi, **hay que validar la firma con
 `WOMPI_EVENTS_SECRET` antes de tocar el estado de la orden**. Un webhook sin
 verificar es un botón de "marcar como pagado" abierto a internet.
 
-**10. Cupos e inventario necesitan transacción de base de datos.** Desde la
-0012 la orden la crea `crear_orden()`, que descuenta el cupo de las
-experiencias **en la misma transacción** y con un `where slots_taken + qty <=
-slots_total` que serializa a dos compradores de la última plaza. Lo que sigue
-sin estar: **el stock se comprueba pero no se descuenta**, y cancelar una orden
-no devuelve el cupo. Cualquier camino nuevo que cree órdenes pasa por esa
-función, nunca por dos `insert` desde la aplicación.
+**10. Cupos e inventario necesitan transacción de base de datos.** La orden la
+crea `crear_orden()`, que descuenta **el cupo y, desde la 0014, el stock** en
+la misma transacción, con la condición dentro del `update` (`where stock >=
+qty`, `where slots_taken + qty <= slots_total`): dos compradores de la última
+unidad se turnan en la fila y el segundo no la encuentra. Cancelar o devolver
+una orden **devuelve el stock y el cupo una sola vez** (trigger
+`orders_liberar_reservas` con las marcas `stock_descontado` y
+`cupo_descontado`), reabrirla los vuelve a reservar o falla, y un pedido sin
+pagar **vence a las 72 horas** (`vencer_pedidos_sin_pago()`). Cualquier camino
+nuevo que cree órdenes pasa por esa función, nunca por dos `insert` desde la
+aplicación.
 
 **10b. Comprar exige cuenta, y la orden es idempotente.** Desde el 2026-09-26.
 `buyer_id` sale de `auth.uid()` dentro de `crear_orden()`, no de un correo del
 formulario, y la orden se lee por RLS (`orders_buyer_read`). El `id` de la orden
-lo genera el navegador una vez por cesta y es la llave de idempotencia: el
-mismo intento devuelve la misma orden. **Los precios de la orden los calcula la
+lo genera el navegador una vez por cesta, **lo guarda en `sessionStorage`**
+(sobrevive a recargar la página) y es la llave de idempotencia: el mismo
+intento devuelve la misma orden. **Los precios de la orden los calcula la
 función contra el catálogo** — es el gemelo SQL de `pricing.ts`; si cambias uno,
-cambia el otro.
+cambia el otro. El envío también: `envioCop` de `priceLine()` y `_envio` de
+`crear_orden()`.
+
+**10c. Una orden solo se mueve por los saltos permitidos.** `TRANSICIONES` en
+`src/lib/order-status.ts` pinta los botones; el trigger `orders_transicion`
+(0014) es la barrera. Cualquier `update` de estado lleva además
+`.eq("status", desde)`: si no encuentra la fila, otro la movió primero.
 
 **11. La referencia legible no garantiza unicidad.** La genera `crear_orden()`
 (y `generateReference()` en el camino viejo). Es
@@ -134,3 +147,49 @@ URL compartible e indexable. No los conviertas en estado de cliente.
 
 **21. `src/data/` es semilla de demostración.** Proveedores ficticios. No los
 presentes como reales en copy, ni en material comercial, ni en un hito.
+
+## Envíos y reseñas (desde la 0014)
+
+**22. Despacha quien vende, y lo decide al publicar.** Decisión del 2026-10-09:
+el producto dice si lo lleva el vendedor o va por una transportadora que él
+elige (Aveonline, Servientrega…), cuánto cuesta el envío (tarifa fija por
+línea, 0 = gratis) y en cuántos días hábiles llega. Seregenera no despacha:
+cobra el envío, se lo pasa entero y le da al comprador la guía. Todo eso se
+congela en `order_items` como el precio (invariante 6). El día que haya
+convenio con Aveonline, su cotización reemplaza la tarifa fija detrás de una
+interfaz (`nueva-integracion`); ninguna pantalla cambia.
+
+**23. Solo reseña quien compró, y cuando ya tiene lo que compró.** Un producto
+entregado, una experiencia cuya fecha pasó o un pedido cumplido —
+`puede_resenar()` en la base, `puedeResenar()` en `src/lib/envios.ts`, gemelas.
+Una reseña por ítem comprado, corregible; la escribe `calificar()`, nunca un
+`insert` directo (no hay política de escritura). El equipo oculta, no edita.
+
+## Idempotencia y concurrencia
+
+**Idempotencia**: repetir la misma operación —doble clic, reintento tras un
+corte, otra pestaña— la aplica una sola vez. **Concurrencia**: dos operaciones
+distintas sobre el mismo recurso a la vez no se pisan. Las dos se verificaron en
+todo el proyecto el 2026-10-09 (hito de esa fecha). Para código nuevo:
+
+**24. Una creación lleva llave del navegador.** El `id` lo genera el cliente una
+vez por intento (`crypto.randomUUID()`, en el manejador, no en el render) y el
+servidor lo usa como clave primaria: el segundo `insert` choca y se devuelve lo
+creado. Así funcionan la orden, la oferta (`escribirOferta()`) y la publicación
+de la Comunidad.
+
+**25. Leer y después escribir no protege de nada.** Una comprobación en la
+aplicación la pasan las dos peticiones que llegan a la vez. La condición va
+**dentro** de la escritura (`update ... where status = $visto`, `where stock >=
+qty`, `where version = $editada`) o en la base con candado (`for update`,
+`pg_advisory_xact_lock`). Si el `update` no encuentra fila, se relee para decir
+por qué: ya estaba hecho (no es error) o alguien llegó antes (sí lo es).
+
+**26. Un efecto secundario solo lo dispara quien hizo el cambio.** Correos y
+puntos se mandan cuando la operación **cambió** algo (`cambiado: true`,
+`repetida: false`, una fila afectada), nunca por el solo hecho de que se llamó.
+Los puntos además llevan `referencia` única en `experience_events`.
+
+**27. Los candados se toman siempre en el mismo orden.** Orden antes que ítem;
+líneas por `listing_id, date`; proveedores por `provider_id`. Dos operaciones
+que toman las mismas filas en orden cruzado se interbloquean.

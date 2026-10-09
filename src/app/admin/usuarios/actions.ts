@@ -84,7 +84,18 @@ export async function cambiarRol(datos: unknown): Promise<ResultadoRol> {
       .eq("user_id", userId)
       .eq("role", role)
       .select("user_id");
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      // El freno de verdad está en la base (`user_roles_ultimo_admin`, 0014):
+      // el conteo de arriba lo pasan dos administradores que se quitan el rol
+      // el uno al otro a la vez; el trigger, no.
+      if (error.message.includes("ultimo-admin")) {
+        return {
+          ok: false,
+          error: "Es el único administrador que queda. Nombra a otro antes de quitárselo.",
+        };
+      }
+      return { ok: false, error: error.message };
+    }
     // RLS no da error cuando niega: devuelve cero filas.
     if (!data || data.length === 0) {
       return { ok: false, error: "No se pudo quitar el rol. ¿Sigues siendo administrador?" };

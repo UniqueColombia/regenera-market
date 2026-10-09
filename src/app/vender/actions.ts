@@ -322,6 +322,12 @@ async function postular(form: unknown): Promise<ResultadoPostulacion> {
     activado?: boolean;
     provider_slug?: string;
     provider_id?: string;
+    /**
+     * Desde la 0014: la misma postulación ya había llegado hace menos de diez
+     * minutos (doble clic, reintento). La base devuelve la de entonces y aquí
+     * no se manda el correo otra vez.
+     */
+    repetida?: boolean;
   };
   const activada = Boolean(resultado.activado);
 
@@ -363,23 +369,27 @@ async function postular(form: unknown): Promise<ResultadoPostulacion> {
    * Es la regla de `nueva-integracion` llevada hasta el final: el fallo de un
    * servicio externo no es un error de nuestra aplicación.
    */
-  let correoEnviado = false;
-  try {
-    const envio = await enviarCorreo(
-      correoPostulacionRecibida({
-        empresa: d.name,
-        contacto: d.contactName,
-        correo: d.email,
-        activada,
-        slug: resultado.provider_slug,
-      }),
-    );
-    correoEnviado = envio.ok;
-    if (!envio.ok) {
-      console.error(`[postular] respaldo no enviado (${envio.via}): ${envio.error}`);
+  // Una postulación repetida ya mandó su correo con el primer envío: se
+  // responde como si hubiera salido, que es lo que pasó.
+  let correoEnviado = Boolean(resultado.repetida);
+  if (!resultado.repetida) {
+    try {
+      const envio = await enviarCorreo(
+        correoPostulacionRecibida({
+          empresa: d.name,
+          contacto: d.contactName,
+          correo: d.email,
+          activada,
+          slug: resultado.provider_slug,
+        }),
+      );
+      correoEnviado = envio.ok;
+      if (!envio.ok) {
+        console.error(`[postular] respaldo no enviado (${envio.via}): ${envio.error}`);
+      }
+    } catch (e) {
+      registrarFallo("postular-correo", e, { activada });
     }
-  } catch (e) {
-    registrarFallo("postular-correo", e, { activada });
   }
 
   // Se registra quién postuló solo para poder rastrear un abuso en los registros

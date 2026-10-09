@@ -60,6 +60,9 @@ export async function cambiarEstadoOrden(datos: unknown): Promise<ResultadoOrden
   }
 
   const desde = actual.status as OrderStatus;
+  // Ya está como se pedía: es un doble clic, o la misma decisión desde otra
+  // pestaña. No es un error y no se avisa otra vez.
+  if (desde === parsed.data.estado) return { ok: true };
   if (!TRANSICIONES[desde].includes(parsed.data.estado)) {
     return {
       ok: false,
@@ -67,15 +70,48 @@ export async function cambiarEstadoOrden(datos: unknown): Promise<ResultadoOrden
     };
   }
 
+  // **`eq("status", desde)`: se cambia solo si sigue como se leyó.** Sin esto,
+  // dos administradores que confirman el pago y cancelan la misma orden a la
+  // vez pasaban los dos la comprobación de arriba, ganaba el último en
+  // escribir y al comprador le llegaban los dos correos. Con la condición, el
+  // segundo encuentra cero filas. La base lo vuelve a comprobar con el
+  // trigger `orders_transicion` (0014), que ve la fila ya bloqueada.
   const { data, error } = await supabase
     .from("orders")
     .update({ status: parsed.data.estado })
     .eq("id", parsed.data.orderId)
+    .eq("status", desde)
     .select("id");
 
-  if (error) return { ok: false, error: error.message };
-  // RLS no da error cuando niega: devuelve cero filas afectadas.
+  if (error) {
+    // Reabrir una orden cancelada vuelve a reservar su stock y su cupo
+    // (`orders_liberar_reservas`); si ya se vendieron a otro, no se puede.
+    if (error.message.includes("sin-stock")) {
+      return { ok: false, error: `No se puede reabrir: ya no quedan unidades de «${error.hint ?? "un producto"}».` };
+    }
+    if (error.message.includes("sin-cupo")) {
+      return { ok: false, error: `No se puede reabrir: ya no queda cupo para «${error.hint ?? "una experiencia"}» en esa fecha.` };
+    }
+    if (error.message.includes("transicion-invalida")) {
+      return { ok: false, error: "La orden cambió mientras la mirabas. Recarga para ver cómo quedó." };
+    }
+    return { ok: false, error: error.message };
+  }
   if (!data || data.length === 0) {
+    // O RLS lo negó (cero filas, sin error), o la orden ya no estaba como se
+    // leyó: otro la movió entretanto.
+    const { data: ahora } = await supabase
+      .from("orders")
+      .select("status")
+      .eq("id", parsed.data.orderId)
+      .maybeSingle();
+    if (ahora?.status === parsed.data.estado) return { ok: true };
+    if (ahora) {
+      return {
+        ok: false,
+        error: `Otra persona la pasó a «${ETIQUETA_ESTADO[ahora.status as OrderStatus].toLowerCase()}» mientras la mirabas. Recarga la lista.`,
+      };
+    }
     return { ok: false, error: "No se pudo actualizar. ¿Sigues siendo administrador?" };
   }
 

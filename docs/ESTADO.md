@@ -11,6 +11,33 @@ qué hacer, empieza aquí y no en el ROADMAP.
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
   empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.
 
+> ## 🔴 Nuevo del 2026-10-09: aplicar la migración `0014`
+>
+> **Envíos, reseñas y que ninguna operación cuente dos veces.** El código ya está
+> en `main` y **no rompe nada sin la migración**: pregunta si está y, si no, el sitio
+> sigue como antes. Al aplicarla se enciende solo (en menos de un minuto, sin
+> redesplegar):
+>
+> - el vendedor declara cómo llega cada producto —lo lleva él o una transportadora
+>   que elige, costo del envío, días hábiles— y despacha con guía desde
+>   **`/cuenta/empresa/pedidos`**;
+> - la cesta cobra el envío y pide la dirección; el comprador sigue la guía, marca
+>   «ya me llegó» y **reseña**; el equipo modera en **`/admin/resenas`**;
+> - **el stock se descuenta al comprar**, cancelar lo devuelve, y los pedidos sin
+>   pagar vencen a las 72 horas.
+>
+> **Cómo:** Supabase → SQL Editor → pegar `supabase/migrations/0014_envios_resenas_y_concurrencia.sql`
+> entero → Run. Comprobación al final del archivo. Si dice `pg_cron no disponible`,
+> no pasa nada: los pedidos vencen al abrir `/admin/ordenes`.
+>
+> Después: probar el ciclo con cuentas reales (lista en el
+> [hito](../.claude/hitos/2026-10-09-envios-resenas-e-idempotencia.md)) y pedirles a
+> los proveedores con productos que editen sus ofertas para declarar el envío.
+>
+> El mismo día se arregló lo que reportó Ivan: crear un producto fallaba con
+> «Falta corregir: Dirección web, Duración…» (campos que el formulario ni mostraba)
+> y el encabezado se salía de la pantalla en un Samsung con zoom.
+
 > ## 🟠 Para Ivan, en este orden
 >
 > ### Paso 0 — Antes de su primer `git pull`: alinear el clon

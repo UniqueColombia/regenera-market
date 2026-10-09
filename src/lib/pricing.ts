@@ -36,6 +36,13 @@ export interface PricedLine {
    */
   commissionRate: number;
   commissionCop: number;
+  /**
+   * El envío de esta línea, desde la 0014: lo que el vendedor declaró para el
+   * producto, **una vez por línea** sin importar las unidades. Cero en
+   * experiencias, servicios y productos que no lo declararon. No lleva
+   * comisión: se le pasa entero al vendedor para pagar la transportadora.
+   */
+  envioCop: number;
   impact: ImpactMetrics;
 }
 
@@ -77,6 +84,7 @@ export function priceLine(
     // Al peso, nunca `toFixed(2)`: todo el dinero del proyecto es entero en COP
     // (invariante 5). Con tasas como 0,085 esto importa más que con 0,12.
     commissionCop: Math.round(subtotalCop * commissionRate),
+    envioCop: listing.kind === "product" ? (listing.envio?.costoCop ?? 0) : 0,
     impact: {
       co2KgSaved: mul(listing.impact.co2KgSaved, line.qty),
       waterLitersSaved: mul(listing.impact.waterLitersSaved, line.qty),
@@ -97,10 +105,14 @@ export interface CartTotals {
   quotable: PricedLine[];
   subtotalCop: number;
   commissionTotalCop: number;
+  /** La suma del envío de las líneas comprables. */
+  envioTotalCop: number;
   totalCop: number;
   impact: ImpactMetrics;
   /** Proveedores distintos involucrados, para explicar el reparto */
   providerCount: number;
+  /** ¿Hay algún producto físico que comprar? Entonces el pedido necesita destino. */
+  hayFisicos: boolean;
 }
 
 export function totalsFor(lines: PricedLine[]): CartTotals {
@@ -112,6 +124,7 @@ export function totalsFor(lines: PricedLine[]): CartTotals {
     (s, l) => s + l.commissionCop,
     0,
   );
+  const envioTotalCop = purchasable.reduce((s, l) => s + l.envioCop, 0);
 
   const impact: ImpactMetrics = {};
   for (const l of purchasable) {
@@ -131,10 +144,14 @@ export function totalsFor(lines: PricedLine[]): CartTotals {
     quotable,
     subtotalCop,
     commissionTotalCop,
-    // El comprador paga el precio de lista: la comisión sale de lo que recibe el
-    // proveedor, no se suma encima. Por eso el total es el subtotal.
-    totalCop: subtotalCop,
+    envioTotalCop,
+    // El comprador paga el precio de lista más el envío. La comisión sale de lo
+    // que recibe el proveedor y no se suma encima (invariante 3); tampoco se
+    // calcula sobre el envío. Gemelo del `update orders` final de
+    // `crear_orden()` en la migración 0014.
+    totalCop: subtotalCop + envioTotalCop,
     impact,
     providerCount: new Set(lines.map((l) => l.listing.providerId)).size,
+    hayFisicos: purchasable.some((l) => l.listing.kind === "product"),
   };
 }

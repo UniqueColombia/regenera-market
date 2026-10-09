@@ -94,6 +94,11 @@ const PublicacionSchema = z.object({
   topic: z.enum(TEMAS, "Elige de qué va tu publicación"),
   /** Vacío = publica a título personal. */
   providerId: z.union([z.uuid(), z.literal("")]).optional(),
+  /**
+   * La llave de la publicación: el `id` que tendrá, generado por el navegador
+   * una vez por publicación. Ver `publicar()`.
+   */
+  clave: z.uuid().optional(),
 });
 
 export type ResultadoReaccion = { ok: true } | { ok: false; error: string };
@@ -127,13 +132,33 @@ export async function publicar(datos: unknown): Promise<ResultadoPublicacion> {
   // `author_name` no se manda: lo sella el trigger `community_posts_derivados`
   // desde `profiles`. Mandarlo desde aquí sería aceptar del cliente el nombre
   // con el que se firma algo en público.
+  // **La llave hace que publicar dos veces no publique dos veces.** Quien
+  // pulsaba «Publicar», no veía la respuesta y volvía a pulsar recibía, dentro
+  // de los 30 segundos, un «espera un poco» por una publicación que sí había
+  // salido; pasados los 30, una segunda publicación igual. Ahora el segundo
+  // intento choca con la clave primaria —o con el tope de ritmo, que corre
+  // antes— y se comprueba si la publicación ya existe: si existe, salió bien.
   const { error } = await db.from("community_posts").insert({
+    ...(d.clave ? { id: d.clave } : {}),
     author_id: usuario.id,
     provider_id: d.providerId || null,
     title: d.title,
     body: d.body,
     topic: d.topic,
   });
+
+  if (error && d.clave) {
+    const { data: previa } = await db
+      .from("community_posts")
+      .select("id")
+      .eq("id", d.clave)
+      .eq("author_id", usuario.id)
+      .maybeSingle();
+    if (previa) {
+      revalidarMuro();
+      return { ok: true };
+    }
+  }
 
   if (error) {
     const tope = motivoDeTope(error.message);

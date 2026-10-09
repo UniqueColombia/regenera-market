@@ -1,4 +1,4 @@
-import type { ImpactMetrics, ListingKind } from "@/lib/types";
+import type { EnvioOferta, ImpactMetrics, ListingKind } from "@/lib/types";
 
 export type { CartLine } from "@/lib/types";
 
@@ -21,15 +21,26 @@ export interface PricedCartLineDTO {
   unitPriceCop: number;
   wholesaleApplied: boolean;
   subtotalCop: number;
+  /** Desde la 0014. El envío de esta línea, una vez por línea. */
+  envioCop: number;
+  /** Cómo llega, para decirlo en la cesta: «Envío gratis · de 2 a 5 días hábiles». */
+  envio?: EnvioOferta;
 }
 
 export interface PricedCartDTO {
   lines: PricedCartLineDTO[];
   subtotalCop: number;
+  envioTotalCop: number;
   totalCop: number;
   commissionTotalCop: number;
   impact: ImpactMetrics;
   providerCount: number;
+  /**
+   * ¿Hay productos físicos y la 0014 está aplicada? Entonces el formulario
+   * pide a dónde mandarlos. Sin la 0014 no se pide: la `crear_orden()` vieja
+   * no sabría qué hacer con el destino.
+   */
+  pideDestino: boolean;
   /**
    * Líneas que el catálogo ya no puede valorizar, para que el cliente las
    * descarte. Llevan la **identidad completa** y no solo el identificador: una

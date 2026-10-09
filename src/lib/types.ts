@@ -161,6 +161,57 @@ export interface Listing {
     deliveryTime: string;
     scope: string[];
   };
+
+  /**
+   * Cómo llega un producto físico, desde la 0014. Lo decide quien lo vende.
+   * Ausente en experiencias, servicios y productos que todavía no lo declararon.
+   */
+  envio?: EnvioOferta;
+
+  /**
+   * Versión de la fila, desde la 0014. La sube un trigger con cada escritura;
+   * el formulario la devuelve al guardar para no pisar un cambio que llegó
+   * mientras se editaba. Ver la sección 1.b de la migración.
+   */
+  version?: number;
+}
+
+/** Quién lleva el producto hasta el comprador. */
+export type Despacho = "vendedor" | "transportadora";
+
+export interface EnvioOferta {
+  despacho?: Despacho;
+  /** Aveonline, Servientrega, Coordinadora… La elige el vendedor. */
+  transportadora?: string;
+  /**
+   * Lo que cuesta enviarlo, una vez por pedido sin importar las unidades.
+   * 0 es envío gratis; ausente es «no lo declaró» y no se cobra.
+   */
+  costoCop?: number;
+  /** Días hábiles desde que se confirma el pago. */
+  diasMin?: number;
+  diasMax?: number;
+}
+
+/** Cómo va un ítem que se despacha. Las experiencias y los servicios no tienen. */
+export type EnvioEstado = "pendiente" | "despachado" | "entregado";
+
+/** Una reseña de quien compró, tal como se muestra. */
+export interface Resena {
+  id: string;
+  listingId: string;
+  rating: number;
+  body: string;
+  /** «Ana M.»: abreviado y congelado al escribirla. */
+  autorNombre: string;
+  createdAt: string;
+  editada: boolean;
+}
+
+/** El promedio de estrellas y de cuántas reseñas sale. */
+export interface Calificacion {
+  promedio: number;
+  cantidad: number;
 }
 
 export interface CartLine {
@@ -179,6 +230,8 @@ export type OrderStatus =
   | "refunded";
 
 export interface OrderItem {
+  /** Desde la 0014 se lee siempre: es lo que se despacha, se entrega y se reseña. */
+  id?: string;
   listingId: string;
   /** Se guarda el proveedor en el ítem: una orden puede tener varios */
   providerId: string;
@@ -197,11 +250,32 @@ export interface OrderItem {
    * aplicó. Sin esto, una orden vieja no se puede auditar.
    */
   commissionRate: number;
+
+  /** Desde la 0014. Lo que se cobró por enviar este ítem, congelado. */
+  envioCop?: number;
+  despacho?: Despacho;
+  transportadora?: string;
+  entregaDiasMin?: number;
+  entregaDiasMax?: number;
+  envioEstado?: EnvioEstado;
+  guia?: string;
+  despachadoAt?: string;
+  entregadoAt?: string;
+}
+
+/** A dónde va un pedido con productos físicos. */
+export interface DestinoEnvio {
+  departamento: string;
+  ciudad: string;
+  direccion: string;
+  indicaciones?: string;
 }
 
 export interface Order {
   id: string;
   reference: string;
+  /** Quién compró. Lo que decide si quien mira el pedido puede confirmar la entrega y reseñar. */
+  buyerId?: string;
   buyerEmail: string;
   buyerName: string;
   buyerCompany?: string;
@@ -213,8 +287,12 @@ export interface Order {
   items: OrderItem[];
   subtotalCop: number;
   commissionTotalCop: number;
+  /** Desde la 0014. `totalCop = subtotalCop + envioTotalCop`. */
+  envioTotalCop: number;
   totalCop: number;
   status: OrderStatus;
+  /** Desde la 0014, solo si la orden lleva productos físicos. */
+  destino?: DestinoEnvio;
   /** Impacto agregado de la orden, para el certificado del comprador */
   impact: ImpactMetrics;
   notes?: string;

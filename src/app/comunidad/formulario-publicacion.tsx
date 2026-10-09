@@ -38,11 +38,17 @@ export function FormularioPublicacion({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pendiente, iniciar] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  // La llave de esta publicación: se genera al primer envío, se reutiliza en
+  // los reintentos y se descarta al publicar. Ver `publicar()`.
+  const clave = useRef<string | null>(null);
 
   function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-    const datos = Object.fromEntries(new FormData(form));
+    const datos = {
+      ...Object.fromEntries(new FormData(form)),
+      clave: (clave.current ??= crypto.randomUUID()),
+    };
 
     iniciar(async () => {
       const r = await publicar(datos);
@@ -50,6 +56,7 @@ export function FormularioPublicacion({
         setErrors(r.errors);
         return;
       }
+      clave.current = null;
       setErrors({});
       form.reset();
       setLargo(0);

@@ -22,6 +22,11 @@ import type { OrderStatus } from "./types";
  * y el descuadre aparece semanas después sin rastro de quién lo hizo.
  *
  * `refunded` solo sale de una orden cobrada: no se devuelve lo que no se cobró.
+ *
+ * **Gemela del trigger `orders_transicion` de la migración 0014.** La tabla de
+ * aquí decide qué botones se pintan; la de la base es la barrera, y la aplica
+ * sobre la fila ya bloqueada, que es lo que impide que dos cambios simultáneos
+ * pasen los dos. Si cambia una, cambia la otra.
  */
 export const TRANSICIONES: Record<OrderStatus, OrderStatus[]> = {
   pending_payment: ["paid", "cancelled"],

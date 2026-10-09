@@ -602,6 +602,57 @@ export function correoEstadoPedido(d: {
 }
 
 /**
+ * Un producto del pedido salió: va en camino, y con qué guía seguirlo.
+ *
+ * Se manda desde `despachar()` de `/cuenta/empresa/pedidos`, **solo cuando el
+ * despacho ocurrió de verdad** (`cambiado: true` de `despachar_item()`): volver
+ * a pulsar el botón o corregir la guía no lo repite.
+ */
+export function correoPedidoDespachado(d: {
+  nombre: string;
+  correo: string;
+  referencia: string;
+  titulo: string;
+  transportadora?: string;
+  guia?: string;
+}): Mensaje {
+  const url = sitio();
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+  const enlace = `${url}/orden/${encodeURIComponent(d.referencia)}`;
+  const seguimiento = d.guia
+    ? `Va por <strong style="color:${TINTA};">${escapar(d.transportadora ?? "transportadora")}</strong> con la guía <strong style="color:${TINTA};">${escapar(d.guia)}</strong>.`
+    : "Lo lleva el propio vendedor; te contactará para coordinar la entrega.";
+
+  const cuerpo =
+    seccion(
+      h1("Tu pedido va en camino") +
+        p(
+          `${nombre}, <strong style="color:${TINTA};">${escapar(d.titulo)}</strong> de tu pedido <strong style="color:${TINTA};">${escapar(d.referencia)}</strong> ya salió.`,
+        ) +
+        p(seguimiento) +
+        p("Cuando te llegue, márcalo como recibido desde tu pedido y cuéntanos qué tal te pareció."),
+    ) + boton(enlace, "Ver mi pedido");
+
+  return {
+    para: d.correo,
+    asunto: `Tu pedido ${d.referencia} va en camino`,
+    html: envolver({ titulo: "Tu pedido va en camino", preencabezado: `${d.titulo} ya salió`, cuerpo }),
+    texto: [
+      "Tu pedido va en camino",
+      "",
+      `«${d.titulo}» de tu pedido ${d.referencia} ya salió.`,
+      d.guia
+        ? `Transportadora: ${d.transportadora ?? "—"} · Guía: ${d.guia}`
+        : "Lo lleva el propio vendedor; te contactará para coordinar la entrega.",
+      "",
+      `Ver mi pedido: ${enlace}`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
+
+/**
  * Le avisa a una empresa que un pedido con sus productos ya está pagado.
  *
  * Se manda al **confirmar el pago**, no al crear el pedido: antes de eso no hay
@@ -627,7 +678,7 @@ export function correoPedidoPagadoProveedor(d: {
           `${nombre}, el pedido <strong style="color:${TINTA};">${escapar(d.referencia)}</strong> ya está pagado y incluye productos de ${escapar(d.empresa)}:`,
         ) +
         p(lista),
-    ) + boton(`${url}/cuenta/empresa`, "Ir a mi empresa");
+    ) + boton(`${url}/cuenta/empresa/pedidos`, "Ver qué despachar");
 
   return {
     para: d.correo,
@@ -643,7 +694,7 @@ export function correoPedidoPagadoProveedor(d: {
       `El pedido ${d.referencia} ya está pagado y incluye productos de ${d.empresa}:`,
       ...d.lineas.map((l) => `${l.qty} × ${l.titulo}`),
       "",
-      `Tu empresa: ${url}/cuenta/empresa`,
+      `Qué despachar: ${url}/cuenta/empresa/pedidos`,
       "",
       "— Seregenera",
     ].join("\n"),

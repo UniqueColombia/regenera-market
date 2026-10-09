@@ -17,10 +17,13 @@ export function EstadoOferta({
   id,
   estado,
   titulo,
+  version,
 }: {
   id: string;
   estado: ReviewStatus;
   titulo: string;
+  /** La versión que se está viendo: se aprueba esa y no otra (0014). */
+  version?: number;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +41,7 @@ export function EstadoOferta({
     }
 
     iniciar(async () => {
-      const r = await cambiarEstadoOferta({ id, status: destino });
+      const r = await cambiarEstadoOferta({ id, status: destino, desde: estado, version });
       if (r.ok) {
         setError(null);
         router.refresh();
