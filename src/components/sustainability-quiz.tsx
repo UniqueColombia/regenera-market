@@ -31,7 +31,7 @@ export function SustainabilityQuiz() {
       <div>
         {DIMENSIONS.map((dim) => (
           <section key={dim.id} className="mb-8">
-            <div className="flex items-baseline justify-between gap-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <h3 className="font-display text-xl text-ink">{dim.label}</h3>
               <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-brand-600">
                 {dim.weight}% del puntaje
@@ -83,7 +83,7 @@ export function SustainabilityQuiz() {
         ))}
 
         <section className="mb-8">
-          <div className="flex items-baseline justify-between gap-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <h3 className="font-display text-xl text-ink">
               Certificaciones vigentes
             </h3>

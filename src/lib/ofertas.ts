@@ -18,13 +18,20 @@ import { DEPARTMENTS, IDS_CATEGORIA, categoriaPorId } from "./taxonomy";
  * Las validaciones espejan los `check` de la tabla por lo mismo que antes: la
  * base rechaza con `violates check constraint "wholesale_needs_qty"`, que no le
  * dice nada a quien llena el formulario.
+ *
+ * **Los campos que el formulario puede no pintar aceptan `null`** (`.nullish()`,
+ * no `.optional()`). El formulario solo pinta los campos del tipo elegido y el
+ * slug al editar; para un campo que no está en la página `FormData.get()`
+ * devuelve `null`, y `.optional()` solo admite `undefined`. Pasó el 2026-10-08:
+ * crear un producto fallaba con «Falta corregir: Dirección web, Duración, Mínimo
+ * de personas…», todos campos que la persona ni veía.
  */
 
 /** Texto que llega vacío del formulario: se guarda como null, no como "". */
 const textoOpcional = z
   .string()
   .trim()
-  .optional()
+  .nullish()
   .transform((v) => (v ? v : null));
 
 /**
@@ -36,14 +43,14 @@ const textoOpcional = z
 const numeroOpcional = z
   .string()
   .trim()
-  .optional()
+  .nullish()
   .transform((v) => (v ? Number(v) : null))
   .refine((v) => v === null || Number.isFinite(v), "Escribe un número");
 
 /** Una lista escrita a razón de una por línea. Es lo que un `text[]` espera. */
 const lineas = z
   .string()
-  .optional()
+  .nullish()
   .transform((v) =>
     (v ?? "")
       .split("\n")
@@ -55,7 +62,7 @@ export const CamposOferta = z.object({
   id: z.union([z.uuid(), z.literal("")]).optional(),
   kind: z.enum(["product", "experience", "service"]),
   title: z.string().trim().min(4, "Escribe un título").max(140, "El título es demasiado largo"),
-  slug: z.string().trim().optional(),
+  slug: z.string().trim().nullish(),
   summary: z.string().trim().max(300, "El resumen se pasa de 300 caracteres").optional(),
   description: z.string().trim().max(5000, "La descripción es demasiado larga").optional(),
   category: z.enum(IDS_CATEGORIA, "Elige una categoría"),
