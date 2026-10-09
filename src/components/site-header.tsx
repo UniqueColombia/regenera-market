@@ -89,7 +89,13 @@ export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema
       style={{ viewTransitionName: "encabezado" }}
       className="sticky top-0 z-50 border-b border-hairline bg-cream/90 backdrop-blur"
     >
-      <div className="container-page flex h-16 items-center gap-4">
+      {/* Por debajo de 360 px no caben logo y botones a la vez. No es un
+          teléfono raro: un Samsung con el zoom de pantalla o la letra grande
+          le da a la página 320 px o menos, y ahí la cesta y el menú quedaban
+          fuera de la pantalla. Se cede espacio en este orden: el hueco del
+          medio, la cesta (la cinta de abajo ya la tiene, con su contador) y,
+          por debajo de 320 px, el nombre junto al isotipo. */}
+      <div className="container-page flex h-16 items-center gap-2 min-[360px]:gap-4">
         <Link href="/" translate="no" className="group flex items-center gap-2">
           {/* Compacto y no detalle: a 36 px los nervios y los continentes
               se empastan. Ver src/components/isotipo.tsx */}
@@ -101,7 +107,9 @@ export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema
             variante="compacto"
             className="h-9 w-auto text-brand-600 transition-transform duration-300 group-hover:scale-110 group-active:scale-110 motion-reduce:transition-none"
           />
-          <span className="leading-none">
+          {/* `sr-only` y no `hidden`: el nombre sigue siendo el texto del
+              enlace para un lector de pantalla aunque no quepa a la vista. */}
+          <span className="sr-only leading-none min-[320px]:not-sr-only">
             <span className="block font-display text-lg font-semibold text-brand-700 transition-colors group-hover:text-brand-500 group-active:text-brand-500">
               Seregenera
             </span>
@@ -595,7 +603,7 @@ function CartButton() {
   return (
     <Link
       href="/carrito"
-      className="relative rounded-full p-2 transition-colors hover:bg-sand hover:text-brand-700"
+      className="relative hidden rounded-full p-2 transition-colors hover:bg-sand hover:text-brand-700 min-[360px]:block"
       aria-label={`Cesta${count ? `, ${count} artículos` : ""}`}
     >
       <ShoppingBasket className="size-5" />
