@@ -6,8 +6,7 @@ import {
   Tags,
   Users,
 } from "lucide-react";
-import { listOrders } from "@/lib/orders";
-import { getApplications, getListingsForAdmin, getProvidersForReview, getUsuarios } from "@/lib/repo";
+import { getResumenAdmin, getUsuarios } from "@/lib/repo";
 import { money } from "@/lib/format";
 
 /**
@@ -25,24 +24,17 @@ import { money } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  // En paralelo: son cinco consultas independientes y en serie se notaría.
-  const [proveedores, postulaciones, ofertas, ordenes, usuarios] = await Promise.all([
-    getProvidersForReview(),
-    getApplications(),
-    getListingsForAdmin(),
-    listOrders(),
-    getUsuarios(),
-  ]);
-
-  const postulacionesPendientes = postulaciones.filter(
-    (p) => p.status === "pending_review",
-  ).length;
-  const proveedoresPendientes = proveedores.filter(
-    (p) => p.status === "pending_review",
-  ).length;
-  const ofertasSinPublicar = ofertas.filter((o) => o.status !== "approved").length;
-  const ordenesPorCobrar = ordenes.filter((o) => o.status === "pending_payment");
-  const porCobrarCop = ordenesPorCobrar.reduce((suma, o) => suma + o.totalCop, 0);
+  // Conteos, no listas (ver `getResumenAdmin`). Los usuarios siguen viniendo
+  // enteros porque viven en `auth.users`, que solo se lee por la RPC
+  // `admin_listar_usuarios()`; son pocos y la RPC no tiene variante de conteo.
+  const [resumen, usuarios] = await Promise.all([getResumenAdmin(), getUsuarios()]);
+  const {
+    postulacionesPendientes,
+    proveedoresPendientes,
+    ofertasSinPublicar,
+    ordenesPorCobrar,
+    porCobrarCop,
+  } = resumen;
 
   const tarjetas = [
     {
@@ -60,12 +52,12 @@ export default async function AdminPage() {
       href: "/admin/ordenes" as const,
       icono: Receipt,
       titulo: "Órdenes por confirmar",
-      dato: ordenesPorCobrar.length,
+      dato: ordenesPorCobrar,
       pie:
-        ordenesPorCobrar.length === 0
+        ordenesPorCobrar === 0
           ? "Ningún pago pendiente"
           : `${money(porCobrarCop)} en juego`,
-      urgente: ordenesPorCobrar.length > 0,
+      urgente: ordenesPorCobrar > 0,
     },
     {
       href: "/admin/proveedores" as const,
@@ -74,7 +66,7 @@ export default async function AdminPage() {
       dato: proveedoresPendientes,
       pie:
         proveedoresPendientes === 0
-          ? `${proveedores.length} en total`
+          ? `${resumen.proveedores} en total`
           : "esperando decisión",
       urgente: proveedoresPendientes > 0,
     },
@@ -83,7 +75,7 @@ export default async function AdminPage() {
       icono: Tags,
       titulo: "Ofertas sin publicar",
       dato: ofertasSinPublicar,
-      pie: `${ofertas.length - ofertasSinPublicar} publicadas en el catálogo`,
+      pie: `${resumen.ofertas - ofertasSinPublicar} publicadas en el catálogo`,
       urgente: false,
     },
     {

@@ -144,14 +144,22 @@ export interface Listing {
   featured: boolean;
   createdAt: string;
 
-  /** Solo para kind === "experience" */
+  /**
+   * Siempre presente si kind === "experience". Los datos sueltos son opcionales
+   * porque el formulario no los exige: una experiencia recién publicada puede
+   * no tener grupo ni punto de encuentro, y aun así tiene que poder verse y
+   * reservarse. Quien la pinta muestra lo que haya.
+   */
   experience?: {
-    durationHours: number;
-    minPeople: number;
-    maxPeople: number;
-    meetingPoint: string;
+    durationHours?: number;
+    minPeople?: number;
+    maxPeople?: number;
+    meetingPoint?: string;
     includes: string[];
-    /** Fechas ISO con cupo disponible */
+    /**
+     * Fechas ISO con cupo disponible. Vacía = se reserva sin fecha, que es lo
+     * que acepta `crear_orden()` mientras no haya cupos cargados.
+     */
     availability: { date: string; slotsLeft: number }[];
   };
 

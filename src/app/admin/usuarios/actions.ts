@@ -59,10 +59,14 @@ export async function cambiarRol(datos: unknown): Promise<ResultadoRol> {
       };
     }
 
-    const { count } = await supabase
+    const { count, error: errorConteo } = await supabase
       .from("user_roles")
       .select("user_id", { count: "exact", head: true })
       .eq("role", "admin");
+    // Si el conteo falla, `count` es null y la comprobación de abajo diría
+    // «es el único administrador», que es falso. Se informa el error real; el
+    // trigger `user_roles_ultimo_admin` sigue siendo la barrera de verdad.
+    if (errorConteo) return { ok: false, error: errorConteo.message };
 
     if ((count ?? 0) <= 1) {
       return {

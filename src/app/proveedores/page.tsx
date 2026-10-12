@@ -4,7 +4,7 @@ import { MapPin } from "lucide-react";
 import { HeroBanner } from "@/components/hero-banner";
 import { ProviderAvatar } from "@/components/provider-avatar";
 import { TierBadge } from "@/components/tier-badge";
-import { getApprovedProviders, getListingsByProvider } from "@/lib/repo";
+import { getApprovedProviders, getConteoDeOfertasPorProveedor } from "@/lib/repo";
 import { Revelar } from "@/components/revelar";
 import { certLabel, giroLabel, TRAIT_LABEL } from "@/lib/taxonomy";
 import { publica } from "@/lib/seo";
@@ -27,10 +27,12 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ProveedoresPage() {
-  const providers = await getApprovedProviders();
-  const counts = await Promise.all(
-    providers.map(async (p) => (await getListingsByProvider(p.id)).length),
-  );
+  // Dos consultas en total, no una por proveedor (ver `getConteoDeOfertasPorProveedor`).
+  const [providers, conteo] = await Promise.all([
+    getApprovedProviders(),
+    getConteoDeOfertasPorProveedor(),
+  ]);
+  const counts = providers.map((p) => conteo.get(p.id) ?? 0);
 
   return (
     <div>

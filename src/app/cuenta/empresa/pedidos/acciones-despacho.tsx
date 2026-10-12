@@ -88,6 +88,11 @@ export function AccionesDespacho({
                 <span className="mb-1 block text-xs font-medium text-muted">Número de guía</span>
                 <input
                   name="guia"
+                  // Las guías son alfanuméricas: el corrector del móvil las
+                  // «arreglaba» y el comprador recibía una que no existe.
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
                   required={despacho === "transportadora"}
                   maxLength={80}
                   className="w-full rounded-lg border border-control bg-white px-3 py-1.5 font-mono text-sm outline-none focus:border-brand-500"

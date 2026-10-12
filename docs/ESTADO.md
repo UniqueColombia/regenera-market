@@ -4,19 +4,53 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-09-26
-- **Producción:** `v0.10.0` en `main` → **https://regenera-market.vercel.app**,
-  con la migración `0012` **aplicada** (Jesús, 2026-09-26).
+- **Corte:** 2026-10-12
+- **Producción:** `main` → **https://regenera-market.vercel.app**, con la
+  migración `0014` **aplicada** (Jesús, 2026-10-12). La `0015` está escrita y
+  probada, **sin aplicar** (ver abajo).
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
   empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.
+- **Pruebas:** desde el 2026-10-12 hay. `npm test` (reglas de `src/lib`, menos de
+  un segundo) y `npm run test:base` (las migraciones y las funciones de Postgres
+  contra un Postgres 17 desechable, unos 10 segundos, sin instalar nada). Las dos
+  corren en el CI. Cómo están hechas y por qué, en
+  [el hito](../.claude/hitos/2026-10-12-pruebas-de-la-base-y-0015.md).
 
-> ## 🔴 Nuevo del 2026-10-09: aplicar la migración `0014`
+> ## 🔴 Nuevo del 2026-10-12: aplicar la migración `0015`
 >
-> **Envíos, reseñas y que ninguna operación cuente dos veces.** El código ya está
-> en `main` y **no rompe nada sin la migración**: pregunta si está y, si no, el sitio
-> sigue como antes. Al aplicarla se enciende solo (en menos de un minuto, sin
-> redesplegar):
+> **Cierra un hueco de seguridad y un fallo de reseñas que encontraron las
+> pruebas nuevas.** Aditiva y re-ejecutable: no borra nada.
+>
+> - **Seguridad:** con la clave pública —la que va en el navegador— cualquiera
+>   podía llamar `vencer_pedidos_sin_pago(24)` y cancelar los pedidos de más de un
+>   día sin pagar, devolviendo su stock para que otro lo comprara. También podía
+>   llamar funciones que exigen sesión (se defendían por dentro, ahora tampoco
+>   tiene el permiso) y leer el `author_id` de las reseñas.
+> - **Reseñas:** un servicio o una experiencia sin fecha se podía reseñar recién
+>   pagado, antes de recibirlo.
+> - **Índices** para el panel de órdenes, «Mis pedidos» y las políticas de empresa.
+>
+> **Cómo:** Supabase → SQL Editor → pegar `supabase/migrations/0015_permisos_de_anon_e_indices.sql`
+> entero → Run. La comprobación y una consulta para ver si alguna reseña entró
+> por el hueco están al final del archivo.
+>
+> **Antes de aplicarla**, confirma que el hueco existe en producción (si da
+> `true`, existe):
+>
+> ```sql
+> select has_function_privilege('anon', 'vencer_pedidos_sin_pago(int)', 'execute');
+> ```
+>
+> El mismo día, sin migración: **la ficha de una experiencia publicada sin
+> «mínimo de personas» daba error** (`test-de-expriencia`), y una experiencia sin
+> fechas cargadas no se podía agregar a la cesta; **«20.000» en un precio se
+> guardaba como $20**. Arreglados en el código.
+
+> ## ✅ La `0014` está aplicada (Jesús, 2026-10-12)
+>
+> **Envíos, reseñas y que ninguna operación cuente dos veces.** Lo que encendió
+> (el código pregunta si la migración está y se enciende solo):
 >
 > - el vendedor declara cómo llega cada producto —lo lleva él o una transportadora
 >   que elige, costo del envío, días hábiles— y despacha con guía desde
@@ -26,11 +60,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > - **el stock se descuenta al comprar**, cancelar lo devuelve, y los pedidos sin
 >   pagar vencen a las 72 horas.
 >
-> **Cómo:** Supabase → SQL Editor → pegar `supabase/migrations/0014_envios_resenas_y_concurrencia.sql`
-> entero → Run. Comprobación al final del archivo. Si dice `pg_cron no disponible`,
-> no pasa nada: los pedidos vencen al abrir `/admin/ordenes`.
->
-> Después: probar el ciclo con cuentas reales (lista en el
+> **Falta:** probar el ciclo con cuentas reales (lista en el
 > [hito](../.claude/hitos/2026-10-09-envios-resenas-e-idempotencia.md)) y pedirles a
 > los proveedores con productos que editen sus ofertas para declarar el envío.
 >

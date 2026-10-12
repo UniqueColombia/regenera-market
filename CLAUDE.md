@@ -77,6 +77,7 @@ agente del otro.
 | `docs/CORREOS.md` | Paso a paso para pasar el remitente a Google Workspace y editar cada plantilla de correo, la de Supabase o la de la app | Humanos y agentes |
 | `docs/IMAGENES.md` | Qué imágenes faltan, con qué prompt se generan y dónde van | Humanos y agentes |
 | `docs/NIVELES.md` | Cómo se gana el nivel de proveedor, el gemelo SQL/TS y sus trampas | Humanos y agentes |
+| `docs/PORTABILIDAD.md` | Qué depende de Supabase, qué costaría salir a una VPS y qué reglas lo mantienen barato | Humanos y agentes |
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
 | `.claude/agents/` | Subagentes con encargo propio. Un archivo por agente | Claude Code |
 | `.claude/hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
@@ -90,6 +91,8 @@ agente del otro.
 | `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear, prospectar proveedores, optimizar imágenes, generar la marca | Humanos y hooks |
 | `src/` | Aplicación Next.js (App Router) | — |
 | `supabase/migrations/` | Esquema SQL con RLS | — |
+| `supabase/pruebas/` | Pruebas de la base contra un Postgres desechable, y `supabase-minimo.sql`: lo que las migraciones necesitan de Supabase | Agentes y CI |
+| `src/**/*.test.ts` | Pruebas de las reglas de `src/lib` (precios, formato de dinero…) | Agentes y CI |
 
 ## Skills disponibles
 
@@ -146,8 +149,10 @@ Para agregar uno: archivo nuevo en `.claude/agents/`, frontmatter `name` +
    son estilo: violarlas es un bug de negocio o de seguridad.
 3. **Implementar.**
 4. **Verificar.** En este orden: `npm run build`, luego `npx tsc --noEmit`,
-   luego `npx eslint .`. Los tres en limpio. El build va primero porque genera
-   los tipos de rutas que `tsc` necesita. El CI corre lo mismo; no abras PR sin
+   luego `npx eslint .`, luego `npm test`. Los cuatro en limpio. El build va
+   primero porque genera los tipos de rutas que `tsc` necesita. Si tocaste
+   `supabase/migrations/` o una regla que tiene gemela en SQL (precios, estados,
+   reseñas), también `npm run test:base`. El CI corre todo; no abras PR sin
    haberlo corrido local.
 5. **Registrar el hito** si el cambio es estructural. Carga `registrar-hito`.
 6. **Abrir PR** contra `staging` con `gh pr create`. La plantilla se llena sola.

@@ -100,11 +100,13 @@ export async function cambiarEstadoOrden(datos: unknown): Promise<ResultadoOrden
   if (!data || data.length === 0) {
     // O RLS lo negó (cero filas, sin error), o la orden ya no estaba como se
     // leyó: otro la movió entretanto.
-    const { data: ahora } = await supabase
+    const { data: ahora, error: errorAhora } = await supabase
       .from("orders")
       .select("status")
       .eq("id", parsed.data.orderId)
       .maybeSingle();
+    // Una relectura fallida no es «ya no eres administrador»: se dice lo que pasó.
+    if (errorAhora) return { ok: false, error: errorAhora.message };
     if (ahora?.status === parsed.data.estado) return { ok: true };
     if (ahora) {
       return {

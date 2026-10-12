@@ -77,11 +77,14 @@ export async function guardarOferta(datos: unknown): Promise<ResultadoOferta> {
   const slug = d.slug?.trim()
     ? slugify(d.slug)
     : await slugLibre(d.title, async (candidato) => {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("listings")
           .select("id")
           .eq("slug", candidato)
           .maybeSingle();
+        // Sin mirar el error, una lectura fallida decía «libre» y el insert
+        // chocaba después con un mensaje de índice único que no explica nada.
+        if (error) throw new Error(`slug de oferta: ${error.message}`);
         return Boolean(data) && data?.id !== d.id;
       });
 
@@ -180,11 +183,13 @@ export async function cambiarEstadoOferta(datos: unknown): Promise<
 
   if (error) return { ok: false, error: error.message };
   if (!data || data.length === 0) {
-    const { data: actual } = await supabase
+    const { data: actual, error: errorActual } = await supabase
       .from("listings")
       .select("status")
       .eq("id", id)
       .maybeSingle();
+    // Una lectura fallida no es «ya no eres administrador»: se dice lo que pasó.
+    if (errorActual) return { ok: false, error: errorActual.message };
     if (!actual) {
       return { ok: false, error: "No se pudo actualizar. ¿Sigues siendo administrador?" };
     }
