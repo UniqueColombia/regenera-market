@@ -153,6 +153,10 @@ function explicar(motivo: MotivoRechazo, oferta?: string): Record<string, string
       return {
         form: "Tienes varios pedidos esperando pago. Págalos o escríbenos para cancelar alguno antes de hacer otro.",
       };
+    case "compra-propia":
+      return {
+        form: `${oferta ? `«${oferta}»` : "Una de las ofertas"} es de tu empresa: no puedes comprártela. Quítala de la cesta.`,
+      };
     case "falta-destino":
       return { direccion: "Escribe a dónde te lo mandamos: departamento, ciudad y dirección." };
     case "clave-ajena":

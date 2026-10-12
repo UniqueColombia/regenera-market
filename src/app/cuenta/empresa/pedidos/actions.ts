@@ -33,6 +33,8 @@ function explicar(motivo: MotivoEnvio): string {
       return "El pedido ya no está pagado (se canceló o se devolvió). No lo despaches.";
     case "falta-guia":
       return "Escribe el número de guía: es lo que el comprador usa para seguir su envío.";
+    case "entrega-del-comprador":
+      return "Va por transportadora: lo confirma quien lo recibe cuando le llegue, o el equipo si hace falta.";
     default:
       return "No se pudo guardar. Recarga la página.";
   }
