@@ -37,6 +37,7 @@ import {
   VERTICAL_LABEL,
 } from "@/lib/taxonomy";
 import { getSesion } from "@/lib/auth";
+import { getFuenteDeCambio } from "@/lib/tipo-de-cambio";
 
 export async function generateMetadata(
   props: PageProps<"/oferta/[slug]">,
@@ -71,10 +72,11 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
   const subcategoria = subcategoriaLabel(listing.category, listing.subcategory);
   const grupo = grupoDePersonas(listing.experience?.minPeople, listing.experience?.maxPeople);
   const sesion = await getSesion();
-  const [related, calificacion, resenas] = await Promise.all([
+  const [related, calificacion, resenas, cotizacion] = await Promise.all([
     getRelatedListings(listing),
     getCalificacionDeOferta(listing.id),
     getResenasDeOferta(listing.id),
+    getFuenteDeCambio().cotizacionUsd(),
   ]);
   // Una consulta para todos los proveedores de los relacionados, no una por tarjeta.
   const porId = await getProvidersByIds(related.map((l) => l.providerId));
@@ -363,9 +365,9 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
           {listing.quoteOnly ? (
-            <RequestQuote listing={listing} />
+            <RequestQuote listing={listing} cotizacion={cotizacion} />
           ) : (
-            <AddToCart listing={listing} conSesion={Boolean(sesion)} />
+            <AddToCart listing={listing} conSesion={Boolean(sesion)} cotizacion={cotizacion} />
           )}
 
           {/* Cómo llega, antes de que lo pregunten: cuánto cuesta, quién lo
