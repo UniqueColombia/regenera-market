@@ -7,7 +7,9 @@ import { Check, Minus, Plus, ShoppingBasket } from "lucide-react";
 import { addLine } from "./cart";
 import { soltarHojas } from "@/lib/hojas";
 import { money, shortDate } from "@/lib/format";
+import type { Cotizacion } from "@/lib/tipo-de-cambio";
 import type { Listing } from "@/lib/types";
+import { AproxUsd } from "./aprox-usd";
 
 /**
  * Bloque de compra de la ficha.
@@ -24,9 +26,12 @@ import type { Listing } from "@/lib/types";
 export function AddToCart({
   listing,
   conSesion = true,
+  cotizacion,
 }: {
   listing: Listing;
   conSesion?: boolean;
+  /** Para el «≈ US$». Solo referencia: ver `src/lib/tipo-de-cambio.ts`. */
+  cotizacion?: Cotizacion;
 }) {
   const router = useRouter();
   const [qty, setQty] = useState(listing.experience?.minPeople ?? 1);
@@ -79,7 +84,9 @@ export function AddToCart({
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <p className="font-display text-3xl text-ink">{money(unitPrice)}</p>
-          <p className="text-sm text-muted">por {listing.unit}</p>
+          <p className="text-sm text-muted">
+            por {listing.unit} <AproxUsd cop={unitPrice} cotizacion={cotizacion} className="ml-1" />
+          </p>
         </div>
         {wholesaleApplies && (
           <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 ring-1 ring-brand-200">
@@ -178,6 +185,7 @@ export function AddToCart({
           <span className="font-display text-xl text-ink">
             {money(unitPrice * qty)}
           </span>
+          <AproxUsd cop={unitPrice * qty} cotizacion={cotizacion} className="block" />
         </span>
       </div>
 
@@ -246,7 +254,7 @@ export function AddToCart({
 }
 
 /** Variante para ofertas que solo se venden por cotización. */
-export function RequestQuote({ listing }: { listing: Listing }) {
+export function RequestQuote({ listing, cotizacion }: { listing: Listing; cotizacion?: Cotizacion }) {
   const router = useRouter();
 
   return (
@@ -255,7 +263,9 @@ export function RequestQuote({ listing }: { listing: Listing }) {
       <p className="font-display text-3xl text-ink">
         {money(listing.priceCop)}
       </p>
-      <p className="mt-1 text-sm text-muted">por {listing.unit}</p>
+      <p className="mt-1 text-sm text-muted">
+        por {listing.unit} <AproxUsd cop={listing.priceCop} cotizacion={cotizacion} className="ml-1" />
+      </p>
 
       <p className="mt-4 rounded-lg bg-sand px-3 py-2 text-sm text-muted">
         El alcance y el precio dependen del tamaño de tu operación, por eso esta

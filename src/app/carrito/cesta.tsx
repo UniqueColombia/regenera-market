@@ -23,11 +23,13 @@ import {
   useCartHydrated,
   useCartLines,
 } from "@/components/cart";
+import { AproxUsd } from "@/components/aprox-usd";
 import { ImpactChips } from "@/components/impact-chips";
 import { Plegable } from "@/components/presencia";
 import { ListingMedia } from "@/components/listing-media";
 import { money, shortDate } from "@/lib/format";
 import { plazoDeEntrega, textoCostoEnvio } from "@/lib/envios";
+import type { Cotizacion } from "@/lib/tipo-de-cambio";
 import { DEPARTMENTS, KIND_LABEL } from "@/lib/taxonomy";
 
 /**
@@ -44,7 +46,14 @@ export interface Comprador {
   empresas: { id: string; name: string }[];
 }
 
-export function Cesta({ comprador }: { comprador: Comprador | null }) {
+export function Cesta({
+  comprador,
+  cotizacion,
+}: {
+  comprador: Comprador | null;
+  /** Para el «≈ US$» del total. Solo referencia: ver `src/lib/tipo-de-cambio.ts`. */
+  cotizacion?: Cotizacion;
+}) {
   const lines = useCartLines();
   const hydrated = useCartHydrated();
 
@@ -282,7 +291,7 @@ export function Cesta({ comprador }: { comprador: Comprador | null }) {
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <CheckoutPanel priced={priced} comprador={comprador} />
+          <CheckoutPanel priced={priced} comprador={comprador} cotizacion={cotizacion} />
         </aside>
       </div>
     </div>
@@ -418,9 +427,11 @@ function llaveDelPedido(cesta: string): string {
 function CheckoutPanel({
   priced,
   comprador,
+  cotizacion,
 }: {
   priced: PricedCartDTO;
   comprador: Comprador | null;
+  cotizacion?: Cotizacion;
 }) {
   const lines = useCartLines();
   const router = useRouter();
@@ -480,8 +491,11 @@ function CheckoutPanel({
         )}
         <div className="flex items-baseline justify-between border-t border-hairline pt-3">
           <dt className="font-semibold">Total a pagar</dt>
-          <dd className="font-display text-2xl tabular-nums text-brand-800">
-            {money(priced.totalCop)}
+          <dd className="text-right">
+            <span className="block font-display text-2xl tabular-nums text-brand-800">
+              {money(priced.totalCop)}
+            </span>
+            <AproxUsd cop={priced.totalCop} cotizacion={cotizacion} />
           </dd>
         </div>
       </dl>

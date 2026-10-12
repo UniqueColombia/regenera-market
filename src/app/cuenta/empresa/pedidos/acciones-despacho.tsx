@@ -111,7 +111,13 @@ export function AccionesDespacho({
         </form>
       )}
 
-      {(estado === "despachado" || (estado === "pendiente" && !porTransportadora)) && (
+      {/* Lo que va por transportadora lo confirma quien lo recibe (0016): el
+          vendedor no sabe si llegó, y cerrar el pedido le da puntos. */}
+      {porTransportadora && estado === "despachado" && (
+        <p className="text-xs text-muted">Lo confirma quien lo recibe cuando le llegue.</p>
+      )}
+
+      {!porTransportadora && (estado === "despachado" || estado === "pendiente") && (
         <button
           type="button"
           onClick={entregar}

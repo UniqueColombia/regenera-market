@@ -1,6 +1,7 @@
 import { Cesta, type Comprador } from "./cesta";
 import { getSesion, getUser } from "@/lib/auth";
 import { getEmpresasQueGestiono } from "@/lib/repo";
+import { getFuenteDeCambio } from "@/lib/tipo-de-cambio";
 
 /**
  * La cesta, con quién compra ya resuelto.
@@ -31,5 +32,5 @@ export default async function CarritoPage() {
     };
   }
 
-  return <Cesta comprador={comprador} />;
+  return <Cesta comprador={comprador} cotizacion={await getFuenteDeCambio().cotizacionUsd()} />;
 }

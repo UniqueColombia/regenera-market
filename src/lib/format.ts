@@ -40,6 +40,20 @@ export function pesosDesdeTexto(texto: string | null | undefined): number | null
   return Number.NaN;
 }
 
+const USD_CENTAVOS = new Intl.NumberFormat("es-CO", { style: "currency", currency: "USD", maximumFractionDigits: 2, minimumFractionDigits: 2 });
+const USD_ENTERO = new Intl.NumberFormat("es-CO", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+/**
+ * «≈ US$ 6,26»: un monto en pesos pasado a dólares con la tasa que se le dé.
+ * Solo para mostrar (ver `src/lib/tipo-de-cambio.ts`): nada se cobra en
+ * dólares. Con centavos por debajo de cien dólares, sin ellos por encima: en
+ * una cifra aproximada, «US$ 1.234,57» aparenta una precisión que no tiene.
+ */
+export function aproxUsd(cop: number, copPorUsd: number): string {
+  const usd = cop / copPorUsd;
+  return `≈ ${(usd < 100 ? USD_CENTAVOS : USD_ENTERO).format(usd)}`;
+}
+
 const NUM = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 });
 
 export function num(n: number): string {
