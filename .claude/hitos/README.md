@@ -42,3 +42,5 @@ referencie al anterior.
 | 2026-10-03 | [Los heros cobran vida y el movimiento cuenta el tema del sitio](2026-10-03-heros-vivos-y-movimiento-tematico.md) | Jesús Seiler | — |
 | 2026-10-03 | [El sitio tiene modo oscuro, a elección de quien lo visita](2026-10-03-modo-oscuro.md) | Jesús Seiler | — |
 | 2026-10-05 | [Los avisos de ofertas y pedidos salen solos, y Ivan tiene la guía para el remitente](2026-10-05-correos-del-pedido-y-las-ofertas-y-guia-de-workspace.md) | Jesús Seiler | — |
+| 2026-10-09 | [Envíos que decide el vendedor, reseñas de quien compró, y ninguna operación que cuente dos veces](2026-10-09-envios-resenas-e-idempotencia.md) | Jesús Seiler | — (adelanta la 4) |
+| 2026-10-12 | [Pruebas de verdad, la 0015 y los fallos que encontraron](2026-10-12-pruebas-de-la-base-y-0015.md) | Jesús Seiler | — |

@@ -113,5 +113,34 @@ valida demostrando que niega, no que permite. Como mínimo: un `buyer` no ve
 órdenes de otro, un `provider` no ve órdenes que no incluyen sus ítems, un
 anónimo no ve nada en `status = 'draft'`.
 
+**Eso ya no se hace a mano: `npm run test:base`** (desde el 2026-10-12). Levanta
+un Postgres 17 desechable, le aplica `supabase/pruebas/supabase-minimo.sql` y
+todas las migraciones, y corre `supabase/pruebas/*.test.ts`. Unos 10 segundos,
+sin instalar nada, y corre en el CI. Una migración nueva va con su prueba:
+
+- **Funciones que escriben** → un caso en el archivo de su tema (`compras`,
+  `envios-y-resenas`…), entrando como la aplicación con `comoUsuario()`.
+- **Políticas** → `permisos.test.ts`, con el rol equivocado.
+- **Candados** → `concurrencia.test.ts`, con dos conexiones (`conectar()`).
+- **Una regla con gemela en TypeScript** → `gemelos.test.ts` compara los dos lados.
+
+Tres comprobaciones corren solas sobre todo el esquema
+(`migraciones.test.ts`), y fallan si una migración nueva:
+
+- deja una tabla de `public` sin RLS;
+- crea una función `security definer` sin `search_path`;
+- crea una vista sin `security_invoker`.
+
+Una cuarta falla si `anon` puede ejecutar una función `security definer`
+que no está en la lista aprobada. **Supabase concede `execute` a `anon` sobre
+toda función nueva**, y `revoke … from public` no lo quita: hay que nombrar el
+rol (`revoke execute on function f(…) from public, anon`). Así entró el hueco
+que cerró la 0015.
+
+Si la migración usa algo de Supabase que el shim no tiene (otro esquema, otra
+extensión, otra columna de `auth.users`), las pruebas fallan al aplicarla. Se
+agrega a `supabase-minimo.sql` imitando a Supabase y se anota en
+`docs/PORTABILIDAD.md`.
+
 Al terminar, registra un hito (skill `registrar-hito`): qué migración se aplicó,
 en qué entorno, qué quedó pendiente.
