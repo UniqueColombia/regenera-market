@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { EstadoOrden } from "./estado-orden";
-import { listOrders, vencerPedidosSinPago } from "@/lib/orders";
+import { Paginacion } from "@/components/paginacion";
+import { listarOrdenes, resumenDeOrdenes, vencerPedidosSinPago } from "@/lib/orders";
+import { leerPagina, urlDePagina } from "@/lib/paginacion";
+import type { OrderStatus } from "@/lib/types";
 import { ETIQUETA_ENVIO } from "@/lib/envios";
 import { money } from "@/lib/format";
 import { COLOR_ESTADO, ETIQUETA_ESTADO } from "@/lib/order-status";
@@ -24,17 +28,24 @@ export const dynamic = "force-dynamic";
  * coincide con lo que se le va a descontar a cada proveedor. Es la invariante 2
  * de `dominio-regenera`.
  */
-export default async function OrdenesPage() {
+export default async function OrdenesPage(props: PageProps<"/admin/ordenes">) {
+  const sp = await props.searchParams;
+  const estadoPedido = Array.isArray(sp.estado) ? sp.estado[0] : sp.estado;
+  const estado = ESTADOS.includes(estadoPedido as OrderStatus) ? (estadoPedido as OrderStatus) : undefined;
+  const pedida = leerPagina(sp.pagina);
+
   // Los pedidos sin pagar de más de 72 horas se cancelan y devuelven lo que
   // reservaban. Lo hace `pg_cron` cada hora; esto es la red por si el proyecto
   // no lo tiene activo. Idempotente: si ya vencieron, no hace nada.
   await vencerPedidosSinPago();
-  const ordenes = await listOrders();
+  const [resultado, resumen] = await Promise.all([listarOrdenes(estado, pedida), resumenDeOrdenes()]);
+  if (pedida > resultado.paginas) redirect(urlDePagina("/admin/ordenes", sp, resultado.paginas));
+  const { filas: ordenes, pagina, paginas } = resultado;
 
-  const porCobrar = ordenes.filter((o) => o.status === "pending_payment");
-  const cobrado = ordenes
-    .filter((o) => o.status === "paid" || o.status === "in_progress" || o.status === "fulfilled")
-    .reduce((suma, o) => suma + o.totalCop, 0);
+  // De la base y sobre todas las órdenes, no sobre la página visible.
+  const porCobrar = resumen.pending_payment;
+  const cobrado = resumen.paid.totalCop + resumen.in_progress.totalCop + resumen.fulfilled.totalCop;
+  const todas = ESTADOS.reduce((s, e) => s + resumen[e].cantidad, 0);
 
   return (
     <div>
@@ -51,13 +62,13 @@ export default async function OrdenesPage() {
         <div className="rounded-xl bg-white p-4 ring-1 ring-hairline">
           <dt className="text-xs font-medium text-muted">Esperando pago</dt>
           <dd className="mt-1 font-display text-2xl tabular-nums text-clay-600">
-            {porCobrar.length}
+            {porCobrar.cantidad}
           </dd>
         </div>
         <div className="rounded-xl bg-white p-4 ring-1 ring-hairline">
           <dt className="text-xs font-medium text-muted">Por cobrar</dt>
           <dd className="mt-1 font-display text-2xl tabular-nums text-ink">
-            {money(porCobrar.reduce((s, o) => s + o.totalCop, 0))}
+            {money(porCobrar.totalCop)}
           </dd>
         </div>
         <div className="rounded-xl bg-white p-4 ring-1 ring-hairline">
@@ -68,9 +79,31 @@ export default async function OrdenesPage() {
         </div>
       </dl>
 
+      {/* Filtro por estado: con las órdenes paginadas, sin él una orden por
+          cobrar podía quedar en la página 4. Enlaces, no un formulario: cada
+          estado es una URL. */}
+      <nav aria-label="Filtrar por estado" className="mt-6 flex flex-wrap gap-2">
+        {[undefined, ...ESTADOS].map((e) => {
+          const activo = e === estado;
+          const n = e ? resumen[e].cantidad : todas;
+          return (
+            <Link
+              key={e ?? "todas"}
+              href={e ? `/admin/ordenes?estado=${e}` : "/admin/ordenes"}
+              aria-current={activo ? "page" : undefined}
+              className={`rounded-full px-3 py-1.5 text-sm ring-1 transition ${
+                activo ? "bg-brand-700 text-white ring-brand-700" : "bg-white text-ink ring-hairline hover:bg-sand"
+              }`}
+            >
+              {e ? ETIQUETA_ESTADO[e] : "Todas"} <span className="tabular-nums opacity-70">{n}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
       {ordenes.length === 0 ? (
         <p className="mt-10 rounded-xl bg-white p-10 text-center text-muted ring-1 ring-hairline">
-          Todavía no hay ninguna orden.
+          {estado ? "No hay órdenes en este estado." : "Todavía no hay ninguna orden."}
         </p>
       ) : (
         <ul className="mt-6 grid items-start gap-3 xl:grid-cols-2">
@@ -153,6 +186,10 @@ export default async function OrdenesPage() {
           })}
         </ul>
       )}
+
+      <Paginacion ruta="/admin/ordenes" params={sp} pagina={pagina} paginas={paginas} />
     </div>
   );
 }
+
+const ESTADOS: OrderStatus[] = ["pending_payment", "paid", "in_progress", "fulfilled", "cancelled", "refunded"];

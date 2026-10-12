@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
+import { Paginacion } from "@/components/paginacion";
 import { Revelar } from "@/components/revelar";
-import { getProvidersByIds, searchListings } from "@/lib/repo";
+import { num } from "@/lib/format";
+import { leerPagina, urlDePagina } from "@/lib/paginacion";
+import { buscarOfertas, getProvidersByIds } from "@/lib/repo";
 import { Categorias } from "./categorias";
 import {
   categoriaPorId,
@@ -32,8 +36,13 @@ export const metadata: Metadata = {
 export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   const sp = await props.searchParams;
   const filters = parseFilters(sp);
+  const pedida = leerPagina(sp.pagina);
 
-  const [listings, sesion] = await Promise.all([searchListings(filters), getSesion()]);
+  const [resultado, sesion] = await Promise.all([buscarOfertas(filters, pedida), getSesion()]);
+  // Una página que ya no existe (un enlace viejo, o quedaron menos ofertas)
+  // lleva a la última que sí, con los mismos filtros.
+  if (pedida > resultado.paginas) redirect(urlDePagina("/catalogo", sp, resultado.paginas));
+  const { filas: listings, total, pagina, porPagina, paginas } = resultado;
   // Una consulta para todos los proveedores de la página, no una por empresa.
   const porId = await getProvidersByIds(listings.map((l) => l.providerId));
   const providers = listings.map((l) => porId.get(l.providerId));
@@ -194,8 +203,9 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
       </form>
 
       <p className="mt-6 text-sm text-muted" aria-live="polite">
-        {listings.length}{" "}
-        {listings.length === 1 ? "oferta encontrada" : "ofertas encontradas"}
+        {num(total)} {total === 1 ? "oferta encontrada" : "ofertas encontradas"}
+        {paginas > 1 &&
+          ` · ${num((pagina - 1) * porPagina + 1)} a ${num((pagina - 1) * porPagina + listings.length)}`}
       </p>
 
       {listings.length === 0 ? (
@@ -226,6 +236,8 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
           ))}
         </div>
       )}
+
+      <Paginacion ruta="/catalogo" params={sp} pagina={pagina} paginas={paginas} />
     </div>
   );
 }
