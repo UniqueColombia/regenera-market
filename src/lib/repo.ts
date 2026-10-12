@@ -272,13 +272,17 @@ function aListing(f: FilaListing): Listing {
     status: f.status,
     featured: f.featured,
     createdAt: soloFecha(f.created_at),
+    // Toda experiencia lleva su bloque, aunque le falten datos. Hasta el
+    // 2026-10-12 solo se armaba con `min_people`, que el formulario no exige:
+    // una experiencia publicada sin grupo llegaba sin bloque y la ficha se caía
+    // en el botón de reservar, y al editarla el formulario salía vacío.
     experience:
-      f.kind === "experience" && f.min_people !== null
+      f.kind === "experience"
         ? {
-            durationHours: f.duration_hours ?? 0,
-            minPeople: f.min_people,
-            maxPeople: f.max_people ?? f.min_people,
-            meetingPoint: f.meeting_point ?? "",
+            durationHours: f.duration_hours ?? undefined,
+            minPeople: f.min_people ?? undefined,
+            maxPeople: f.max_people ?? f.min_people ?? undefined,
+            meetingPoint: f.meeting_point ?? undefined,
             includes: f.includes ?? [],
             // El dominio habla de "cupos que quedan"; la base guarda total y
             // vendidos, que es lo único con lo que se puede impedir sobreventa
@@ -587,6 +591,56 @@ export async function getProviderTiers(
 }
 
 /**
+ * Varios proveedores enteros de una vez, por id.
+ *
+ * Para las listas que pintan una tarjeta por oferta (catálogo, relacionados).
+ * `getProviderById` con `cache()` deduplica, pero sigue siendo una consulta por
+ * proveedor distinto: con un catálogo de 40 empresas eran 40 viajes a la base en
+ * cada visita. Aquí es uno. El que no aparezca (RLS lo ocultó o ya no existe) no
+ * sale en el mapa, y la tarjeta se pinta sin proveedor, igual que antes.
+ */
+export async function getProvidersByIds(ids: string[]): Promise<Map<string, Provider>> {
+  const unicos = [...new Set(ids)].filter((id) => UUID.test(id));
+  if (unicos.length === 0) return new Map();
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("providers")
+    .select((await columnas()).provider)
+    .in("id", unicos);
+  if (error) throw new Error(`getProvidersByIds: ${error.message}`);
+
+  return new Map(
+    (data as unknown as FilaProvider[]).map((f) => {
+      const p = aProvider(f);
+      return [p.id, p];
+    }),
+  );
+}
+
+/**
+ * Cuántas ofertas publicadas tiene cada proveedor, en una consulta.
+ *
+ * `/proveedores` llamaba a `getListingsByProvider()` por cada empresa y se
+ * traía todas sus ofertas completas solo para hacer `.length`: con 500
+ * proveedores, 501 consultas. Aquí se pide una sola columna de la vista pública
+ * (que ya filtra lo aprobado, invariante 17) y se cuenta en memoria. Cuando el
+ * catálogo pase de unas decenas de miles de ofertas conviene una vista con
+ * `count(*) group by provider_id`; hasta entonces esto es una consulta liviana.
+ */
+export async function getConteoDeOfertasPorProveedor(): Promise<Map<string, number>> {
+  const db = await createClient();
+  const { data, error } = await db.from("listings_publicos").select("provider_id");
+  if (error) throw new Error(`getConteoDeOfertasPorProveedor: ${error.message}`);
+
+  const conteo = new Map<string, number>();
+  for (const f of data as { provider_id: string }[]) {
+    conteo.set(f.provider_id, (conteo.get(f.provider_id) ?? 0) + 1);
+  }
+  return conteo;
+}
+
+/**
  * Todos los proveedores, en cualquier estado. Para el panel de administración.
  *
  * **No lleva comprobación de rol y no es un descuido.** La política
@@ -762,6 +816,60 @@ export async function getApplications(): Promise<ProviderApplication[]> {
     // entera arma una cadena imposible y pinta «Invalid Date».
     createdAt: soloFecha(f.created_at),
   }));
+}
+
+/** Los números de las tarjetas de `/admin`. */
+export interface ResumenAdmin {
+  postulacionesPendientes: number;
+  proveedores: number;
+  proveedoresPendientes: number;
+  ofertas: number;
+  ofertasSinPublicar: number;
+  ordenesPorCobrar: number;
+  porCobrarCop: number;
+}
+
+/**
+ * Lo que cuenta el resumen de `/admin`, con conteos y no con listas.
+ *
+ * Antes la página bajaba todos los proveedores, postulaciones, ofertas (con su
+ * proveedor) y órdenes (con todos sus ítems) para sacar cinco números en
+ * JavaScript. Con unos miles de órdenes eso es un megabyte por visita al panel.
+ * `head: true` hace que Postgres devuelva solo el conteo.
+ *
+ * Mismo cliente de sesión que el resto del panel: RLS decide qué se cuenta,
+ * igual que antes. `porCobrarCop` trae una sola columna de las órdenes sin
+ * pagar, que son pocas por definición (vencen a las 72 h); si alguna vez no lo
+ * fueran, una RPC con `sum(total_cop)` lo resuelve en la base.
+ */
+export async function getResumenAdmin(): Promise<ResumenAdmin> {
+  const db = await createClient();
+  const contar = { count: "exact" as const, head: true };
+
+  const [postulaciones, proveedores, proveedoresPend, ofertas, ofertasPub, porCobrar] =
+    await Promise.all([
+      db.from("provider_applications").select("id", contar).eq("status", "pending_review"),
+      db.from("providers").select("id", contar),
+      db.from("providers").select("id", contar).eq("status", "pending_review"),
+      db.from("listings").select("id", contar),
+      db.from("listings").select("id", contar).eq("status", "approved"),
+      db.from("orders").select("total_cop").eq("status", "pending_payment"),
+    ]);
+
+  for (const r of [postulaciones, proveedores, proveedoresPend, ofertas, ofertasPub, porCobrar]) {
+    if (r.error) throw new Error(`getResumenAdmin: ${r.error.message}`);
+  }
+
+  const cobrar = (porCobrar.data ?? []) as { total_cop: number | null }[];
+  return {
+    postulacionesPendientes: postulaciones.count ?? 0,
+    proveedores: proveedores.count ?? 0,
+    proveedoresPendientes: proveedoresPend.count ?? 0,
+    ofertas: ofertas.count ?? 0,
+    ofertasSinPublicar: (ofertas.count ?? 0) - (ofertasPub.count ?? 0),
+    ordenesPorCobrar: cobrar.length,
+    porCobrarCop: cobrar.reduce((suma, o) => suma + (o.total_cop ?? 0), 0),
+  };
 }
 
 /**
@@ -1345,11 +1453,13 @@ export async function getCalificacionDeOferta(
 ): Promise<Calificacion | undefined> {
   if (!UUID.test(listingId) || !(await logisticaDisponible())) return undefined;
   const db = await createClient();
-  const { data } = await db
+  const { data, error } = await db
     .from("calificaciones_oferta")
     .select("promedio, cantidad")
     .eq("listing_id", listingId)
     .maybeSingle();
+  // Sin mirar `error`, una caída de la base se leía como «nadie la ha reseñado».
+  if (error) throw new Error(`getCalificacionDeOferta: ${error.message}`);
   return data ? { promedio: Number(data.promedio), cantidad: data.cantidad } : undefined;
 }
 
@@ -1359,11 +1469,12 @@ export async function getCalificacionDeProveedor(
 ): Promise<Calificacion | undefined> {
   if (!UUID.test(providerId) || !(await logisticaDisponible())) return undefined;
   const db = await createClient();
-  const { data } = await db
+  const { data, error } = await db
     .from("calificaciones_proveedor")
     .select("promedio, cantidad")
     .eq("provider_id", providerId)
     .maybeSingle();
+  if (error) throw new Error(`getCalificacionDeProveedor: ${error.message}`);
   return data ? { promedio: Number(data.promedio), cantidad: data.cantidad } : undefined;
 }
 

@@ -41,6 +41,10 @@ comisión**: es plata del vendedor para pagar la transportadora.
 **5. Todo el dinero es entero en pesos colombianos (COP).** No hay centavos.
 `Math.round()` al peso, nunca `toFixed(2)`. Un float en dinero es un descuadre
 esperando fecha.
+*Al leerlo de una persona:* `pesosDesdeTexto()` en `src/lib/format.ts`, nunca
+`Number()`. «20.000» son veinte mil, y `Number("20.000")` da 20: así se publicó
+una oferta a $20 hasta el 2026-10-12. En un formulario, `CampoDinero`
+(`src/components/campo-dinero.tsx`), nunca `<input type="number">`.
 
 **6. Título y precio se congelan en la orden.** La orden guarda su propia copia,
 no un join contra el catálogo. Si el proveedor sube el precio mañana, la orden

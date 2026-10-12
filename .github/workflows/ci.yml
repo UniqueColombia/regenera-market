@@ -49,6 +49,34 @@ jobs:
       - name: Lint
         run: npx eslint .
 
+      - name: Pruebas de las reglas de src/lib
+        run: npm test
+
+  # Las migraciones y las funciones de Postgres, contra un Postgres 17 de
+  # verdad que levanta `supabase/pruebas/preparar-base.ts` (embedded-postgres,
+  # sin Docker ni credenciales). Aparte de `verificar` porque no necesita el
+  # build y así corren a la vez.
+  #
+  # Si falla «La migración NNNN no corre sobre Postgres + supabase-minimo.sql»,
+  # la migración usa algo de Supabase que el shim no tiene: ver
+  # docs/PORTABILIDAD.md antes de agregarlo.
+  base:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Pruebas de la base
+        run: npm run test:base
+
   secretos:
     runs-on: ubuntu-latest
     timeout-minutes: 5

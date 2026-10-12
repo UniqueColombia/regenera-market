@@ -9,6 +9,37 @@ export function money(cop: number): string {
   return COP.format(cop);
 }
 
+const MILES = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0, useGrouping: "always" });
+
+/** "20.000" — el número con punto de miles, sin símbolo. Para mostrar dentro de un campo. */
+export function miles(n: number): string {
+  return MILES.format(n);
+}
+
+/**
+ * Lee pesos de lo que escribió una persona. `null` si está vacío, `NaN` si no
+ * se puede leer sin adivinar.
+ *
+ * En Colombia «20.000» son veinte mil, y así lo escribe todo el mundo. Un
+ * `<input type="number">` lo leía como el decimal 20,000 y la oferta salía
+ * publicada a $20 sin que nada avisara (revisión del 2026-10-12). Como en COP no
+ * hay centavos, un punto o una coma **con grupos de tres cifras** solo puede ser
+ * separador de miles, y se acepta. Cualquier otra cosa con punto o coma
+ * («20.5», «1,50») es ambigua: se rechaza en vez de interpretarla.
+ *
+ * El símbolo, los espacios y «COP» se ignoran, para que se pueda pegar un
+ * precio copiado de otra página.
+ */
+export function pesosDesdeTexto(texto: string | null | undefined): number | null {
+  const limpio = (texto ?? "").replace(/cop|\$|\s/gi, "");
+  if (limpio === "") return null;
+  if (/^\d+$/.test(limpio)) return Number(limpio);
+  if (/^\d{1,3}(\.\d{3})+$/.test(limpio) || /^\d{1,3}(,\d{3})+$/.test(limpio)) {
+    return Number(limpio.replace(/[.,]/g, ""));
+  }
+  return Number.NaN;
+}
+
 const NUM = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 });
 
 export function num(n: number): string {
@@ -54,6 +85,20 @@ export function longDate(iso: string): string {
 }
 
 /** "4 días" en vez de "96 horas". */
+/**
+ * El tamaño de grupo de una experiencia, con lo que haya: «4 a 12 personas»,
+ * «desde 4 personas», «hasta 12 personas». `undefined` si no hay ninguno de
+ * los dos, para que quien lo pinta no muestre una etiqueta vacía.
+ */
+export function grupoDePersonas(min?: number, max?: number): string | undefined {
+  const personas = (n: number) => `${n} ${n === 1 ? "persona" : "personas"}`;
+  if (min && max && max > min) return `${min} a ${personas(max)}`;
+  if (min && max) return personas(max);
+  if (min) return `Desde ${personas(min)}`;
+  if (max) return `Hasta ${personas(max)}`;
+  return undefined;
+}
+
 export function duration(hours: number): string {
   if (hours >= 24) {
     const days = Math.round(hours / 24);

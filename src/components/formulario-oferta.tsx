@@ -13,6 +13,7 @@ import {
 } from "@/lib/taxonomy";
 import { TRANSPORTADORAS } from "@/lib/envios";
 import type { Despacho, Listing, ListingKind } from "@/lib/types";
+import { CampoDinero } from "./campo-dinero";
 import { ImagenesOferta } from "./imagenes-oferta";
 import type { ResultadoImagenUI } from "./selector-imagen";
 
@@ -172,7 +173,13 @@ export function FormularioOferta({
         // hay ninguno visible, al aviso de arriba).
         requestAnimationFrame(() => {
           const primero = Object.keys(r.errors)
-            .map((k) => formulario.current?.querySelector<HTMLElement>(`[name="${k}"]`))
+            // `data-campo` primero: en `CampoDinero` el `name` lo lleva un
+            // campo oculto, que no se puede enfocar ni tiene dónde desplazarse.
+            .map((k) =>
+              formulario.current?.querySelector<HTMLElement>(
+                `[data-campo="${k}"], [name="${k}"]:not([type="hidden"])`,
+              ),
+            )
             .find(Boolean);
           if (primero) {
             primero.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -197,7 +204,19 @@ export function FormularioOferta({
     .map((k) => ETIQUETA_CAMPO[k] ?? k);
 
   return (
-    <form ref={formulario} onSubmit={enviar} className="mt-8 space-y-8">
+    <form
+      ref={formulario}
+      onSubmit={enviar}
+      // Un `type="number"` con el foco cambia de valor con la rueda del mouse.
+      // En un formulario tan largo se recorre con la rueda, y el stock o los
+      // días cambiaban sin que nadie lo viera. Soltar el foco deja pasar el
+      // desplazamiento a la página.
+      onWheelCapture={(e) => {
+        const t = e.target;
+        if (t instanceof HTMLInputElement && t.type === "number" && t === document.activeElement) t.blur();
+      }}
+      className="mt-8 space-y-8"
+    >
       {(errors.form || hayErrores) && (
         <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-red-100">
           {errors.form ??
@@ -423,7 +442,7 @@ export function FormularioOferta({
         <legend className="font-display text-xl text-ink">Precio</legend>
 
         <p className="rounded-xl bg-sand p-4 text-sm text-muted">
-          Todo en pesos colombianos enteros, sin centavos ni puntos. La comisión
+          Todo en pesos colombianos, sin centavos. La comisión
           de Seregenera sale de lo que recibe el proveedor:{" "}
           <strong className="font-semibold">no se le suma al comprador</strong>,
           así que este es el precio que se ve en la ficha.
@@ -431,24 +450,20 @@ export function FormularioOferta({
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Campo label="Precio al público" error={errors.priceCop}>
-            <input
+            <CampoDinero
               name="priceCop"
-              type="number"
-              min={0}
-              step={1}
-              defaultValue={oferta?.priceCop ?? ""}
+              defaultValue={oferta?.priceCop}
               required
+              invalido={!!errors.priceCop}
               className={entrada(errors.priceCop)}
             />
           </Campo>
 
           <Campo label="Precio mayorista" error={errors.wholesalePriceCop}>
-            <input
+            <CampoDinero
               name="wholesalePriceCop"
-              type="number"
-              min={0}
-              step={1}
-              defaultValue={oferta?.wholesalePriceCop ?? ""}
+              defaultValue={oferta?.wholesalePriceCop}
+              invalido={!!errors.wholesalePriceCop}
               className={entrada(errors.wholesalePriceCop)}
             />
           </Campo>
@@ -573,12 +588,10 @@ export function FormularioOferta({
               error={errors.envioCop}
               ayuda="Por pedido, sin importar cuántas unidades. 0 = gratis."
             >
-              <input
+              <CampoDinero
                 name="envioCop"
-                type="number"
-                min={0}
-                step={1}
-                defaultValue={oferta?.envio?.costoCop ?? ""}
+                defaultValue={oferta?.envio?.costoCop}
+                invalido={!!errors.envioCop}
                 className={entrada(errors.envioCop)}
               />
             </Campo>
@@ -975,8 +988,10 @@ const ETIQUETA_CAMPO: Record<string, string> = {
 };
 
 /** Clases del control, con el borde rojo cuando el campo trae error. */
+// `text-base` en móvil: Safari de iOS amplía la página al tocar un campo de
+// menos de 16 px y no la devuelve a su tamaño.
 function entrada(error?: string): string {
-  return `w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-500 disabled:bg-sand disabled:text-muted ${
+  return `w-full rounded-lg border bg-white px-3 py-2 text-base sm:text-sm outline-none transition focus:border-brand-500 disabled:bg-sand disabled:text-muted ${
     error ? "border-red-500" : "border-control"
   }`;
 }

@@ -117,7 +117,10 @@ export function FormularioResena({
         <legend className="text-xs font-medium text-muted">
           {previa ? "Corrige tu reseña" : "¿Qué tal te pareció?"}
         </legend>
-        <div role="radiogroup" aria-label="Estrellas" className="mt-1 flex gap-1">
+        {/* Cada estrella es un blanco de 40 px (`p-2` + ícono de 24) y van
+            pegadas: con `p-0.5` medían 28 px y en el teléfono se tocaba la de al
+            lado. El `-mx-2` alinea la primera con el texto de arriba. */}
+        <div role="radiogroup" aria-label="Estrellas" className="-mx-2 mt-1 flex">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
@@ -126,7 +129,7 @@ export function FormularioResena({
               aria-checked={rating === n}
               aria-label={`${n} ${n === 1 ? "estrella" : "estrellas"}`}
               onClick={() => setRating(n)}
-              className="rounded p-0.5 transition hover:scale-110"
+              className="rounded p-2 transition hover:scale-110"
             >
               <Star
                 className={`size-6 ${n <= rating ? "fill-amber-400 text-amber-500" : "text-hairline"}`}

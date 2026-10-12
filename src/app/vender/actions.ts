@@ -134,9 +134,21 @@ const PostulacionSchema = z.object({
    * acepta explícitamente cualquier cosa que no sea texto —el caso en que la
    * validación de arriba ya falló— porque el error que corresponde es el de
    * arriba, no este.
+   *
+   * ## «www.miempresa.com» es una dirección válida
+   *
+   * Así la escribe casi todo el mundo, y exigir el `https://` la rechazaba. Se
+   * antepone antes de validar, en un `preprocess` que tampoco puede lanzar. No
+   * reabre el XSS: lo que se guarda empieza siempre por `https://`, y algo como
+   * `javascript:…` queda `https://javascript:…`, que `z.url()` rechaza.
    */
   website: z
-    .union([
+    .preprocess(
+      (v) =>
+        typeof v === "string" && v.trim() !== "" && !/^[a-z][a-z0-9+.-]*:\/\//i.test(v.trim())
+          ? `https://${v.trim()}`
+          : v,
+      z.union([
       z
         .url("Revisa la dirección web")
         .refine(
@@ -148,7 +160,7 @@ const PostulacionSchema = z.object({
     .refine(
       (u) => typeof u !== "string" || u.length <= LIMITES.website,
       tope("website", "La dirección web"),
-    )
+    ))
     .optional(),
 
   categories: z

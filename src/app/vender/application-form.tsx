@@ -329,8 +329,11 @@ export function ApplicationForm({
             paso={1}
             name="website"
             label="Sitio web o red social (opcional)"
-            type="url"
-            placeholder="https://"
+            // Texto y no `url`: `checkValidity()` rechazaba «www.miempresa.com»,
+            // que es como lo escribe casi todo el mundo. El servidor le antepone
+            // el `https://` (ver `website` en actions.ts).
+            autoComplete="url"
+            placeholder="www.tuempresa.com"
             error={errors.website}
           />
         </div>

@@ -751,6 +751,16 @@ function OpcionComprador({
   );
 }
 
+// Lo que el navegador rellena solo en el móvil. Sin esto, quien compra desde el
+// teléfono escribe a mano su nombre, su teléfono y su dirección en cada pedido.
+const AUTOCOMPLETAR: Record<string, string> = {
+  company: "organization",
+  name: "name",
+  phone: "tel",
+  ciudad: "address-level2",
+  direccion: "street-address",
+};
+
 function TextField({
   name,
   label,
@@ -775,10 +785,13 @@ function TextField({
         id={name}
         name={name}
         type={type}
+        inputMode={type === "tel" ? "tel" : undefined}
+        autoComplete={AUTOCOMPLETAR[name]}
         defaultValue={defaultValue}
         required={required}
         aria-invalid={error ? true : undefined}
-        className={`w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-500 ${
+        // `text-base` en móvil: Safari de iOS amplía la página con menos de 16 px.
+        className={`w-full rounded-lg border bg-white px-3 py-2 text-base sm:text-sm outline-none transition focus:border-brand-500 ${
           error ? "border-red-500" : "border-control"
         }`}
       />

@@ -36,7 +36,13 @@ export function AddToCart({
   const [added, setAdded] = useState(false);
 
   const isExperience = listing.kind === "experience";
-  const slot = listing.experience?.availability.find((a) => a.date === date);
+  const fechas = listing.experience?.availability ?? [];
+  // Una experiencia sin cupos cargados se reserva sin fecha: es lo que acepta
+  // `crear_orden()` y lo que el formulario le promete a quien la publica. Pedir
+  // fecha de una lista vacía dejaba el botón apagado para siempre.
+  const pideFecha = isExperience && fechas.length > 0;
+  const slot = fechas.find((a) => a.date === date);
+  const grupoMinimo = listing.experience?.minPeople;
 
   const wholesaleApplies =
     listing.wholesalePriceCop !== undefined &&
@@ -47,12 +53,11 @@ export function AddToCart({
     ? listing.wholesalePriceCop!
     : listing.priceCop;
 
-  const maxQty = isExperience
-    ? Math.min(listing.experience!.maxPeople, slot?.slotsLeft ?? 0)
-    : (listing.stock ?? 999);
+  const tope = (isExperience ? listing.experience?.maxPeople : undefined) ?? listing.stock ?? 999;
+  const maxQty = pideFecha ? Math.min(tope, slot?.slotsLeft ?? 0) : tope;
 
-  const minQty = isExperience ? listing.experience!.minPeople : 1;
-  const canAdd = qty >= minQty && qty <= maxQty && (!isExperience || !!slot);
+  const minQty = grupoMinimo ?? 1;
+  const canAdd = qty >= minQty && qty <= maxQty && (!pideFecha || !!slot);
 
   // El aviso "Agregado a la cesta" se apaga solo. El temporizador vive en un
   // efecto y no dentro de handleAdd porque "Comprar ahora" agrega y navega en el
@@ -65,7 +70,7 @@ export function AddToCart({
   }, [added]);
 
   function handleAdd() {
-    addLine({ listingId: listing.id, qty, date: isExperience ? date : undefined });
+    addLine({ listingId: listing.id, qty, date: pideFecha ? date : undefined });
     setAdded(true);
   }
 
@@ -94,13 +99,20 @@ export function AddToCart({
         </p>
       )}
 
-      {isExperience && (
+      {isExperience && !pideFecha && (
+        <p className="mt-5 rounded-lg bg-sand px-3 py-2 text-sm text-muted">
+          La fecha la acuerdas con quien la organiza después de confirmar tu
+          reserva.
+        </p>
+      )}
+
+      {pideFecha && (
         <fieldset className="mt-5">
           <legend className="mb-2 text-sm font-medium text-ink">
             Elige la fecha
           </legend>
           <div className="grid gap-2 sm:grid-cols-2">
-            {listing.experience!.availability.map((a) => {
+            {fechas.map((a) => {
               const selected = a.date === date;
               const soldOut = a.slotsLeft === 0;
               return (
@@ -169,10 +181,9 @@ export function AddToCart({
         </span>
       </div>
 
-      {isExperience && (
+      {isExperience && grupoMinimo !== undefined && grupoMinimo > 1 && (
         <p className="mt-2 text-xs text-muted">
-          Mínimo {listing.experience!.minPeople} personas para que la salida se
-          confirme.
+          Mínimo {grupoMinimo} personas para que la salida se confirme.
         </p>
       )}
 
