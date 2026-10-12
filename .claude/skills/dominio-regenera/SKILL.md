@@ -197,3 +197,30 @@ Los puntos además llevan `referencia` única en `experience_events`.
 **27. Los candados se toman siempre en el mismo orden.** Orden antes que ítem;
 líneas por `listing_id, date`; proveedores por `provider_id`. Dos operaciones
 que toman las mismas filas en orden cruzado se interbloquean.
+
+## Nadie se beneficia a sí mismo (desde la 0016)
+
+Puntos, nivel, comisión, sello y reseñas valen plata o reputación. Todo lo que
+los mueve tiene que venir de **otro**: un comprador real, el equipo.
+
+**28. Una empresa no se compra, no se entrega y no se reseña a sí misma.**
+`crear_orden()` rechaza con `compra-propia` y `calificar()` con
+`item-propio` (con `manages_provider()`, que incluye a todos sus miembros).
+Lo que va por transportadora lo confirma quien lo recibe, no quien lo manda
+(`entrega-del-comprador`).
+
+**29. Lo que certifica la plataforma lo escribe el equipo.** Una empresa
+escribe borradores de su evaluación y sus certificaciones; `status =
+'approved'`, `reviewed_*` y `verified_*` los pisa un trigger si no es admin
+(`assessments_proteger`, `provider_certs_proteger`). Igual que el puntaje
+(invariante 13): **si quien escribe se beneficia del valor, no lo escribe.**
+
+**30. Lo que se quita deshace lo que dio.** Devolver una venta, ocultar una
+reseña o despublicar un artículo revierte sus puntos con
+`revertir_experiencia()`, el gemelo de `otorgar_experiencia()`. Un camino
+nuevo que dé puntos lleva, en la misma migración, el camino que los quita.
+Y su prueba en `supabase/pruebas/autobeneficio.test.ts`.
+
+**31. El dólar es solo referencia.** El «≈ US$» que se ve al lado de un precio
+sale de la TRM (`src/lib/tipo-de-cambio.ts`) y no entra en ningún cálculo, total
+ni cobro. Todo sigue en COP (invariante 5).

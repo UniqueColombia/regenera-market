@@ -2,6 +2,7 @@ import { cache } from "react";
 import { getUser } from "./auth";
 import { createClient } from "./supabase/server";
 import { nivelesDesde } from "./niveles";
+import { cuantasPaginas, rango, type Pagina } from "./paginacion";
 import { esReaccion, leerConteos, type ReaccionId } from "./comunidad";
 import type {
   AdminUsuario,
@@ -368,11 +369,38 @@ function patron(s: string): string {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Todas las ofertas que cumplen los filtros, sin paginar. Para el sitemap. */
 export async function searchListings(
   filters: ListingFilters = {},
 ): Promise<Listing[]> {
+  return (await consultarOfertas(filters)).listings;
+}
+
+/** Ofertas por página del catálogo: múltiplo de 2 y de 3, las columnas de la rejilla. */
+export const OFERTAS_POR_PAGINA = 24;
+
+/**
+ * Una página del catálogo, con el total de ofertas que cumplen los filtros.
+ * Si la página pedida ya no existe, devuelve `filas: []` con el total real,
+ * para que quien llama pueda llevar a la última (ver `src/lib/paginacion.ts`).
+ */
+export async function buscarOfertas(
+  filters: ListingFilters,
+  pagina: number,
+  porPagina = OFERTAS_POR_PAGINA,
+): Promise<Pagina<Listing>> {
+  const { listings, total } = await consultarOfertas(filters, rango(pagina, porPagina));
+  return { filas: listings, total, pagina, porPagina, paginas: cuantasPaginas(total, porPagina) };
+}
+
+async function consultarOfertas(
+  filters: ListingFilters,
+  desdeHasta?: [number, number],
+): Promise<{ listings: Listing[]; total: number }> {
   const db = await createClient();
-  let q = db.from("listings_publicos").select((await columnas()).listing);
+  let q = db
+    .from("listings_publicos")
+    .select((await columnas()).listing, desdeHasta ? { count: "exact" } : undefined);
 
   if (filters.kind) q = q.eq("kind", filters.kind);
   if (filters.vertical) q = q.contains("verticals", [filters.vertical]);
@@ -425,10 +453,25 @@ export async function searchListings(
         .order("featured", { ascending: false })
         .order("provider_score", { ascending: false });
   }
+  // Desempate único, siempre el último. Sin él, dos ofertas con el mismo
+  // puntaje (todas las de un proveedor, por ejemplo) salen en cualquier orden
+  // en cada consulta, y al paginar una se repite en dos páginas y otra no sale
+  // en ninguna.
+  q = q.order("id", { ascending: true });
 
-  const { data, error } = await q;
+  if (desdeHasta) q = q.range(desdeHasta[0], desdeHasta[1]);
+
+  const { data, error, count } = await q;
+  // PGRST103: se pidió un rango más allá de la última fila (la página ya no
+  // existe). No es un error: se devuelve vacía con el total, que sale de pedir
+  // la primera fila con los mismos filtros (desde 0 nunca da PGRST103).
+  if (error?.code === "PGRST103" && desdeHasta && desdeHasta[0] > 0) {
+    const { total } = await consultarOfertas(filters, [0, 0]);
+    return { listings: [], total };
+  }
   if (error) throw new Error(`searchListings: ${error.message}`);
-  return (data as unknown as FilaListing[]).map(aListing);
+  const listings = (data as unknown as FilaListing[]).map(aListing);
+  return { listings, total: count ?? listings.length };
 }
 
 export async function getListingBySlug(
@@ -714,28 +757,53 @@ export interface ListingAdmin extends Listing {
   providerStatus: ReviewStatus;
 }
 
+/** Ofertas por página en `/admin/ofertas`: filas de una línea, caben más. */
+export const OFERTAS_ADMIN_POR_PAGINA = 40;
+
 /**
- * Todas las ofertas, en cualquier estado.
+ * Una página de ofertas en cualquier estado, las más nuevas primero, y cuántas
+ * hay en cada estado. Reemplaza a `getListingsForAdmin()`, que las traía todas
+ * (2026-10-12). Ver `src/lib/paginacion.ts`.
  *
  * Consulta `listings` y **no** la vista `listings_publicos`: la vista filtra a
  * "aprobado de proveedor aprobado", que es justo lo contrario de lo que hace
  * falta aquí — el panel existe para ver lo que todavía no está publicado.
  */
-export async function getListingsForAdmin(): Promise<ListingAdmin[]> {
+export async function getOfertasParaAdmin(
+  estado: ReviewStatus | undefined,
+  pagina: number,
+  porPagina = OFERTAS_ADMIN_POR_PAGINA,
+): Promise<Pagina<ListingAdmin> & { porEstado: Record<ReviewStatus, number> }> {
   const db = await createClient();
-  const { data, error } = await db
-    .from("listings")
-    .select(`${(await columnas()).listing}, providers(name, status)`)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(`getListingsForAdmin: ${error.message}`);
+  const [desde, hasta] = rango(pagina, porPagina);
+  const ESTADOS: ReviewStatus[] = ["draft", "pending_review", "approved", "rejected", "suspended"];
 
-  return (data as unknown as (FilaListing & {
+  let q = db
+    .from("listings")
+    .select(`${(await columnas()).listing}, providers(name, status)`, { count: "exact" });
+  if (estado) q = q.eq("status", estado);
+
+  const [pag, ...conteos] = await Promise.all([
+    q.order("created_at", { ascending: false }).order("id", { ascending: true }).range(desde, hasta),
+    ...ESTADOS.map((e) => db.from("listings").select("id", { count: "exact", head: true }).eq("status", e)),
+  ]);
+  for (const c of conteos) if (c.error) throw new Error(`getOfertasParaAdmin: ${c.error.message}`);
+  const porEstado = Object.fromEntries(ESTADOS.map((e, i) => [e, conteos[i].count ?? 0])) as Record<ReviewStatus, number>;
+  const total = estado ? porEstado[estado] : ESTADOS.reduce((s, e) => s + porEstado[e], 0);
+  const paginas = cuantasPaginas(total, porPagina);
+
+  // PGRST103: la página ya no existe. Vacía, con el total real.
+  if (pag.error?.code === "PGRST103") return { filas: [], total, pagina, porPagina, paginas, porEstado };
+  if (pag.error) throw new Error(`getOfertasParaAdmin: ${pag.error.message}`);
+
+  const filas = (pag.data as unknown as (FilaListing & {
     providers: { name: string; status: ReviewStatus } | null;
   })[]).map((fila) => ({
     ...aListing(fila),
     providerName: fila.providers?.name ?? "Sin proveedor",
     providerStatus: fila.providers?.status ?? "draft",
   }));
+  return { filas, total, pagina, porPagina, paginas, porEstado };
 }
 
 /** Una oferta por id, en cualquier estado. Para el formulario de edición. */

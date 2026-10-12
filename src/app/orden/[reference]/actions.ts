@@ -35,6 +35,10 @@ function explicar(motivo: MotivoEnvio): string {
       return "Elige de 1 a 5 estrellas.";
     case "falta-guia":
       return "Falta la guía.";
+    case "item-propio":
+      return "Es de tu empresa: no puedes reseñarlo.";
+    case "entrega-del-comprador":
+      return "Esa entrega la confirma quien recibe el pedido.";
   }
 }
 

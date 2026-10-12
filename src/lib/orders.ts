@@ -3,6 +3,7 @@ import { createClient } from "./supabase/server";
 import { getUser } from "./auth";
 import { COMMISSION_RATE } from "./pricing";
 import { logisticaDisponible } from "./repo";
+import { cuantasPaginas, rango, type Pagina } from "./paginacion";
 import type {
   DestinoEnvio,
   Despacho,
@@ -41,7 +42,7 @@ import type {
  *
  * ## Y por qué la lectura del panel NO la usa
  *
- * `listOrders()` va con el cliente de sesión: ahí sí hay un usuario, y la
+ * `listarOrdenes()` va con el cliente de sesión: ahí sí hay un usuario, y la
  * política `orders_admin` es la que decide si ve todo o nada. Usar la clave de
  * servicio para leer convertiría cualquier fallo de ruta en acceso a las
  * órdenes de todo el mundo.
@@ -212,7 +213,9 @@ export type MotivoRechazo =
   | "demasiados-pedidos"
   | "demasiados-pendientes"
   /** Desde la 0014: hay productos físicos y falta a dónde mandarlos. */
-  | "falta-destino";
+  | "falta-destino"
+  /** Desde la 0016: una de las ofertas es de una empresa que gestiona quien compra. */
+  | "compra-propia";
 
 const MOTIVOS: readonly MotivoRechazo[] = [
   "sin-sesion",
@@ -228,6 +231,7 @@ const MOTIVOS: readonly MotivoRechazo[] = [
   "demasiados-pedidos",
   "demasiados-pendientes",
   "falta-destino",
+  "compra-propia",
 ];
 
 export type ResultadoCrearOrden =
@@ -434,8 +438,13 @@ export async function getPedidosDe(userId: string, limite = 20): Promise<Order[]
   );
 }
 
+/** Órdenes por página en `/admin/ordenes`. Cada tarjeta lleva sus líneas: 20 se leen bien. */
+export const ORDENES_POR_PAGINA = 20;
+
 /**
- * Todas las órdenes que quien mira tenga derecho a ver.
+ * Una página de las órdenes que quien mira tenga derecho a ver, las más
+ * recientes primero, opcionalmente de un estado. Reemplaza a `listOrders()`,
+ * que las traía todas (2026-10-12). Ver `src/lib/paginacion.ts`.
  *
  * Con el cliente de sesión: a un administrador le devuelve todas
  * (`orders_admin`), a un proveedor solo las que incluyen ítems suyos
@@ -444,18 +453,80 @@ export async function getPedidosDe(userId: string, limite = 20): Promise<Order[]
  * RLS existe para conseguir: aquí no hay un `where` escrito a mano en el que
  * confiar.
  */
-export async function listOrders(): Promise<Order[]> {
+export async function listarOrdenes(
+  estado: OrderStatus | undefined,
+  pagina: number,
+  porPagina = ORDENES_POR_PAGINA,
+): Promise<Pagina<Order>> {
   const db = await createClient();
+  const [desde, hasta] = rango(pagina, porPagina);
 
-  const { data, error } = await db
+  let q = db
     .from("orders")
-    .select(`*, order_items(${await columnasItem()})`)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(`listOrders: ${error.message}`);
+    .select(`*, order_items(${await columnasItem()})`, { count: "exact" });
+  if (estado) q = q.eq("status", estado);
+  // `id` desempata dos órdenes del mismo instante: sin él, una puede salir en
+  // dos páginas y otra en ninguna.
+  const { data, error, count } = await q
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
+    .range(desde, hasta);
 
-  return (data as unknown as (FilaOrden & { order_items: FilaItem[] | null })[]).map((f) =>
+  if (error?.code === "PGRST103" && desde > 0) {
+    // La página ya no existe: se devuelve vacía con el total real.
+    const { total } = await listarOrdenes(estado, 1, 1);
+    return { filas: [], total, pagina, porPagina, paginas: cuantasPaginas(total, porPagina) };
+  }
+  if (error) throw new Error(`listarOrdenes: ${error.message}`);
+
+  const filas = (data as unknown as (FilaOrden & { order_items: FilaItem[] | null })[]).map((f) =>
     aOrden(f, f.order_items ?? []),
   );
+  const total = count ?? filas.length;
+  return { filas, total, pagina, porPagina, paginas: cuantasPaginas(total, porPagina) };
+}
+
+/** Cuántas órdenes hay en cada estado y cuánto suman. */
+export type ResumenDeOrdenes = Record<OrderStatus, { cantidad: number; totalCop: number }>;
+
+/**
+ * Las cifras del panel, calculadas en la base sobre **todas** las órdenes, no
+ * sobre la página que se está viendo (`admin_resumen_ordenes()`, 0016).
+ *
+ * Sin la 0016 la función no existe y se suma en la aplicación leyendo solo
+ * `status` y `total_cop`: es lo que se hacía antes, más liviano. Cuando la
+ * migración esté aplicada en todos lados, el respaldo se puede borrar.
+ */
+export async function resumenDeOrdenes(): Promise<ResumenDeOrdenes> {
+  const db = await createClient();
+  const vacio = (): ResumenDeOrdenes => ({
+    pending_payment: { cantidad: 0, totalCop: 0 },
+    paid: { cantidad: 0, totalCop: 0 },
+    in_progress: { cantidad: 0, totalCop: 0 },
+    fulfilled: { cantidad: 0, totalCop: 0 },
+    cancelled: { cantidad: 0, totalCop: 0 },
+    refunded: { cantidad: 0, totalCop: 0 },
+  });
+
+  const { data, error } = await db.rpc("admin_resumen_ordenes");
+  if (!error) {
+    const r = vacio();
+    for (const f of data as { status: OrderStatus; cantidad: number; total_cop: number }[]) {
+      r[f.status] = { cantidad: Number(f.cantidad), totalCop: Number(f.total_cop) };
+    }
+    return r;
+  }
+  // PGRST202: la función no existe todavía (falta la 0016).
+  if (error.code !== "PGRST202") throw new Error(`resumenDeOrdenes: ${error.message}`);
+
+  const viejo = await db.from("orders").select("status, total_cop");
+  if (viejo.error) throw new Error(`resumenDeOrdenes: ${viejo.error.message}`);
+  const r = vacio();
+  for (const f of viejo.data as { status: OrderStatus; total_cop: number | null }[]) {
+    r[f.status].cantidad += 1;
+    r[f.status].totalCop += f.total_cop ?? 0;
+  }
+  return r;
 }
 
 // ---------------------------------------------------------------------------
@@ -480,7 +551,11 @@ export type MotivoEnvio =
   | "falta-guia"
   | "calificacion-invalida"
   | "oferta-retirada"
-  | "todavia-no";
+  | "todavia-no"
+  /** Desde la 0016: reseñar lo que vende la empresa de uno. */
+  | "item-propio"
+  /** Desde la 0016: lo que va por transportadora lo confirma quien lo recibe. */
+  | "entrega-del-comprador";
 
 const MOTIVOS_ENVIO: readonly MotivoEnvio[] = [
   "sin-sesion",
@@ -491,6 +566,8 @@ const MOTIVOS_ENVIO: readonly MotivoEnvio[] = [
   "calificacion-invalida",
   "oferta-retirada",
   "todavia-no",
+  "item-propio",
+  "entrega-del-comprador",
 ];
 
 export type ResultadoEnvio =

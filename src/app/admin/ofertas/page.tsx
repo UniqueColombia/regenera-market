@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Plus, SquarePen } from "lucide-react";
 import { EstadoOferta } from "./estado-oferta";
-import { getListingsForAdmin } from "@/lib/repo";
+import { Paginacion } from "@/components/paginacion";
+import { leerPagina, urlDePagina } from "@/lib/paginacion";
+import { getOfertasParaAdmin } from "@/lib/repo";
 import { money } from "@/lib/format";
 import { KIND_LABEL, categoriaLabel } from "@/lib/taxonomy";
 import type { ReviewStatus } from "@/lib/types";
@@ -28,7 +31,8 @@ const COLOR: Record<ReviewStatus, string> = {
 };
 
 /**
- * El catálogo desde dentro: todas las ofertas, en cualquier estado.
+ * El catálogo desde dentro: todas las ofertas, en cualquier estado, por
+ * páginas y con filtro por estado (desde el 2026-10-12).
  *
  * **Esta es la pantalla que hacía falta para que el proyecto fuera operable.**
  * Sin ella, cambiar un precio significaba editar `src/data/`, abrir un PR y
@@ -38,10 +42,20 @@ const COLOR: Record<ReviewStatus, string> = {
  * la política `listings_public_read` exige las dos cosas, así que en el sitio no
  * se ve — y desde esta lista parecería que sí.
  */
-export default async function OfertasPage() {
-  const ofertas = await getListingsForAdmin();
+export default async function OfertasPage(props: PageProps<"/admin/ofertas">) {
+  const sp = await props.searchParams;
+  const pedido = Array.isArray(sp.estado) ? sp.estado[0] : sp.estado;
+  // `hasOwn` y no `in`: `"toString" in ETIQUETA` es verdadero.
+  const estado = pedido && Object.hasOwn(ETIQUETA, pedido) ? (pedido as ReviewStatus) : undefined;
+  const pedida = leerPagina(sp.pagina);
 
-  const publicadas = ofertas.filter((o) => o.status === "approved").length;
+  const resultado = await getOfertasParaAdmin(estado, pedida);
+  if (pedida > resultado.paginas) redirect(urlDePagina("/admin/ofertas", sp, resultado.paginas));
+  const { filas: ofertas, pagina, paginas, porEstado } = resultado;
+
+  // De la base, sobre todas las ofertas: no sobre la página que se ve.
+  const todas = Object.values(porEstado).reduce((s, n) => s + n, 0);
+  const publicadas = porEstado.approved;
 
   return (
     <div>
@@ -49,7 +63,7 @@ export default async function OfertasPage() {
         <div>
           <h1 className="font-display text-3xl text-ink sm:text-4xl">Ofertas</h1>
           <p className="mt-2 max-w-2xl text-muted">
-            {ofertas.length} en total, {publicadas} en el catálogo. Lo que
+            {todas} en total, {publicadas} en el catálogo. Lo que
             cambies aquí se ve en el sitio sin desplegar nada.
           </p>
         </div>
@@ -63,9 +77,28 @@ export default async function OfertasPage() {
         </Link>
       </header>
 
+      <nav aria-label="Filtrar por estado" className="mt-6 flex flex-wrap gap-2">
+        {([undefined, ...(Object.keys(ETIQUETA) as ReviewStatus[])] as (ReviewStatus | undefined)[]).map((e) => {
+          const activo = e === estado;
+          return (
+            <Link
+              key={e ?? "todas"}
+              href={e ? `/admin/ofertas?estado=${e}` : "/admin/ofertas"}
+              aria-current={activo ? "page" : undefined}
+              className={`rounded-full px-3 py-1.5 text-sm ring-1 transition ${
+                activo ? "bg-brand-700 text-white ring-brand-700" : "bg-white text-ink ring-hairline hover:bg-sand"
+              }`}
+            >
+              {e ? ETIQUETA[e] : "Todas"}{" "}
+              <span className="tabular-nums opacity-70">{e ? porEstado[e] : todas}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
       {ofertas.length === 0 ? (
         <p className="mt-10 rounded-xl bg-white p-10 text-center text-muted ring-1 ring-hairline">
-          No hay ninguna oferta todavía.
+          {estado ? "No hay ofertas en este estado." : "No hay ninguna oferta todavía."}
         </p>
       ) : (
         <ul className="mt-6 grid gap-2 xl:grid-cols-2">
@@ -120,6 +153,8 @@ export default async function OfertasPage() {
           ))}
         </ul>
       )}
+
+      <Paginacion ruta="/admin/ofertas" params={sp} pagina={pagina} paginas={paginas} />
     </div>
   );
 }
