@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SlidersHorizontal } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
 import { Revelar } from "@/components/revelar";
-import { getProviderById, searchListings } from "@/lib/repo";
+import { getProvidersByIds, searchListings } from "@/lib/repo";
 import { Categorias } from "./categorias";
 import {
   categoriaPorId,
@@ -34,9 +34,9 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   const filters = parseFilters(sp);
 
   const [listings, sesion] = await Promise.all([searchListings(filters), getSesion()]);
-  const providers = await Promise.all(
-    listings.map((l) => getProviderById(l.providerId)),
-  );
+  // Una consulta para todos los proveedores de la página, no una por empresa.
+  const porId = await getProvidersByIds(listings.map((l) => l.providerId));
+  const providers = listings.map((l) => porId.get(l.providerId));
 
   const activeCount = countActive(filters);
 

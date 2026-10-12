@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { pesosDesdeTexto } from "./format";
 import { DEPARTMENTS, IDS_CATEGORIA, categoriaPorId } from "./taxonomy";
 
 /**
@@ -48,6 +49,17 @@ const numeroOpcional = z
   .transform((v) => (v ? Number(v) : null))
   .refine((v) => v === null || Number.isFinite(v), "Escribe un número");
 
+/**
+ * Un monto en pesos, opcional. No pasa por `Number()`: «20.000» es veinte mil,
+ * no veinte (ver `pesosDesdeTexto()`). Lo ambiguo se rechaza en vez de
+ * adivinarlo.
+ */
+const pesosOpcional = z
+  .string()
+  .nullish()
+  .transform((v) => pesosDesdeTexto(v))
+  .refine((v) => v === null || Number.isFinite(v), "Escribe solo números, por ejemplo 20000 o 20.000");
+
 /** Una lista escrita a razón de una por línea. Es lo que un `text[]` espera. */
 const lineas = z
   .string()
@@ -72,11 +84,8 @@ export const CamposOferta = z.object({
     .array(z.enum(["hoteles", "hostales", "restaurantes", "transporte", "agencias"]))
     .optional(),
   images: lineas,
-  priceCop: z.coerce
-    .number("Escribe el precio")
-    .int("El precio va en pesos enteros")
-    .min(0, "El precio no puede ser negativo"),
-  wholesalePriceCop: numeroOpcional,
+  priceCop: pesosOpcional.refine((v) => v !== null, "Escribe el precio").transform((v) => v as number),
+  wholesalePriceCop: pesosOpcional,
   wholesaleMinQty: numeroOpcional,
   unit: z.string().trim().min(1, "Escribe la unidad").max(40).default("unidad"),
   quoteOnly: z.boolean().optional(),
@@ -108,7 +117,7 @@ export const CamposOferta = z.object({
     .nullish()
     .transform((v) => (v ? v : null)),
   transportadora: textoOpcional,
-  envioCop: numeroOpcional,
+  envioCop: pesosOpcional,
   entregaDiasMin: numeroOpcional,
   entregaDiasMax: numeroOpcional,
   /**

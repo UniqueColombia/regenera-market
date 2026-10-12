@@ -19,11 +19,12 @@ import { ListingMedia } from "@/components/listing-media";
 import { Estrellas, ResumenCalificacion } from "@/components/estrellas";
 import { TierBadge } from "@/components/tier-badge";
 import { ETIQUETA_DESPACHO, plazoDeEntrega, textoCostoEnvio } from "@/lib/envios";
-import { duration, longDate, money, num } from "@/lib/format";
+import { duration, grupoDePersonas, longDate, money, num } from "@/lib/format";
 import {
   getCalificacionDeOferta,
   getListingBySlug,
   getProviderById,
+  getProvidersByIds,
   getRelatedListings,
   getResenasDeOferta,
 } from "@/lib/repo";
@@ -68,15 +69,16 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
 
   const provider = await getProviderById(listing.providerId);
   const subcategoria = subcategoriaLabel(listing.category, listing.subcategory);
+  const grupo = grupoDePersonas(listing.experience?.minPeople, listing.experience?.maxPeople);
   const sesion = await getSesion();
   const [related, calificacion, resenas] = await Promise.all([
     getRelatedListings(listing),
     getCalificacionDeOferta(listing.id),
     getResenasDeOferta(listing.id),
   ]);
-  const relatedProviders = await Promise.all(
-    related.map((l) => getProviderById(l.providerId)),
-  );
+  // Una consulta para todos los proveedores de los relacionados, no una por tarjeta.
+  const porId = await getProvidersByIds(related.map((l) => l.providerId));
+  const relatedProviders = related.map((l) => porId.get(l.providerId));
 
   return (
     <div className="container-page py-8">
@@ -166,36 +168,49 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
             <p className="leading-relaxed">{listing.description}</p>
           </div>
 
-          {listing.experience && (
+          {/* Cada dato va solo si existe: el formulario no exige ninguno, y una
+              experiencia recién publicada puede traer solo la duración. */}
+          {listing.experience && (grupo || listing.experience.durationHours ||
+            listing.experience.meetingPoint || listing.experience.includes.length > 0) && (
             <section className="mt-8">
               <h2 className="font-display text-2xl text-ink">La experiencia</h2>
               <dl className="mt-4 grid gap-4 sm:grid-cols-3">
-                <Spec
-                  icon={<Clock className="size-4" />}
-                  label="Duración"
-                  value={duration(listing.experience.durationHours)}
-                />
-                <Spec
-                  icon={<Users className="size-4" />}
-                  label="Grupo"
-                  value={`${listing.experience.minPeople} a ${listing.experience.maxPeople} personas`}
-                />
-                <Spec
-                  icon={<MapPin className="size-4" />}
-                  label="Punto de encuentro"
-                  value={listing.experience.meetingPoint}
-                />
+                {listing.experience.durationHours ? (
+                  <Spec
+                    icon={<Clock className="size-4" />}
+                    label="Duración"
+                    value={duration(listing.experience.durationHours)}
+                  />
+                ) : null}
+                {grupo && (
+                  <Spec
+                    icon={<Users className="size-4" />}
+                    label="Grupo"
+                    value={grupo}
+                  />
+                )}
+                {listing.experience.meetingPoint && (
+                  <Spec
+                    icon={<MapPin className="size-4" />}
+                    label="Punto de encuentro"
+                    value={listing.experience.meetingPoint}
+                  />
+                )}
               </dl>
 
-              <h3 className="mt-6 font-display text-lg text-ink">Incluye</h3>
-              <ul className="mt-2 space-y-1.5">
-                {listing.experience.includes.map((item) => (
-                  <li key={item} className="flex gap-2 text-sm text-muted">
-                    <BadgeCheck className="mt-0.5 size-4 shrink-0 text-brand-600" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              {listing.experience.includes.length > 0 && (
+                <>
+                  <h3 className="mt-6 font-display text-lg text-ink">Incluye</h3>
+                  <ul className="mt-2 space-y-1.5">
+                    {listing.experience.includes.map((item) => (
+                      <li key={item} className="flex gap-2 text-sm text-muted">
+                        <BadgeCheck className="mt-0.5 size-4 shrink-0 text-brand-600" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </section>
           )}
 

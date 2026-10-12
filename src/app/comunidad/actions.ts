@@ -369,11 +369,19 @@ export async function puntosEnJuego(postId: string): Promise<number> {
   if (!usuario || !z.uuid().safeParse(postId).success) return 0;
 
   const db = await createClient();
-  const { data } = await db
+  const { data, error } = await db
     .from("experience_events")
     .select("puntos")
     .eq("referencia", postId)
     .in("clave", ["articulo_publicado", "articulo_destacado"]);
+  // Si la lectura falla no se lanza: quien llama está a punto de mostrar el
+  // aviso de eliminar, y un error aquí le impediría eliminar por un número que
+  // es solo informativo. Se deja rastro en el registro del servidor y el aviso
+  // sale en su versión corta, la misma que ve quien no puede leer los eventos.
+  if (error) {
+    console.error(`puntosEnJuego: ${error.message}`);
+    return 0;
+  }
   return (data ?? []).reduce((suma, e) => suma + (e.puntos as number), 0);
 }
 

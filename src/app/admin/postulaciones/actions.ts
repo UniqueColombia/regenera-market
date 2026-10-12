@@ -139,11 +139,13 @@ export async function decidirPostulacion(
   }
 
   const slug = await slugLibre(postulacion.name, async (candidato) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("providers")
       .select("id")
       .eq("slug", candidato)
       .maybeSingle();
+    // Sin esto, una lectura fallida decía «libre» y el insert chocaba después.
+    if (error) throw new Error(`slug de proveedor: ${error.message}`);
     return Boolean(data);
   });
 
