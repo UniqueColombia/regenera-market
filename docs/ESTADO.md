@@ -5,9 +5,9 @@ medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
 - **Corte:** 2026-10-12
-- **Producción:** `main` → **https://regenera-market.vercel.app**, con la
-  migración `0014` **aplicada** (Jesús, 2026-10-12). La `0015` está escrita y
-  probada, **sin aplicar** (ver abajo).
+- **Producción:** `main` → **https://regenera-market.vercel.app**, con las
+  migraciones hasta la `0015` **aplicadas** (Jesús, 2026-10-12). La `0016` está
+  escrita y probada, **sin aplicar** (ver abajo).
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
   empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.
@@ -17,10 +17,29 @@ qué hacer, empieza aquí y no en el ROADMAP.
   corren en el CI. Cómo están hechas y por qué, en
   [el hito](../.claude/hitos/2026-10-12-pruebas-de-la-base-y-0015.md).
 
-> ## 🔴 Nuevo del 2026-10-12: aplicar la migración `0015`
+> ## 🔴 Nuevo del 2026-10-12 (tarde): aplicar la migración `0016`
 >
-> **Cierra un hueco de seguridad y un fallo de reseñas que encontraron las
-> pruebas nuevas.** Aditiva y re-ejecutable: no borra nada.
+> **Nadie se beneficia a sí mismo.** Cierra dos huecos críticos: una empresa
+> podía **aprobarse sola su evaluación** (sello «Green Watching» y 250 puntos) y
+> **publicar certificaciones como verificadas**. También bloquea comprarse,
+> entregarse y reseñarse a sí misma, y revierte los puntos cuando se devuelve una
+> venta, se oculta una reseña o se despublica un artículo. Trae además el resumen
+> de `/admin/ordenes` calculado en la base.
+>
+> **Cómo:** antes, correr las tres consultas del final del archivo para ver si
+> alguien usó los huecos. Después, SQL Editor → pegar
+> `supabase/migrations/0016_sin_autobeneficio_y_resumen_de_ordenes.sql` entero →
+> Run. **El código ya desplegado funciona sin ella**: `/admin/ordenes` suma en la
+> aplicación hasta que exista la función nueva.
+>
+> El mismo día, sin migración: **el catálogo y los paneles de órdenes y ofertas
+> van por páginas** (con filtro por estado en los paneles), y **la ficha y la
+> cesta muestran «≈ US$»** con la TRM oficial, solo de referencia.
+
+> ## ✅ La `0015` está aplicada (Jesús, 2026-10-12)
+>
+> **Cerró un hueco de seguridad y un fallo de reseñas que encontraron las
+> pruebas nuevas.**
 >
 > - **Seguridad:** con la clave pública —la que va en el navegador— cualquiera
 >   podía llamar `vencer_pedidos_sin_pago(24)` y cancelar los pedidos de más de un
@@ -31,16 +50,8 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   pagado, antes de recibirlo.
 > - **Índices** para el panel de órdenes, «Mis pedidos» y las políticas de empresa.
 >
-> **Cómo:** Supabase → SQL Editor → pegar `supabase/migrations/0015_permisos_de_anon_e_indices.sql`
-> entero → Run. La comprobación y una consulta para ver si alguna reseña entró
-> por el hueco están al final del archivo.
->
-> **Antes de aplicarla**, confirma que el hueco existe en producción (si da
-> `true`, existe):
->
-> ```sql
-> select has_function_privilege('anon', 'vencer_pedidos_sin_pago(int)', 'execute');
-> ```
+> **Falta:** correr la consulta del final de la `0015` para ver si alguna reseña
+> entró por el hueco antes de cerrarlo.
 >
 > El mismo día, sin migración: **la ficha de una experiencia publicada sin
 > «mínimo de personas» daba error** (`test-de-expriencia`), y una experiencia sin
