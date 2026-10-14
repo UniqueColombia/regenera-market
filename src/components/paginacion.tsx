@@ -8,20 +8,26 @@ import { numerosDePagina, urlDePagina } from "@/lib/paginacion";
  * botón atrás vuelve a la página anterior y un buscador puede seguirla.
  *
  * Server Component: no tiene estado. Con una sola página no pinta nada.
+ *
+ * `ancla`: el `id` adonde aterriza cada página. En el catálogo, sin él, la
+ * página 2 abría arriba de todo y había que volver a bajar pasando las
+ * categorías y el formulario hasta llegar a las ofertas.
  */
 export function Paginacion({
   ruta,
   params,
   pagina,
   paginas,
+  ancla,
 }: {
   ruta: string;
   params: Record<string, string | string[] | undefined>;
   pagina: number;
   paginas: number;
+  ancla?: string;
 }) {
   if (paginas <= 1) return null;
-  const url = (n: number) => urlDePagina(ruta, params, n);
+  const url = (n: number) => urlDePagina(ruta, params, n) + (ancla ? `#${ancla}` : "");
 
   // 40 px de alto: es el mínimo con el que se acierta con el pulgar sin mirar.
   const base = "grid h-10 min-w-10 place-items-center rounded-full px-3 text-sm tabular-nums transition";
