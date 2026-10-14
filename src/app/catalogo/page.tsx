@@ -9,6 +9,8 @@ import { num } from "@/lib/format";
 import { leerPagina, urlDePagina } from "@/lib/paginacion";
 import { buscarOfertas, getProvidersByIds } from "@/lib/repo";
 import { Categorias } from "./categorias";
+import { ID_RESULTADOS } from "./ancla";
+import { NavegacionCatalogo, Resultados } from "./navegacion";
 import {
   categoriaPorId,
   CERTIFICATIONS,
@@ -48,9 +50,14 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   const providers = listings.map((l) => porId.get(l.providerId));
 
   const activeCount = countActive(filters);
+  const conteo =
+    `${num(total)} ${total === 1 ? "oferta encontrada" : "ofertas encontradas"}` +
+    (paginas > 1
+      ? ` · ${num((pagina - 1) * porPagina + 1)} a ${num((pagina - 1) * porPagina + listings.length)}`
+      : "");
 
   return (
-    <div className="container-page py-10">
+    <NavegacionCatalogo className="container-page py-10">
       <header>
         <h1 className="font-display text-3xl text-ink sm:text-4xl">
           Catálogo regenerativo
@@ -74,10 +81,14 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
         </p>
       </header>
 
-      <Categorias filters={filters} />
+      <Categorias filters={filters} total={total} />
 
+      {/* El ancla del `action` sobrevive al envío GET (solo se reemplaza la
+          consulta): «Aplicar filtros» aterriza en los resultados y no arriba
+          de todo, con las ocho categorías de por medio. */}
       <form
         method="get"
+        action={`/catalogo#${ID_RESULTADOS}`}
         className="mt-8 rounded-xl bg-white p-5 ring-1 ring-hairline"
       >
         <div className="flex items-center justify-between gap-3">
@@ -202,43 +213,39 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
         </button>
       </form>
 
-      <p className="mt-6 text-sm text-muted" aria-live="polite">
-        {num(total)} {total === 1 ? "oferta encontrada" : "ofertas encontradas"}
-        {paginas > 1 &&
-          ` · ${num((pagina - 1) * porPagina + 1)} a ${num((pagina - 1) * porPagina + listings.length)}`}
-      </p>
+      <Resultados conteo={conteo}>
+        {listings.length === 0 ? (
+          <div className="mt-6 rounded-xl bg-white p-10 text-center ring-1 ring-hairline">
+            <p className="font-display text-xl text-ink">
+              Nada coincide con esa búsqueda
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+              El catálogo todavía es pequeño y estamos sumando proveedores cada
+              semana. Prueba con menos filtros, o cuéntanos qué estás buscando.
+            </p>
+            <Link
+              href="/catalogo"
+              className="mt-5 inline-block rounded-full bg-brand-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-800"
+            >
+              Ver todo el catálogo
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {listings.map((listing, i) => (
+              // Entran al desplazarse, escalonadas por columna. `Revelar` no
+              // anima lo que ya está en la primera pantalla, así que filtrar no
+              // hace parpadear la rejilla.
+              <Revelar key={listing.id} retraso={(i % 3) * 80} className="grid">
+                <ListingCard listing={listing} provider={providers[i]} />
+              </Revelar>
+            ))}
+          </div>
+        )}
 
-      {listings.length === 0 ? (
-        <div className="mt-6 rounded-xl bg-white p-10 text-center ring-1 ring-hairline">
-          <p className="font-display text-xl text-ink">
-            Nada coincide con esa búsqueda
-          </p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-            El catálogo todavía es pequeño y estamos sumando proveedores cada
-            semana. Prueba con menos filtros, o cuéntanos qué estás buscando.
-          </p>
-          <Link
-            href="/catalogo"
-            className="mt-5 inline-block rounded-full bg-brand-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-800"
-          >
-            Ver todo el catálogo
-          </Link>
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {listings.map((listing, i) => (
-            // Entran al desplazarse, escalonadas por columna. `Revelar` no
-            // anima lo que ya está en la primera pantalla, así que filtrar no
-            // hace parpadear la rejilla.
-            <Revelar key={listing.id} retraso={(i % 3) * 80} className="grid">
-              <ListingCard listing={listing} provider={providers[i]} />
-            </Revelar>
-          ))}
-        </div>
-      )}
-
-      <Paginacion ruta="/catalogo" params={sp} pagina={pagina} paginas={paginas} />
-    </div>
+        <Paginacion ruta="/catalogo" params={sp} pagina={pagina} paginas={paginas} ancla={ID_RESULTADOS} />
+      </Resultados>
+    </NavegacionCatalogo>
   );
 }
 
