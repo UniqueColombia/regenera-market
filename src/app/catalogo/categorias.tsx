@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useLayoutEffect, useOptimistic, useRef, useTransition } from "react";
-import { Check, ShieldCheck } from "lucide-react";
+import { useLayoutEffect, useOptimistic, useRef } from "react";
+import { ArrowDown, Check, ShieldCheck } from "lucide-react";
 import { IconoCategoria } from "@/components/icono-categoria";
+import { num } from "@/lib/format";
 import { CATEGORIAS, categoriaPorId, type Categoria } from "@/lib/taxonomy";
 import type { ListingFilters } from "@/lib/types";
+import { ID_RESULTADOS } from "./ancla";
+import { irAResultados, useNavegacionCatalogo } from "./navegacion";
 
 /**
  * Las categorías del catálogo como puerta de entrada, no como un desplegable.
@@ -35,10 +38,22 @@ import type { ListingFilters } from "@/lib/types";
  * Los enlaces siguen siendo enlaces: con clic derecho, clic con Ctrl o sin
  * JavaScript funcionan como siempre. Y cada uno **conserva los demás filtros**:
  * elegir «Energía» después de filtrar por hoteles en Antioquia no los borra.
+ *
+ * ## Tocar una subcategoría lleva a los resultados
+ *
+ * Observación de beta del 2026-10-14: en el teléfono, después de tocar
+ * «Reutilización» los resultados quedaban debajo de las otras siete tarjetas y
+ * del formulario, y había que bajar a buscarlos. Ahora **una subcategoría lleva
+ * directo a los resultados** (`irAResultados`), que se ven atenuados hasta que
+ * el servidor contesta.
+ *
+ * **Una categoría no salta**, a propósito: lo que abre son sus subcategorías,
+ * justo debajo, y saltar se las saltaría. Para quien no quiere afinar, el panel
+ * trae «Ver N ofertas», que lleva al mismo sitio.
  */
-export function Categorias({ filters }: { filters: ListingFilters }) {
+export function Categorias({ filters, total }: { filters: ListingFilters; total: number }) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const { iniciar } = useNavegacionCatalogo();
   // Lo que se pinta: lo elegido ya, aunque el servidor todavía no haya contestado.
   // Cuando la navegación termina, `vista` vuelve a ser `filters`, ya actualizado.
   const [vista, elegir] = useOptimistic(
@@ -73,10 +88,13 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
       const tarjeta = document.getElementById(`cat-${tarjetaId}`);
       if (tarjeta) ancla.current = { id: tarjetaId, arriba: tarjeta.getBoundingClientRect().top };
     }
-    startTransition(() => {
+    iniciar(() => {
       elegir(cambios);
       router.push(conFiltros(vista, cambios), { scroll: false });
     });
+    // Sin tarjeta es una subcategoría: se va a los resultados ya, sin esperar
+    // al servidor. Ver «Tocar una subcategoría lleva a los resultados».
+    if (!tarjetaId) irAResultados();
   }
 
   return (
@@ -147,7 +165,7 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
                   a todo el ancho, porque dentro de la tarjeta quedaría estrecho. */}
               {elegida && activa && (
                 <div className="min-[480px]:hidden">
-                  <PanelSubcategorias activa={activa} vista={vista} ir={ir} />
+                  <PanelSubcategorias activa={activa} vista={vista} total={total} ir={ir} />
                 </div>
               )}
 
@@ -173,7 +191,7 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
 
       {activa && (
         <div className="hidden min-[480px]:block">
-          <PanelSubcategorias activa={activa} vista={vista} ir={ir} />
+          <PanelSubcategorias activa={activa} vista={vista} total={total} ir={ir} />
         </div>
       )}
     </section>
@@ -192,12 +210,15 @@ export function Categorias({ filters }: { filters: ListingFilters }) {
 function PanelSubcategorias({
   activa,
   vista,
+  total,
   ir,
 }: {
   activa: Categoria;
   vista: ListingFilters;
+  total: number;
   ir: (e: React.MouseEvent, cambios: Partial<ListingFilters>, tarjetaId?: string) => void;
 }) {
+  const { pendiente } = useNavegacionCatalogo();
   return (
     <div
       key={activa.id}
@@ -229,6 +250,29 @@ function PanelSubcategorias({
           );
         })}
       </ul>
+
+      {/* El atajo a los resultados, para quien no quiere afinar más. Mientras
+          el servidor contesta, `total` todavía es el de la búsqueda anterior:
+          no se muestra un número que no es. Sin JavaScript es un ancla común. */}
+      {pendiente ? (
+        <p className="mt-3 text-sm text-muted" aria-hidden>
+          Buscando ofertas…
+        </p>
+      ) : total > 0 ? (
+        <a
+          href={`#${ID_RESULTADOS}`}
+          onClick={(e) => {
+            e.preventDefault();
+            irAResultados();
+          }}
+          className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 underline underline-offset-4 hover:text-brand-800"
+        >
+          Ver {num(total)} {total === 1 ? "oferta" : "ofertas"}
+          <ArrowDown className="size-4" aria-hidden />
+        </a>
+      ) : (
+        <p className="mt-3 text-sm text-muted">Todavía no hay ofertas con estos filtros.</p>
+      )}
     </div>
   );
 }
