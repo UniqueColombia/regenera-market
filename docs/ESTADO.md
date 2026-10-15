@@ -6,7 +6,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
 
 - **Corte:** 2026-10-14
 - **Producción:** `main` → **https://regenera-market.vercel.app**, con las
-  migraciones hasta la `0019` **aplicadas** (Jesús, 2026-10-14). La `0020` está
+  migraciones hasta la `0020` **aplicadas** (Jesús, 2026-10-14). La `0021` está
   escrita y probada, **sin aplicar** (ver abajo).
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
@@ -36,15 +36,28 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > | 8 | **Convenio con Aveonline** (o la transportadora que sea) | Si su API cotiza por peso, medidas y destino | Una implementación detrás de `envioDeLinea()` (skill `nueva-integracion`) | Cada proveedor declara su tarifa local, nacional y por unidad |
 > | 9 | **Conseguir correos de prospectos** | Decidir si se enriquecen más lotes con el subagente `prospector-proveedores` | — | Del Excel del prospector, solo 17 de 2.827 empresas tienen correo |
 
-> ## 🔴 Nuevo del 2026-10-14 (noche): aplicar la `0020`
+> ## 🔴 Nuevo del 2026-10-14 (noche): aplicar la `0021`
+>
+> **Eliminar la cuenta y cerrar la empresa.** Al final de «Tu cuenta» y de «Tu
+> empresa», cada una con su confirmación (la contraseña, el nombre de la
+> empresa). Con pedidos o cotizaciones pendientes no se puede. Una empresa que
+> ya vendió se cierra y se conserva por la contabilidad; una que no, se borra.
+> Después se puede dar de alta otra. Sin la `0021` las dos secciones no
+> aparecen. SQL Editor → pegar
+> `supabase/migrations/0021_baja_de_cuenta_y_de_empresa.sql` entero → Run.
+> **Conviene probarlo una vez con una cuenta creada para eso**: la parte de la
+> base está probada, la acción completa (contraseña, borrado del usuario,
+> fotos) todavía no. El detalle, en
+> [el hito](../.claude/hitos/2026-10-14-eliminar-cuenta-y-cerrar-empresa.md).
+
+> ## ✅ La `0020` está aplicada (Jesús, 2026-10-14)
 >
 > **Al aplicar la `0017` se vació el catálogo** (portada en 500, fichas sin
 > cargar): la `0017` no recreó la vista `listings_publicos`, que congela su
 > `l.*`. **Ya está arreglado en el código**, desplegado y comprobado en
-> producción; el sitio funciona con la tarifa fija de envío. La `0020` recrea la
-> vista y, al aplicarla, se enciende el envío por zona y por unidad. SQL Editor →
-> pegar `supabase/migrations/0020_vista_del_catalogo_con_envio_por_zona.sql`
-> entero → Run. El detalle, en
+> producción. La `0020` recreó la vista y con ella quedó encendido el envío por
+> zona y por unidad (comprobado: la vista ya responde con `envio_local_cop`). El
+> detalle, en
 > [el hito](../.claude/hitos/2026-10-14-la-0017-vacio-el-catalogo.md).
 
 > ## ✅ Del 2026-10-14: las `0016` a `0019` están aplicadas (Jesús)

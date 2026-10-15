@@ -70,6 +70,15 @@ export interface AlmacenDeImagenes {
      */
     comoServicio?: boolean,
   ): Promise<ResultadoImagen>;
+  /**
+   * Borra todo lo de un dueño: su foto de perfil, o el logo y las fotos de
+   * ofertas de una empresa. Para cuando se elimina la cuenta o la empresa.
+   *
+   * **No lanza.** Lo llama una acción que ya borró los datos de la base: un
+   * archivo que se queda huérfano pesa kilobytes y nadie lo sirve, y no puede
+   * convertir una baja hecha en un error en pantalla.
+   */
+  borrarCarpeta(bucket: Bucket, duenio: string): Promise<void>;
 }
 
 /**
@@ -92,6 +101,8 @@ class SinAlmacen implements AlmacenDeImagenes {
         "Todavía no hay dónde guardar imágenes en este entorno. Falta configurar Supabase.",
     };
   }
+
+  async borrarCarpeta(): Promise<void> {}
 }
 
 class AlmacenSupabase implements AlmacenDeImagenes {
@@ -138,6 +149,26 @@ class AlmacenSupabase implements AlmacenDeImagenes {
     // el archivo; sin él, alguien sube su foto nueva y sigue viendo la vieja
     // durante una hora, que se lee como «no se guardó».
     return { ok: true, url: `${data.publicUrl}?v=${Date.now()}` };
+  }
+
+  /**
+   * Con el cliente de servicio, y es a propósito: cuando esto corre, la cuenta
+   * o la empresa ya no existe en la base, así que las políticas de Storage
+   * —que comparan la carpeta con `auth.uid()` o con `manages_provider()`— ya
+   * no le reconocen dueño a nadie. Quien llama ya comprobó que era suya.
+   */
+  async borrarCarpeta(bucket: Bucket, duenio: string): Promise<void> {
+    try {
+      const db = createAdminClient();
+      const { data, error } = await db.storage.from(bucket).list(duenio, { limit: 1000 });
+      if (error) throw new Error(error.message);
+      const rutas = (data ?? []).map((f) => `${duenio}/${f.name}`);
+      if (rutas.length === 0) return;
+      const { error: errorBorrado } = await db.storage.from(bucket).remove(rutas);
+      if (errorBorrado) throw new Error(errorBorrado.message);
+    } catch (e) {
+      console.error(`[almacenamiento] no se borró ${bucket}/${duenio}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 }
 

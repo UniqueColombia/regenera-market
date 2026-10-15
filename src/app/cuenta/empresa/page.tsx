@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Building2, Plus, Tags, Truck } from "lucide-react";
 import { Giros } from "./giros";
+import { CerrarEmpresa } from "./cerrar-empresa";
 import { Historial } from "./historial";
 import {
   guardarLogo,
@@ -12,7 +13,7 @@ import {
 import { ProgresoNivel } from "@/components/progreso-nivel";
 import { SelectorImagen } from "@/components/selector-imagen";
 import { requireUser } from "@/lib/auth";
-import { getEventosDeExperiencia, getMiEmpresa, getOfertasDeEmpresa } from "@/lib/repo";
+import { bajaDisponible, getEventosDeExperiencia, getMiEmpresa, getOfertasDeEmpresa } from "@/lib/repo";
 import { nivelPorId } from "@/lib/niveles";
 import { GIROS_POR_NIVEL } from "@/lib/taxonomy";
 
@@ -240,6 +241,8 @@ export default async function EmpresaPage() {
         </p>
         <Historial eventos={eventos} />
       </section>
+
+      {(await bajaDisponible()) && <CerrarEmpresa nombre={empresa.name} />}
         </div>
       </div>
     </div>
