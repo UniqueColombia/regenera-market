@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { guardarOfertaDeEmpresa, subirImagenDeOferta } from "../actions";
+import { ElegirCantidadOfertas } from "@/components/elegir-cantidad-ofertas";
 import { FormularioOferta } from "@/components/formulario-oferta";
 import { requireUser } from "@/lib/auth";
 import { enviosPorZonaDisponible, getMiEmpresa, logisticaDisponible } from "@/lib/repo";
@@ -33,6 +34,11 @@ export default async function NuevaOfertaDeEmpresaPage() {
       <h1 className="mt-3 font-display text-3xl text-ink sm:text-4xl">
         ¿Qué quieres vender?
       </h1>
+      <ElegirCantidadOfertas
+        activa="una"
+        hrefUna="/cuenta/empresa/ofertas/nueva"
+        hrefVarias="/cuenta/empresa/ofertas/importar"
+      />
       <p className="mt-2 max-w-2xl text-muted">
         Un producto, una experiencia o un servicio de {empresa.name}. Lo
         revisamos antes de publicarlo y te avisamos cuando esté en el catálogo.
