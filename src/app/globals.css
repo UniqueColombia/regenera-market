@@ -236,17 +236,75 @@
 /**
  * El selector «Una oferta | Varias desde Excel» (`elegir-cantidad-ofertas.tsx`).
  *
- * Al pasar de una pantalla a la otra, la píldora verde viaja de una opción a la
- * otra en vez de aparecer de golpe. El selector entero también lleva nombre: así
- * se queda en su sitio mientras el resto de la página sale y entra, y los
- * rótulos se funden en lugar de saltar. La duración está en el grupo porque las
- * imágenes vieja y nueva la heredan. Curva con arranque rápido y llegada
- * suave: la píldora «cae» en su lugar.
+ * Tres piezas, todas con la misma duración que `MS_CRUCE` del componente:
+ *
+ * - **La píldora** cruza de una opción a la otra con `translate`. Arranca
+ *   despacio, corre y frena al llegar, como algo con peso.
+ * - **Lo que hay debajo del selector** (sus hermanos siguientes, que en las
+ *   cuatro pantallas son el título, el texto y el formulario o la carga) se
+ *   difumina y se apaga cuando se pulsa. No desaparece del todo: se queda a
+ *   medio apagar hasta que llega la otra pantalla, para que la espera se lea
+ *   como parte del cambio.
+ * - **El contenido que llega** entra desde el desenfoque hasta quedar nítido.
+ *   Usa `backwards` y no `both`: con `both` la animación conservaría su valor
+ *   final y pisaría el apagado de arriba, que es una regla normal.
+ *
+ * Se anima `transform`, `opacity` y un desenfoque en un puñado de bloques, no
+ * en una lista (ver «Movimiento» en `diseno-visual`). Con
+ * `prefers-reduced-motion` nada de esto corre; el componente además navega sin
+ * esperar.
  */
-::view-transition-group(selector-oferta),
-::view-transition-group(pildora-oferta) {
-  animation-duration: 380ms;
-  animation-timing-function: cubic-bezier(0.3, 0.8, 0.3, 1);
+.pildora-oferta {
+  width: calc((100% - 0.75rem) / 2);
+  transition: transform 420ms cubic-bezier(0.65, 0, 0.25, 1);
+}
+
+.pildora-oferta[data-lado="varias"] {
+  transform: translateX(calc(100% + 0.25rem));
+}
+
+/* Quieto durante la transición de página: ver el componente. */
+::view-transition-group(selector-oferta) {
+  animation: none;
+}
+
+::view-transition-old(selector-oferta) {
+  display: none;
+}
+
+::view-transition-new(selector-oferta) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .selector-oferta[data-saliendo] ~ * {
+    opacity: 0.25;
+    filter: blur(8px);
+    transform: translateY(6px);
+    pointer-events: none;
+    transition:
+      opacity 380ms ease,
+      filter 380ms ease,
+      transform 380ms ease;
+  }
+
+  .selector-oferta ~ * {
+    animation: oferta-entra 560ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  }
+}
+
+@keyframes oferta-entra {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pildora-oferta {
+    transition: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
