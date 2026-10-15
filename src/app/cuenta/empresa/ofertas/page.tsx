@@ -109,8 +109,8 @@ export default async function OfertasDeEmpresaPage() {
         <div className="mt-8 rounded-xl bg-white p-8 text-center ring-1 ring-hairline">
           <p className="font-display text-xl text-ink">Todavía no publicas nada</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-            Empieza por lo que más vendes. Con una buena foto, el precio y lo que
-            aporta al ambiente, ya tienes una ficha que un hotel puede comprar.
+            Empieza por lo que más vendes. Con una buena foto y el precio, ya
+            tienes una ficha que un hotel puede comprar.
           </p>
           <Link
             href="/cuenta/empresa/ofertas/nueva"

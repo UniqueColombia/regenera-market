@@ -190,8 +190,8 @@ export const COLUMNAS: ColumnaPlantilla[] = [
   {
     clave: "aporteAmbiental",
     titulo: "Qué aporta al ambiente",
-    obligatoria: "empresa",
-    ayuda: "En tus palabras, al menos una frase (20 caracteres).",
+    obligatoria: "no",
+    ayuda: "Opcional: solo si quieres contarlo. En tus palabras, hasta 1.000 caracteres.",
     ancho: 40,
     ejemplo: [
       "Cacao de sombra sembrado entre bosque nativo; se paga precio justo a las familias.",
@@ -202,8 +202,8 @@ export const COLUMNAS: ColumnaPlantilla[] = [
   {
     clave: "consecuenciaAmbiental",
     titulo: "Qué cuesta al ambiente",
-    obligatoria: "empresa",
-    ayuda: "De dónde viene, cómo llega, qué deja. Al menos una frase (20 caracteres).",
+    obligatoria: "no",
+    ayuda: "Opcional: de dónde viene, cómo llega, qué deja. Hasta 1.000 caracteres.",
     ancho: 40,
     ejemplo: [
       "Viaja en camión desde Santa Marta; el empaque interno es de aluminio.",
