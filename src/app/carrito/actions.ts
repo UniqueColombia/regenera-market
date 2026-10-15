@@ -21,7 +21,7 @@ import type { CartLine, PricedCartDTO } from "./types";
  * compara con lo que cobró la base—, para que las dos sumas salgan del mismo
  * sitio.
  */
-async function valorizar(lines: CartLine[]) {
+async function valorizar(lines: CartLine[], destino?: string) {
   const listings = await getListingsByIds(lines.map((l) => l.listingId));
   const byId = new Map(listings.map((l) => [l.id, l]));
 
@@ -35,7 +35,7 @@ async function valorizar(lines: CartLine[]) {
       const listing = byId.get(line.listingId);
       // Una oferta retirada del catálogo simplemente desaparece del carrito.
       return listing
-        ? priceLine(line, listing, niveles.get(listing.providerId))
+        ? priceLine(line, listing, niveles.get(listing.providerId), destino)
         : null;
     })
     .filter((l): l is PricedLine => l !== null);
@@ -49,9 +49,15 @@ async function valorizar(lines: CartLine[]) {
  * El cliente solo manda identificadores y cantidades; los precios se calculan
  * aquí. Así un carrito guardado hace un mes no puede comprar al precio de hace
  * un mes.
+ *
+ * `destino` es el departamento que la persona eligió en el formulario, si ya lo
+ * eligió: con la 0017 decide si el envío de cada producto es el local o el
+ * nacional. Se valida contra la lista; cualquier otra cosa se ignora y se
+ * cobra la nacional, que es la que nunca baja por sorpresa.
  */
-export async function priceCart(lines: CartLine[]): Promise<PricedCartDTO> {
-  const { byId, priced, totals } = await valorizar(lines);
+export async function priceCart(lines: CartLine[], destino?: string): Promise<PricedCartDTO> {
+  const departamento = destino && (DEPARTMENTS as readonly string[]).includes(destino) ? destino : undefined;
+  const { byId, priced, totals } = await valorizar(lines, departamento);
   const conLogistica = totals.hayFisicos && (await logisticaDisponible());
 
   return {
@@ -211,7 +217,9 @@ async function cerrarCompra(lines: CartLine[], form: unknown): Promise<CheckoutR
   const usuario = await getUser();
   if (!usuario) return { ok: false, errors: explicar("sin-sesion") };
 
-  const { priced, totals } = await valorizar(lines);
+  // Con el destino del formulario: es el mismo con el que `crear_orden()`
+  // decide la tarifa local, así que las dos sumas se pueden comparar.
+  const { priced, totals } = await valorizar(lines, d.departamento || undefined);
   if (totals.purchasable.length === 0) {
     return { ok: false, errors: explicar("nada-comprable") };
   }

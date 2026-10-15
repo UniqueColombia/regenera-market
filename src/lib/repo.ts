@@ -118,6 +118,33 @@ export async function logisticaDisponible(): Promise<boolean> {
   return sondeo0014.aplicada;
 }
 
+/** Lo que la 0017 agrega a `listings`: envío por zona y por unidad, peso y medidas. */
+const DE_LA_0017_LISTING =
+  "envio_local_cop, envio_adicional_cop, peso_kg, largo_cm, ancho_cm, alto_cm";
+
+let sondeo0017: { aplicada: boolean; hasta: number } | null = null;
+
+/**
+ * ¿Está aplicada la migración 0017 (envío según destino y unidades)?
+ *
+ * El mismo sondeo que los de la 0012 y la 0014: sin ella el envío sigue siendo
+ * la tarifa fija por línea y el formulario no pregunta la local ni la de cada
+ * unidad adicional; aplicada, se enciende sola en menos de un minuto.
+ */
+export async function enviosPorZonaDisponible(): Promise<boolean> {
+  if (!(await logisticaDisponible())) return false;
+  const ahora = Date.now();
+  if (!sondeo0017 || (!sondeo0017.aplicada && ahora > sondeo0017.hasta)) {
+    const db = await createClient();
+    const { error } = await db.from("listings").select("envio_local_cop").limit(1);
+    sondeo0017 = { aplicada: error?.code !== "42703", hasta: ahora + 60_000 };
+    if (!sondeo0017.aplicada) {
+      console.warn("[repo] la migración 0017 no está aplicada: envío con tarifa fija por línea");
+    }
+  }
+  return sondeo0017.aplicada;
+}
+
 async function columnas(): Promise<{ listing: string; provider: string }> {
   const ahora = Date.now();
   if (!sondeo0012 || (!sondeo0012.aplicada && ahora > sondeo0012.hasta)) {
@@ -134,8 +161,9 @@ async function columnas(): Promise<{ listing: string; provider: string }> {
   }
 
   const con0014 = await logisticaDisponible();
+  const con0017 = con0014 && (await enviosPorZonaDisponible());
   return {
-    listing: `${COLUMNAS_LISTING_BASE}, ${DE_LA_0012_LISTING}${con0014 ? `, ${DE_LA_0014_LISTING}` : ""}`,
+    listing: `${COLUMNAS_LISTING_BASE}, ${DE_LA_0012_LISTING}${con0014 ? `, ${DE_LA_0014_LISTING}` : ""}${con0017 ? `, ${DE_LA_0017_LISTING}` : ""}`,
     provider: `${COLUMNAS_PROVIDER_BASE}, ${DE_LA_0012_PROVIDER}`,
   };
 }
@@ -191,6 +219,13 @@ interface FilaListing {
   entrega_dias_min?: number | null;
   entrega_dias_max?: number | null;
   version?: number | null;
+  /** Las seis, desde la 0017. */
+  envio_local_cop?: number | null;
+  envio_adicional_cop?: number | null;
+  peso_kg?: number | string | null;
+  largo_cm?: number | null;
+  ancho_cm?: number | null;
+  alto_cm?: number | null;
   listing_availability?: FilaDisponibilidad[] | null;
 }
 
@@ -306,6 +341,17 @@ function aListing(f: FilaListing): Listing {
             despacho: f.despacho ?? undefined,
             transportadora: f.transportadora ?? undefined,
             costoCop: f.envio_cop ?? undefined,
+            costoLocalCop: f.envio_local_cop ?? undefined,
+            adicionalCop: f.envio_adicional_cop ?? undefined,
+            pesoKg: numero(f.peso_kg ?? null),
+            medidasCm:
+              f.largo_cm != null || f.ancho_cm != null || f.alto_cm != null
+                ? {
+                    largo: f.largo_cm ?? undefined,
+                    ancho: f.ancho_cm ?? undefined,
+                    alto: f.alto_cm ?? undefined,
+                  }
+                : undefined,
             diasMin: f.entrega_dias_min ?? undefined,
             diasMax: f.entrega_dias_max ?? undefined,
           }

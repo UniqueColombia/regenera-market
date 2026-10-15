@@ -156,12 +156,21 @@ presentes como reales en copy, ni en material comercial, ni en un hito.
 
 **22. Despacha quien vende, y lo decide al publicar.** Decisión del 2026-10-09:
 el producto dice si lo lleva el vendedor o va por una transportadora que él
-elige (Aveonline, Servientrega…), cuánto cuesta el envío (tarifa fija por
-línea, 0 = gratis) y en cuántos días hábiles llega. Seregenera no despacha:
-cobra el envío, se lo pasa entero y le da al comprador la guía. Todo eso se
-congela en `order_items` como el precio (invariante 6). El día que haya
-convenio con Aveonline, su cotización reemplaza la tarifa fija detrás de una
-interfaz (`nueva-integracion`); ninguna pantalla cambia.
+elige (Aveonline, Servientrega…), cuánto cuesta el envío y en cuántos días
+hábiles llega. Seregenera no despacha: cobra el envío, se lo pasa entero y le
+da al comprador la guía. Todo eso se congela en `order_items` como el precio
+(invariante 6). El día que haya convenio con Aveonline, su cotización
+reemplaza la tarifa declarada detrás de una interfaz (`nueva-integracion`);
+ninguna pantalla cambia.
+
+**22b. Desde la 0017 el envío depende del destino y de las unidades.**
+`envio = (local si el destino es el departamento de origen de la oferta, si no
+nacional) + adicional × (unidades − 1)`. `envio_cop` sigue siendo la nacional;
+sin local ni adicional, cobra lo mismo que antes. La regla vive dos veces:
+`envio_de_linea()` en la base (la que cobra) y `envioDeLinea()` en
+`src/lib/envios.ts` (la que pinta), comparadas en `gemelos.test.ts`. El origen
+es `listings.department`, no el del proveedor: lo que se despacha sale de donde
+está el producto.
 
 **23. Solo reseña quien compró, y cuando ya tiene lo que compró.** Un producto
 entregado, una experiencia cuya fecha pasó o un pedido cumplido —

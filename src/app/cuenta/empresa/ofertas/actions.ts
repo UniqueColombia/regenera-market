@@ -13,7 +13,12 @@ import {
   filaDeOferta,
   reglasDeOferta,
 } from "@/lib/ofertas";
-import { getMiEmpresa, getOfertaDeEmpresa, logisticaDisponible } from "@/lib/repo";
+import {
+  enviosPorZonaDisponible,
+  getMiEmpresa,
+  getOfertaDeEmpresa,
+  logisticaDisponible,
+} from "@/lib/repo";
 import { slugLibre } from "@/lib/slug";
 import { createClient } from "@/lib/supabase/server";
 import type { ResultadoGuardarOferta } from "@/components/formulario-oferta";
@@ -75,7 +80,8 @@ export async function guardarOfertaDeEmpresa(
 
   const d = parsed.data;
   const logistica = await logisticaDisponible();
-  const reglas = reglasDeOferta(d, { logistica });
+  const zonas = logistica && (await enviosPorZonaDisponible());
+  const reglas = reglasDeOferta(d, { logistica, zonas });
   if (Object.keys(reglas).length > 0) return { ok: false, errors: reglas };
 
   // Se comprueba aquí para dar el error en el campo; el trigger lo rechazaría
@@ -104,7 +110,7 @@ export async function guardarOfertaDeEmpresa(
   const status = d.enviar === "borrador" ? "draft" : "pending_review";
 
   try {
-    const fila = { ...filaDeOferta(d, { logistica }), status };
+    const fila = { ...filaDeOferta(d, { logistica, zonas }), status };
 
     const escrita = await escribirOferta(
       supabase,
