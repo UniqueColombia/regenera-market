@@ -45,3 +45,4 @@ referencie al anterior.
 | 2026-10-09 | [Envíos que decide el vendedor, reseñas de quien compró, y ninguna operación que cuente dos veces](2026-10-09-envios-resenas-e-idempotencia.md) | Jesús Seiler | — (adelanta la 4) |
 | 2026-10-12 | [Pruebas de verdad, la 0015 y los fallos que encontraron](2026-10-12-pruebas-de-la-base-y-0015.md) | Jesús Seiler | — |
 | 2026-10-12 | [Nadie se beneficia a sí mismo, todo va por páginas y el dólar como referencia](2026-10-12-sin-autobeneficio-paginacion-y-dolar.md) | Jesús Seiler | — |
+| 2026-10-14 | [Todas las fotos, carga desde Excel, «Contactar proveedores», BOLD y envío por zona](2026-10-14-fotos-excel-contactar-pagos-y-envios.md) | Jesús Seiler | — (adelanta la 3 y la 4) |

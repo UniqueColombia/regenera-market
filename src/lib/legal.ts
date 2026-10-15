@@ -34,11 +34,11 @@ export const CONTACTO = {
  * Nacieron juntas el 2026-09-19 en una sola constante. Se partieron el
  * 2026-09-24, cuando la medición de uso cambió la política y no los términos:
  * mover la fecha de un documento que no cambió es decir que cambió. La
- * política volvió a moverse el 2026-10-15: los datos de contacto de empresas
+ * política volvió a moverse el 2026-10-14: los datos de contacto de empresas
  * que invitamos a vender («Contactar proveedores») y la pasarela de pago.
  */
 export const VIGENCIA_TERMINOS = "2026-09-19";
-export const VIGENCIA_PRIVACIDAD = "2026-10-15";
+export const VIGENCIA_PRIVACIDAD = "2026-10-14";
 
 /**
  * Las redes de Seregenera.
