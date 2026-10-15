@@ -9,6 +9,7 @@ import {
   FileSpreadsheet,
   ImagePlus,
   Loader2,
+  X,
   XCircle,
 } from "lucide-react";
 import { recortar, type ResultadoImagenUI } from "./selector-imagen";
@@ -21,7 +22,9 @@ import {
   reglasDeOferta,
 } from "@/lib/ofertas";
 import {
+  MAXIMO_FOTOS,
   claveDeArchivo,
+  coincideConTitulo,
   convertirFila,
   esArchivo,
   leerPlanillaDeOfertas,
@@ -48,6 +51,41 @@ interface Fila {
 /** Cuántas fotos se suben a la vez. Más satura el teléfono y no termina antes. */
 const FOTOS_EN_PARALELO = 3;
 
+/** Una foto agregada a una fila, con su miniatura ya hecha. */
+interface Propia {
+  archivo: File;
+  vista: string;
+}
+
+/**
+ * Una imagen diminuta del archivo, para la miniatura de la fila.
+ *
+ * Se hace una vez, al agregar la foto: así no hay direcciones locales que
+ * soltar ni efectos, y 300 filas con 6 fotos no guardan 1.800 originales de
+ * varios megas como imagen en memoria. Si el navegador no puede leerla, la
+ * miniatura queda vacía: la foto se intenta subir igual y, si no sirve, se avisa.
+ */
+async function miniaturaDe(archivo: File): Promise<string> {
+  try {
+    const bitmap = await createImageBitmap(archivo, { resizeWidth: 80, resizeHeight: 80, resizeQuality: "low" });
+    const lienzo = document.createElement("canvas");
+    lienzo.width = 80;
+    lienzo.height = 80;
+    lienzo.getContext("2d")?.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    return lienzo.toDataURL("image/jpeg", 0.6);
+  } catch {
+    return "";
+  }
+}
+
+/** Una foto de una fila: un archivo que subir o un enlace que se deja tal cual. */
+interface FotoPorSubir {
+  nombre: string;
+  archivo: File | null;
+  enlace?: string;
+}
+
 /**
  * Cargar muchas ofertas de una vez desde la planilla de Excel.
  *
@@ -71,12 +109,21 @@ const FOTOS_EN_PARALELO = 3;
  * «-2» en la dirección. Por lo mismo, dos filas con el mismo título en la misma
  * planilla son un error que se dice antes de cargar.
  *
- * ## Las fotos
+ * ## Las fotos, de tres maneras
  *
- * La columna «Fotos» trae nombres de archivo; la persona elige esos archivos
- * aquí y se emparejan por nombre (sin mayúsculas). Se recortan a 4:3 como en el
- * formulario y se suben por la misma acción. Una foto que falta no frena la
- * fila: la oferta se crea sin ella y se avisa.
+ * Escribir nombres de archivo en una planilla era lo más engorroso de cargar
+ * veinte ofertas, así que no hace falta:
+ *
+ * 1. **En su fila**: cada oferta lista tiene «Agregar fotos» y se eligen ahí,
+ *    sin escribir nada en la planilla.
+ * 2. **Por el título**: una foto llamada como la oferta (`cacao-arhuaco.jpg`,
+ *    `cacao-arhuaco-2.jpg`) se une sola, de las que se eligieron en bloque.
+ * 3. **Por la columna «Fotos»**: nombres de archivo (se emparejan sin
+ *    mayúsculas) o enlaces directos a una imagen.
+ *
+ * Se juntan en ese orden hasta `MAXIMO_FOTOS`, se recortan a 4:3 como en el
+ * formulario y se suben por la misma acción. Una foto nombrada que falta no
+ * frena la fila: la oferta se crea sin ella y se avisa.
  */
 export function ImportarOfertas({
   modo,
@@ -113,6 +160,8 @@ export function ImportarOfertas({
   const [errorArchivo, setErrorArchivo] = useState<string | null>(null);
   const [leyendo, setLeyendo] = useState(false);
   const [fotos, setFotos] = useState<Map<string, File>>(new Map());
+  /** Las fotos que se agregaron directamente a una fila, por número de fila. */
+  const [propias, setPropias] = useState<Map<number, Propia[]>>(new Map());
   const [proveedor, setProveedor] = useState(proveedores[0]?.id ?? "");
   const [estadoAdmin, setEstadoAdmin] = useState<"draft" | "pending_review" | "approved">("pending_review");
   const [enviar, setEnviar] = useState<"revision" | "borrador">("revision");
@@ -135,6 +184,51 @@ export function ImportarOfertas({
 
   const fotosPedidas = filas.reduce((n, f) => n + f.fotos.filter(esArchivo).length, 0);
 
+  /**
+   * Las fotos que de verdad llevará una fila, en orden: las de la columna
+   * «Fotos» (enlaces y archivos), las que se agregaron a la fila y las elegidas
+   * en bloque que se llaman como la oferta. Sin repetir un archivo.
+   */
+  function fotosDeFila(f: Fila): FotoPorSubir[] {
+    const lista: FotoPorSubir[] = [];
+    for (const nombre of f.fotos) {
+      if (!esArchivo(nombre)) lista.push({ nombre, archivo: null, enlace: nombre });
+      else {
+        const archivo = fotos.get(claveDeArchivo(nombre));
+        if (archivo) lista.push({ nombre, archivo });
+      }
+    }
+    const usadas = new Set(lista.map((x) => x.archivo));
+    const porTitulo = [...fotos.values()].filter((a) => coincideConTitulo(a.name, f.titulo));
+    for (const archivo of [...(propias.get(f.numero) ?? []).map((p) => p.archivo), ...porTitulo]) {
+      if (usadas.has(archivo)) continue;
+      usadas.add(archivo);
+      lista.push({ nombre: archivo.name, archivo });
+    }
+    return lista.slice(0, MAXIMO_FOTOS);
+  }
+
+  async function agregarFotosA(numero: number, archivos: File[]) {
+    const nuevas = await Promise.all(archivos.map(async (archivo) => ({ archivo, vista: await miniaturaDe(archivo) })));
+    setPropias((previas) => {
+      const todas = new Map(previas);
+      const actuales = todas.get(numero) ?? [];
+      const sinRepetir = nuevas.filter(
+        (n) => !actuales.some((x) => x.archivo.name === n.archivo.name && x.archivo.size === n.archivo.size),
+      );
+      todas.set(numero, [...actuales, ...sinRepetir].slice(0, MAXIMO_FOTOS));
+      return todas;
+    });
+  }
+
+  function quitarFotoDe(numero: number, archivo: File) {
+    setPropias((previas) => {
+      const todas = new Map(previas);
+      todas.set(numero, (todas.get(numero) ?? []).filter((p) => p.archivo !== archivo));
+      return todas;
+    });
+  }
+
   async function alElegirPlanilla(evento: React.ChangeEvent<HTMLInputElement>) {
     const archivo = evento.target.files?.[0];
     evento.target.value = "";
@@ -156,6 +250,7 @@ export function ImportarOfertas({
         return;
       }
       setNombreArchivo(archivo.name);
+      setPropias(new Map());
       setDesconocidas(leida.desconocidas);
       setFilas(validar(leida.filas.map((f) => ({ numero: f.numero, ...convertirFila(f.valores) }))));
     } catch (e) {
@@ -210,20 +305,20 @@ export function ImportarOfertas({
   }
 
   async function subirFotosDe(fila: Fila, dueño: string): Promise<{ urls: string[]; fallidas: string[] }> {
-    const urls: (string | null)[] = new Array(fila.fotos.length).fill(null);
+    const porSubir = fotosDeFila(fila);
+    const total = porSubir.filter((x) => x.archivo).length;
+    const urls: (string | null)[] = new Array(porSubir.length).fill(null);
     const fallidas: string[] = [];
     let siguiente = 0;
     let hechas = 0;
     const trabajar = async () => {
-      while (siguiente < fila.fotos.length) {
+      while (siguiente < porSubir.length) {
         const i = siguiente++;
-        const nombre = fila.fotos[i];
-        if (!esArchivo(nombre)) {
-          urls[i] = nombre;
+        const { nombre, archivo, enlace } = porSubir[i];
+        if (!archivo) {
+          urls[i] = enlace ?? null;
           continue;
         }
-        const archivo = fotos.get(claveDeArchivo(nombre));
-        if (!archivo) continue;
         try {
           const recortada = await recortar(archivo, "foto");
           const datos = new FormData();
@@ -236,7 +331,7 @@ export function ImportarOfertas({
           fallidas.push(nombre);
         }
         hechas++;
-        actualizar(fila.numero, { fase: "subiendo", detalle: `Fotos ${hechas} de ${fila.fotos.filter(esArchivo).length}` });
+        actualizar(fila.numero, { fase: "subiendo", detalle: `Fotos ${hechas} de ${total}` });
       }
     };
     await Promise.all(Array.from({ length: FOTOS_EN_PARALELO }, trabajar));
@@ -299,6 +394,11 @@ export function ImportarOfertas({
 
   const listasParaCargar = validas.filter((f) => f.estado.fase !== "creada").length;
 
+  function nFotos(f: Fila): string {
+    const n = fotosDeFila(f).length;
+    return n === 0 ? "sin fotos" : `${n} ${n === 1 ? "foto" : "fotos"}`;
+  }
+
   return (
     <div className="mt-8 space-y-8">
       {/* Paso 1 */}
@@ -321,7 +421,7 @@ export function ImportarOfertas({
 
       {/* Paso 2 */}
       <section className="rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-6">
-        <h2 className="font-display text-xl text-ink">2. Sube la planilla y sus fotos</h2>
+        <h2 className="font-display text-xl text-ink">2. Sube la planilla</h2>
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             type="button"
@@ -339,12 +439,14 @@ export function ImportarOfertas({
             className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand disabled:opacity-50"
           >
             <ImagePlus className="size-4" aria-hidden />
-            {fotos.size > 0 ? `Agregar fotos (${fotos.size} elegidas)` : "Elegir fotos"}
+            {fotos.size > 0 ? `Agregar fotos (${fotos.size} elegidas)` : "Elegir fotos de varias ofertas"}
           </button>
         </div>
         <p className="mt-2 text-xs text-muted">
-          Excel (.xlsx) o CSV. Las fotos: elige todas las que nombraste en la
-          columna «Fotos», de una vez; las unimos por el nombre del archivo.
+          Excel (.xlsx) o CSV. Las fotos no hacen falta ahora: al subir la
+          planilla, cada oferta te deja agregar las suyas. Si ya las tienes
+          juntas, elígelas aquí y las unimos por el nombre del archivo o por
+          el título de la oferta.
         </p>
         {nombreArchivo && !errorArchivo && (
           <p className="mt-3 text-sm text-ink">
@@ -408,7 +510,7 @@ export function ImportarOfertas({
                       {typeof f.datos.priceCop === "string" &&
                         /^\d+$/.test(f.datos.priceCop) &&
                         ` · ${money(Number(f.datos.priceCop))}`}
-                      {f.fotos.length > 0 && ` · ${f.fotos.length} ${f.fotos.length === 1 ? "foto" : "fotos"}`}
+                      {` · ${nFotos(f)}`}
                     </p>
                     {errores.length > 0 && (
                       <ul className="mt-1.5 space-y-0.5 text-xs text-red-700">
@@ -422,8 +524,17 @@ export function ImportarOfertas({
                     {errores.length === 0 && faltan && (
                       <p className="mt-1.5 flex items-start gap-1 text-xs text-clay-700">
                         <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden />
-                        Faltan {faltan.join(", ")}: elígelas arriba o se crea sin ellas.
+                        Faltan {faltan.join(", ")}: elígelas arriba, agrégalas aquí o se crea sin ellas.
                       </p>
+                    )}
+                    {errores.length === 0 && f.estado.fase !== "creada" && (
+                      <FotosDeFila
+                        propias={propias.get(f.numero) ?? []}
+                        lleno={fotosDeFila(f).length >= MAXIMO_FOTOS}
+                        bloqueado={cargando}
+                        alAgregar={(a) => void agregarFotosA(f.numero, a)}
+                        alQuitar={(a) => quitarFotoDe(f.numero, a)}
+                      />
                     )}
                     {f.estado.fase === "fallo" && (
                       <p className="mt-1.5 text-xs text-red-700">{f.estado.mensaje}</p>
@@ -545,6 +656,70 @@ export function ImportarOfertas({
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+/** «Agregar fotos» de una fila, con sus miniaturas y una equis para quitarlas. */
+function FotosDeFila({
+  propias,
+  lleno,
+  bloqueado,
+  alAgregar,
+  alQuitar,
+}: {
+  propias: Propia[];
+  lleno: boolean;
+  bloqueado: boolean;
+  alAgregar: (archivos: File[]) => void;
+  alQuitar: (archivo: File) => void;
+}) {
+  const entrada = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      {propias.map(({ archivo, vista }) => (
+        <span key={`${archivo.name}-${archivo.size}`} className="relative">
+          {vista ? (
+            // eslint-disable-next-line @next/next/no-img-element -- miniatura local de un archivo recién elegido
+            <img src={vista} alt={archivo.name} className="size-10 rounded-md object-cover ring-1 ring-hairline" />
+          ) : (
+            <span className="grid size-10 place-items-center rounded-md bg-sand text-muted ring-1 ring-hairline" title={archivo.name}>
+              <ImagePlus className="size-4" aria-hidden />
+            </span>
+          )}
+          <button
+            type="button"
+            disabled={bloqueado}
+            onClick={() => alQuitar(archivo)}
+            aria-label={`Quitar ${archivo.name}`}
+            className="absolute -right-1.5 -top-1.5 grid size-4 place-items-center rounded-full bg-ink text-white disabled:opacity-50"
+          >
+            <X className="size-3" aria-hidden />
+          </button>
+        </span>
+      ))}
+      <button
+        type="button"
+        disabled={bloqueado || lleno}
+        onClick={() => entrada.current?.click()}
+        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand disabled:opacity-50"
+      >
+        <ImagePlus className="size-3.5" aria-hidden />
+        {propias.length > 0 ? "Agregar más" : "Agregar fotos"}
+      </button>
+      <input
+        ref={entrada}
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/webp,image/*"
+        className="sr-only"
+        aria-label="Elegir las fotos de esta oferta"
+        onChange={(e) => {
+          alAgregar(Array.from(e.target.files ?? []));
+          e.target.value = "";
+        }}
+      />
     </div>
   );
 }

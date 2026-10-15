@@ -702,9 +702,10 @@ function Listo({
         {activada ? (
           <>
             Tu ficha pública está activa y entras en nivel{" "}
-            <strong>Semilla</strong>. Ya puedes publicar lo que vendes; cada
-            oferta, cada pedido entregado y cada buena reseña suman experiencia,
-            y con ella baja tu comisión.
+            <strong>Semilla</strong>. Ya puedes publicar lo que vendes: una
+            oferta a la vez, o todas juntas desde un Excel. Cada oferta, cada
+            pedido entregado y cada buena reseña suman experiencia, y con ella
+            baja tu comisión.
           </>
         ) : (
           <>
@@ -717,10 +718,22 @@ function Listo({
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         {activada ? (
           <>
+            <Link
+              href="/cuenta/empresa/ofertas/nueva"
+              className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-brand-800"
+            >
+              Publicar mi primera oferta
+            </Link>
+            <Link
+              href="/cuenta/empresa/ofertas/importar"
+              className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-800 ring-1 ring-brand-200 transition hover:bg-brand-50"
+            >
+              Cargar varias desde Excel
+            </Link>
             {slug && (
               <Link
                 href={`/proveedor/${slug}`}
-                className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-brand-800"
+                className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-800 ring-1 ring-brand-200 transition hover:bg-brand-50"
               >
                 Ver mi ficha
               </Link>

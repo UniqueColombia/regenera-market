@@ -371,7 +371,7 @@ export const COLUMNAS: ColumnaPlantilla[] = [
     clave: "fotos",
     titulo: "Fotos",
     obligatoria: "no",
-    ayuda: "El nombre de cada archivo de foto (cacao-1.jpg; cacao-2.jpg), que subes junto con esta planilla. Hasta 6. También sirve un enlace directo a una imagen (https://…jpg).",
+    ayuda: "Opcional: puedes dejarla vacía y agregar las fotos de cada oferta al subir la planilla. Si quieres dejarlas escritas: el nombre de cada archivo (cacao-1.jpg; cacao-2.jpg). Hasta 6. También sirve un enlace directo a una imagen (https://…jpg).",
     ancho: 34,
     ejemplo: ["cacao-1.jpg; cacao-2.jpg", "cascada.jpg", ""],
   },
@@ -450,7 +450,7 @@ export function plantillaDeOfertas(): Uint8Array {
         [],
         [{ v: "1. Una fila por cada producto, experiencia o servicio, en la hoja «Ofertas». Mira la hoja «Ejemplo».", s: ESTILO.negrita }],
         [{ v: "2. Las columnas en terracota son obligatorias; las verdes, opcionales. Puedes borrar las que no uses.", s: ESTILO.negrita }],
-        [{ v: "3. En «Fotos» escribe el nombre de cada archivo; al subir la planilla, eliges esas fotos y las unimos solas.", s: ESTILO.negrita }],
+        [{ v: "3. Las fotos no hacen falta en la planilla: al subirla, agregas las de cada oferta en su fila. Si prefieres dejarlas escritas, pon el nombre de cada archivo en «Fotos»; o llama a la foto como el título de la oferta y se une sola.", s: ESTILO.negrita }],
         [{ v: "4. Súbela en «Tus ofertas» → «Cargar desde Excel». Te mostramos cada fila antes de guardar y te decimos qué corregir.", s: ESTILO.negrita }],
         [{ v: "5. Las ofertas quedan en revisión: las revisamos antes de publicarlas, sobre todo lo que dicen de su impacto.", s: ESTILO.negrita }],
         [],
@@ -709,6 +709,31 @@ export function tituloDeColumna(clave: string): string {
 /** ¿Es una foto que hay que subir (un nombre de archivo) y no un enlace? */
 export function esArchivo(foto: string): boolean {
   return !/^https?:\/\//i.test(foto);
+}
+
+/** Minúsculas, sin tildes ni signos: «Cacao Arhuaco 72 %» → «cacao arhuaco 72». */
+function sinAdornos(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * ¿Esta foto se llama como la oferta? Así quien no escribió nada en «Fotos»
+ * igual las ve emparejadas: `Cacao Arhuaco 72 % (100 g).jpg`, `cacao-arhuaco-72-100-g-2.png`…
+ *
+ * Vale el nombre igual al título o el título seguido solo de un número
+ * (`-1`, ` 2`, `_3`), que es como las cámaras y los editores numeran. Un nombre
+ * que solo *contiene* el título no vale: «cacao.jpg» no es de «Cacao Arhuaco».
+ */
+export function coincideConTitulo(nombreDeArchivo: string, titulo: string): boolean {
+  const base = sinAdornos(claveDeArchivo(nombreDeArchivo).replace(/\.[a-z0-9]{2,5}$/, ""));
+  const t = sinAdornos(titulo);
+  if (!t || !base.startsWith(t)) return false;
+  return /^( \d{1,2})?$/.test(base.slice(t.length));
 }
 
 /** Para emparejar «Cacao 1.JPG» de la planilla con el archivo `cacao 1.jpg` elegido. */

@@ -2,7 +2,7 @@ import { deflateRawSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { escribirLibro, leerCsv, leerLibro } from "./hoja-de-calculo";
 import { CamposOfertaEmpresa, reglasDeOferta } from "./ofertas";
-import { COLUMNAS, convertirFila, leerPlanillaDeOfertas, plantillaDeOfertas } from "./plantilla-ofertas";
+import { COLUMNAS, coincideConTitulo, convertirFila, leerPlanillaDeOfertas, plantillaDeOfertas } from "./plantilla-ofertas";
 
 /** Vuelve a empaquetar un ZIP almacenado con deflate, como lo guarda Excel. */
 function comprimir(zip: Uint8Array): Uint8Array {
@@ -127,6 +127,29 @@ describe("la plantilla de ofertas", () => {
   it("rechaza un enlace de foto que no es una imagen directa", () => {
     expect(convertirFila({ fotos: "https://drive.google.com/file/d/abc/view" }).errores.fotos).toBeDefined();
     expect(convertirFila({ fotos: "https://ejemplo.com/cacao.jpg" }).errores.fotos).toBeUndefined();
+  });
+});
+
+describe("coincideConTitulo", () => {
+  const titulo = "Cacao Arhuaco 72 % (100 g)";
+
+  it("une la foto que se llama como la oferta, con o sin número", () => {
+    expect(coincideConTitulo("Cacao Arhuaco 72 % (100 g).jpg", titulo)).toBe(true);
+    expect(coincideConTitulo("cacao-arhuaco-72-100-g.JPG", titulo)).toBe(true);
+    expect(coincideConTitulo("cacao-arhuaco-72-100-g-2.png", titulo)).toBe(true);
+    expect(coincideConTitulo("C:\\fotos\\Cacao Arhuaco 72 100 g_3.webp", titulo)).toBe(true);
+  });
+
+  it("ignora tildes y mayúsculas", () => {
+    expect(coincideConTitulo("CAMINATA-A-LA-CASCADA.jpg", "Caminata a la cascada")).toBe(true);
+    expect(coincideConTitulo("diagnostico-de-agua.jpg", "Diagnóstico de agua")).toBe(true);
+  });
+
+  it("no une una foto que solo menciona parte del título ni la de otra oferta", () => {
+    expect(coincideConTitulo("cacao.jpg", titulo)).toBe(false);
+    expect(coincideConTitulo("cacao-arhuaco-72-100-g-etiqueta.jpg", titulo)).toBe(false);
+    expect(coincideConTitulo("cacao-arhuaco-72-100-g-2000.jpg", titulo)).toBe(false);
+    expect(coincideConTitulo("cacao.jpg", "")).toBe(false);
   });
 });
 
