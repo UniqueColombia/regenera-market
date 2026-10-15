@@ -3,6 +3,14 @@ import { getUser } from "./auth";
 import { createClient } from "./supabase/server";
 import { nivelesDesde } from "./niveles";
 import { cuantasPaginas, rango, type Pagina } from "./paginacion";
+import {
+  COLUMNAS_LISTING_BASE,
+  COLUMNAS_PROVIDER_BASE,
+  DE_LA_0012_LISTING,
+  DE_LA_0012_PROVIDER,
+  DE_LA_0014_LISTING,
+  DE_LA_0017_LISTING,
+} from "./columnas-ofertas";
 import { esReaccion, leerConteos, type ReaccionId } from "./comunidad";
 import type { Encaje, EstadoProspecto, Prospecto } from "./prospectos";
 import type {
@@ -46,28 +54,6 @@ import type {
  * tablas directamente.
  */
 
-/** Columnas de `listings_publicos`. La vista es `listings.*` más las del proveedor. */
-const COLUMNAS_LISTING_BASE = `
-  id, slug, provider_id, kind, title, summary, description, category, verticals,
-  images, price_cop, wholesale_price_cop, wholesale_min_qty, unit, quote_only,
-  stock, co2_kg_saved, water_liters_saved, waste_kg_reduced, certifications,
-  department, city, status, featured, duration_hours, min_people, max_people,
-  meeting_point, includes, delivery_time, scope, created_at,
-  listing_availability(date, slots_total, slots_taken)
-`;
-
-const COLUMNAS_PROVIDER_BASE = `
-  id, slug, name, legal_name, tax_id, tagline, description, logo_url, cover_url,
-  department, city, website, email, phone, status, sustainability_score, tier,
-  experience_points, sustainability_verified_at, founded_year, traits, created_at,
-  provider_certifications(certification_code)
-`;
-
-/** Lo que la migración 0012 agrega a cada tabla. */
-const DE_LA_0012_LISTING =
-  "subcategory, aporte_ambiental, consecuencia_ambiental, huella_co2_kg";
-const DE_LA_0012_PROVIDER = "giros";
-
 /**
  * ¿Está aplicada la migración 0012?
  *
@@ -90,10 +76,6 @@ const DE_LA_0012_PROVIDER = "giros";
  * aplicó sin tener que redesplegar. `42703` es «la columna no existe».
  */
 let sondeo0012: { aplicada: boolean; hasta: number } | null = null;
-
-/** Lo que la 0014 agrega a `listings`: cómo se despacha y la versión de la fila. */
-const DE_LA_0014_LISTING =
-  "despacho, transportadora, envio_cop, entrega_dias_min, entrega_dias_max, version";
 
 let sondeo0014: { aplicada: boolean; hasta: number } | null = null;
 
@@ -119,28 +101,31 @@ export async function logisticaDisponible(): Promise<boolean> {
   return sondeo0014.aplicada;
 }
 
-/** Lo que la 0017 agrega a `listings`: envío por zona y por unidad, peso y medidas. */
-const DE_LA_0017_LISTING =
-  "envio_local_cop, envio_adicional_cop, peso_kg, largo_cm, ancho_cm, alto_cm";
-
 let sondeo0017: { aplicada: boolean; hasta: number } | null = null;
 
 /**
- * ¿Está aplicada la migración 0017 (envío según destino y unidades)?
+ * ¿Están las columnas de la 0017 (envío según destino y unidades) **en la vista
+ * del catálogo**?
  *
- * El mismo sondeo que los de la 0012 y la 0014: sin ella el envío sigue siendo
+ * El mismo sondeo que los de la 0012 y la 0014: sin ellas el envío sigue siendo
  * la tarifa fija por línea y el formulario no pregunta la local ni la de cada
- * unidad adicional; aplicada, se enciende sola en menos de un minuto.
+ * unidad adicional; con ellas, se enciende solo en menos de un minuto.
+ *
+ * **Pregunta a `listings_publicos` y no a `listings`, y es lo que importa.** El
+ * 2026-10-14 preguntaba a la tabla: la 0017 le agregó las columnas pero no
+ * recreó la vista (que congela su `l.*`), el sondeo dijo «sí», `columnas()` se
+ * las pidió a la vista y el catálogo, la portada y las fichas dejaron de cargar.
+ * La vista las tiene desde la 0020; si la vista las tiene, la tabla también.
  */
 export async function enviosPorZonaDisponible(): Promise<boolean> {
   if (!(await logisticaDisponible())) return false;
   const ahora = Date.now();
   if (!sondeo0017 || (!sondeo0017.aplicada && ahora > sondeo0017.hasta)) {
     const db = await createClient();
-    const { error } = await db.from("listings").select("envio_local_cop").limit(1);
+    const { error } = await db.from("listings_publicos").select("envio_local_cop").limit(1);
     sondeo0017 = { aplicada: error?.code !== "42703", hasta: ahora + 60_000 };
     if (!sondeo0017.aplicada) {
-      console.warn("[repo] la migración 0017 no está aplicada: envío con tarifa fija por línea");
+      console.warn("[repo] la vista del catálogo no tiene las columnas de la 0017 (falta la 0020): envío con tarifa fija por línea");
     }
   }
   return sondeo0017.aplicada;
