@@ -402,7 +402,7 @@ export function ImportarOfertas({
   return (
     <div className="mt-8 space-y-8">
       {/* Paso 1 */}
-      <section className="rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-6">
+      <section style={{ "--i": 0 } as React.CSSProperties} className="tarjeta-viva rounded-xl bg-white p-5 ring-1 ring-hairline transition-shadow duration-300 focus-within:shadow-lg focus-within:shadow-brand-900/5 focus-within:ring-brand-300 sm:p-6">
         <h2 className="font-display text-xl text-ink">1. Descarga la plantilla y llénala</h2>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           Una fila por cada producto, experiencia o servicio. Trae una hoja de
@@ -420,7 +420,7 @@ export function ImportarOfertas({
       </section>
 
       {/* Paso 2 */}
-      <section className="rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-6">
+      <section style={{ "--i": 1 } as React.CSSProperties} className="tarjeta-viva rounded-xl bg-white p-5 ring-1 ring-hairline transition-shadow duration-300 focus-within:shadow-lg focus-within:shadow-brand-900/5 focus-within:ring-brand-300 sm:p-6">
         <h2 className="font-display text-xl text-ink">2. Sube la planilla</h2>
         <div className="mt-4 flex flex-wrap gap-3">
           <button
@@ -488,7 +488,7 @@ export function ImportarOfertas({
 
       {/* Paso 3 */}
       {filas.length > 0 && (
-        <section className="rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-6">
+        <section style={{ "--i": 2 } as React.CSSProperties} className="tarjeta-viva rounded-xl bg-white p-5 ring-1 ring-hairline transition-shadow duration-300 focus-within:shadow-lg focus-within:shadow-brand-900/5 focus-within:ring-brand-300 sm:p-6">
           <h2 className="font-display text-xl text-ink">3. Revisa y carga</h2>
           <p className="mt-2 text-sm text-muted">
             {validas.length === filas.length

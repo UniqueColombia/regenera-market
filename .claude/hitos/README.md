@@ -52,3 +52,4 @@ referencie al anterior.
 | 2026-10-15 | [Carga masiva a un clic, y fotos sin escribir nombres de archivo](2026-10-15-carga-masiva-mas-a-la-mano.md) | Jesús Seiler | 3 |
 | 2026-10-15 | [El selector «Una oferta / Varias desde Excel» se anima solo](2026-10-15-selector-de-ofertas-con-animacion-propia.md) | Jesús Seiler | 3 |
 | 2026-10-15 | [Formulario de oferta: obligatorios a la vista, impacto opcional y en tarjetas](2026-10-15-formulario-de-oferta-compacto-y-obligatorios.md) | Jesús Seiler | 3 |
+| 2026-10-15 | [«Tu empresa» y «Tu cuenta» compactas, y un fondo botánico para los formularios](2026-10-15-cuenta-y-empresa-compactas-con-fondo-botanico.md) | Jesús Seiler | 3 |

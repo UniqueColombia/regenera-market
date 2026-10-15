@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, FileSpreadsheet } from "lucide-react";
 import { avisarOfertasImportadas, guardarOfertaDeEmpresa, subirImagenDeOferta } from "../actions";
+import { FondoBotanico } from "@/components/fondo-botanico";
 import { ElegirCantidadOfertas } from "@/components/elegir-cantidad-ofertas";
 import { ImportarOfertas } from "@/components/importar-ofertas";
 import { requireUser } from "@/lib/auth";
@@ -32,6 +33,8 @@ export default async function ImportarOfertasPage() {
   const logistica = await logisticaDisponible();
 
   return (
+    <div className="relative isolate">
+    <FondoBotanico hojas="primavera" />
     <div className="container-page max-w-4xl py-12">
       <Link
         href="/cuenta/empresa/ofertas"
@@ -70,6 +73,7 @@ export default async function ImportarOfertasPage() {
         rutaEdicion="/cuenta/empresa/ofertas/"
         volver="/cuenta/empresa/ofertas"
       />
+    </div>
     </div>
   );
 }
