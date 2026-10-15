@@ -31,14 +31,15 @@ export default async function NuevaOfertaDeEmpresaPage() {
         Tus ofertas
       </Link>
 
-      <h1 className="mt-3 font-display text-3xl text-ink sm:text-4xl">
-        ¿Qué quieres vender?
-      </h1>
       <ElegirCantidadOfertas
         activa="una"
         hrefUna="/cuenta/empresa/ofertas/nueva"
         hrefVarias="/cuenta/empresa/ofertas/importar"
       />
+
+      <h1 className="mt-6 font-display text-3xl text-ink sm:text-4xl">
+        ¿Qué quieres vender?
+      </h1>
       <p className="mt-2 max-w-2xl text-muted">
         Un producto, una experiencia o un servicio de {empresa.name}. Lo
         revisamos antes de publicarlo y te avisamos cuando esté en el catálogo.
