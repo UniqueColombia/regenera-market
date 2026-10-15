@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DecisionProveedor } from "./decision-proveedor";
 import { ProviderAvatar } from "@/components/provider-avatar";
 import { TierBadge } from "@/components/tier-badge";
-import { getProvidersForReview } from "@/lib/repo";
+import { getEmpresasCerradas, getProvidersForReview } from "@/lib/repo";
 import { longDate } from "@/lib/format";
 import type { ReviewStatus } from "@/lib/types";
 
@@ -55,7 +55,7 @@ const COLOR: Record<ReviewStatus, string> = {
 export const dynamic = "force-dynamic";
 
 export default async function ProveedoresPage() {
-  const proveedores = await getProvidersForReview();
+  const [proveedores, cerradas] = await Promise.all([getProvidersForReview(), getEmpresasCerradas()]);
 
   const porEstado = ORDEN.map((estado) => ({
     estado,
@@ -124,6 +124,11 @@ export default async function ProveedoresPage() {
                       {p.status}
                     </span>
                     <TierBadge tier={p.tier} score={p.sustainabilityScore} />
+                    {cerradas.has(p.id) && (
+                      <span className="rounded-full bg-sand px-2 py-0.5 text-xs font-medium text-muted ring-1 ring-hairline">
+                        Cerrada por su dueña el {longDate(cerradas.get(p.id)!)}
+                      </span>
+                    )}
                   </div>
 
                   <p className="mt-0.5 truncate text-sm text-muted">
@@ -139,6 +144,7 @@ export default async function ProveedoresPage() {
                   providerId={p.id}
                   estado={p.status}
                   nombre={p.name}
+                  cerrada={cerradas.has(p.id)}
                 />
               </li>
             ))}

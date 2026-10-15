@@ -539,12 +539,12 @@ export function correoEmpresaCerrada(d: {
   const que =
     d.resultado === "borrada"
       ? "La borramos con sus ofertas y sus fotos: no había vendido nada todavía."
-      : "Ya no aparece en el sitio y sus ofertas quedaron retiradas. Guardamos sus ventas, porque la ley contable nos obliga a conservarlas.";
+      : "Ya no aparece en el sitio y sus ofertas quedaron retiradas. Guardamos sus ventas, porque la ley contable nos obliga a conservarlas. Queda ligada a su documento tributario: si la das de alta otra vez con el mismo, vuelve como la dejaste.";
   const cuerpo =
     seccion(
       h1(`Cerraste ${empresa}`) +
         p(`${nombre}, ${escapar(que)}`) +
-        p("Si quieres vender con otra empresa, puedes darla de alta cuando quieras."),
+        p("Puedes dar de alta una empresa cuando quieras."),
     ) + boton(`${url}/vender#postular`, "Dar de alta otra empresa");
   return {
     para: d.correo,
@@ -554,7 +554,7 @@ export function correoEmpresaCerrada(d: {
       `Cerraste ${d.empresa}`,
       "",
       que,
-      "Si quieres vender con otra empresa, puedes darla de alta cuando quieras:",
+      "Puedes dar de alta una empresa cuando quieras:",
       `${url}/vender#postular`,
       "",
       "— Seregenera",

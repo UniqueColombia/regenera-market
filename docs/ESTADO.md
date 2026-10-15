@@ -6,8 +6,8 @@ qué hacer, empieza aquí y no en el ROADMAP.
 
 - **Corte:** 2026-10-14
 - **Producción:** `main` → **https://regenera-market.vercel.app**, con las
-  migraciones hasta la `0020` **aplicadas** (Jesús, 2026-10-14). La `0021` está
-  escrita y probada, **sin aplicar** (ver abajo).
+  migraciones hasta la `0020` **aplicadas** (Jesús, 2026-10-14). La `0021` y la
+  `0022` están escritas y probadas, **sin aplicar** (ver abajo).
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
   empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.
@@ -36,7 +36,22 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > | 8 | **Convenio con Aveonline** (o la transportadora que sea) | Si su API cotiza por peso, medidas y destino | Una implementación detrás de `envioDeLinea()` (skill `nueva-integracion`) | Cada proveedor declara su tarifa local, nacional y por unidad |
 > | 9 | **Conseguir correos de prospectos** | Decidir si se enriquecen más lotes con el subagente `prospector-proveedores` | — | Del Excel del prospector, solo 17 de 2.827 empresas tienen correo |
 
-> ## 🔴 Nuevo del 2026-10-14 (noche): aplicar la `0021`
+> ## 🔴 Nuevo del 2026-10-14 (noche): aplicar la `0021` y la `0022`, en ese orden
+>
+> **Juntas y en orden**: la `0022` usa la columna de la `0021` y redefine su
+> función de cierre.
+>
+> **La `0022`: un documento tributario, una empresa.** Nadie puede tener dos
+> empresas con el mismo NIT (o RUT, RUC…). Quien cerró su empresa y la da de
+> alta otra vez con su documento **la recupera tal como estaba**: con su nivel,
+> sus puntos y sus reseñas. Si es otra persona, o la empresa sigue activa, no se
+> crea nada: la solicitud queda en `/admin/postulaciones` para el equipo. En
+> `/admin/proveedores` una empresa cerrada dice «Cerrada por su dueña» y no se
+> puede aprobar. Después de aplicarla, correr la consulta del final del archivo
+> que lista las empresas que ya comparten documento. El detalle, en
+> [el hito](../.claude/hitos/2026-10-14-un-documento-una-empresa.md).
+>
+> **La `0021`:**
 >
 > **Eliminar la cuenta y cerrar la empresa.** Al final de «Tu cuenta» y de «Tu
 > empresa», cada una con su confirmación (la contraseña, el nombre de la

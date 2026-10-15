@@ -113,9 +113,15 @@ export async function decidirPostulacion(
     _notas: parsed.data.notas || null,
   });
   if (!errorRpc) {
-    const r = rpc as { repetida: boolean; sin_dueno: boolean };
+    const r = rpc as { repetida: boolean; sin_dueno: boolean; reactivada?: boolean; slug?: string };
     revalidatePath("/", "layout");
     if (r.repetida) return { ok: true, aviso: "Ya estaba aprobada: no se creó otra empresa." };
+    if (r.reactivada) {
+      return {
+        ok: true,
+        aviso: `Tenía el documento de una empresa cerrada: se reabrió (/proveedor/${r.slug}) con esta persona como dueña, con su historia.`,
+      };
+    }
     return {
       ok: true,
       aviso: r.sin_dueno
@@ -124,6 +130,19 @@ export async function decidirPostulacion(
           postulacion.email +
           " y enlázalo desde Usuarios."
         : undefined,
+    };
+  }
+  // La 0022: un documento tributario, una empresa.
+  if (errorRpc.message.includes("documento-existente")) {
+    return {
+      ok: false,
+      error: `Ya hay una empresa activa con ese documento: ${errorRpc.hint ?? ""}. No se crea otra; si la persona es de esa empresa, enlázala desde Usuarios, y si no, rechaza la postulación.`,
+    };
+  }
+  if (errorRpc.message.includes("reabrir-sin-cuenta")) {
+    return {
+      ok: false,
+      error: `Tiene el documento de una empresa cerrada (${errorRpc.hint ?? ""}), y para reabrirla hace falta una dueña con cuenta. Pídele que se registre con ${postulacion.email} y que vuelva a postular.`,
     };
   }
   if (errorRpc.code !== "PGRST202" && errorRpc.code !== "42883") {

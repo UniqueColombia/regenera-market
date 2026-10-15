@@ -109,6 +109,8 @@ export function ApplicationForm({
     slug?: string;
     correoEnviado: boolean;
     empresa: string;
+    reactivada: boolean;
+    enRevision: boolean;
   } | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -181,6 +183,8 @@ export function ApplicationForm({
           activada: resultado.activada,
           slug: resultado.slug,
           correoEnviado: resultado.correoEnviado,
+          reactivada: Boolean(resultado.reactivada),
+          enRevision: Boolean(resultado.enRevision),
           // Del formulario y no de la respuesta: es lo que la persona acaba de
           // escribir, y sirve para las iniciales del monograma mientras no
           // haya logo.
@@ -626,12 +630,62 @@ function Listo({
   slug,
   correoEnviado,
   empresa,
+  reactivada,
+  enRevision,
 }: {
   activada: boolean;
   slug?: string;
   correoEnviado: boolean;
   empresa: string;
+  /** Su documento era el de la empresa que había cerrado, y volvió esa (0022). */
+  reactivada: boolean;
+  /** Ya hay otra empresa con ese documento: la revisa el equipo (0022). */
+  enRevision: boolean;
 }) {
+  if (reactivada || enRevision) {
+    return (
+      <div className="animate-desplegar rounded-xl bg-brand-50 p-8 text-center ring-1 ring-brand-200 motion-reduce:animate-none">
+        <CheckCircle2 className="mx-auto size-10 text-brand-600" />
+        <h3 className="mt-4 font-display text-2xl text-brand-900">
+          {reactivada ? "Tu empresa volvió a Seregenera" : "Ya hay una empresa con ese documento"}
+        </h3>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-brand-800">
+          {reactivada ? (
+            <>
+              Volvió tal como la dejaste: su nivel, sus puntos y sus reseñas. Tus
+              ofertas siguen como borradores; revísalas y mándalas a revisión
+              para que vuelvan al catálogo.
+            </>
+          ) : (
+            <>
+              En Seregenera cada documento tributario es una sola empresa.
+              Revisamos tu solicitud y te escribimos para darte acceso a la que
+              ya existe, si es tuya.
+            </>
+          )}
+        </p>
+        {reactivada && (
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/cuenta/empresa/ofertas"
+              className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-brand-800"
+            >
+              Ver mis ofertas
+            </Link>
+            {slug && (
+              <Link
+                href={`/proveedor/${slug}`}
+                className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-800 ring-1 ring-brand-200 transition hover:bg-brand-50"
+              >
+                Ver mi ficha
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="animate-desplegar rounded-xl bg-brand-50 p-8 text-center ring-1 ring-brand-200 motion-reduce:animate-none">
       {activada ? (
