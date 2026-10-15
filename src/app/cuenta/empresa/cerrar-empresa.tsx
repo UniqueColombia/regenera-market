@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Loader2, Store } from "lucide-react";
 import { cerrarMiEmpresa } from "./actions";
+import { Tarjeta } from "@/components/tarjeta";
 
 /**
  * Cerrar la empresa, al final de «Tu empresa».
@@ -14,6 +15,10 @@ import { cerrarMiEmpresa } from "./actions";
  *
  * Si se puede o no lo decide la base (`cerrar_mi_empresa()`, 0021): solo la
  * dueña, y nunca con pedidos o cotizaciones pendientes.
+ *
+ * Centrada y estrecha, debajo de todo, igual que «Eliminar tu cuenta»: a lo
+ * ancho de una columna quedaba descolgada al lado de un hueco. Al abrirla, lo
+ * que hay que leer va alineado a la izquierda.
  */
 export function CerrarEmpresa({ nombre }: { nombre: string }) {
   const [abierto, setAbierto] = useState(false);
@@ -31,7 +36,7 @@ export function CerrarEmpresa({ nombre }: { nombre: string }) {
   }
 
   return (
-    <section className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+    <Tarjeta i={5} className="mx-auto w-full max-w-xl text-center">
       <h2 className="font-display text-xl text-ink">Cerrar la empresa</h2>
 
       {!abierto ? (
@@ -49,7 +54,7 @@ export function CerrarEmpresa({ nombre }: { nombre: string }) {
           </button>
         </>
       ) : (
-        <form onSubmit={enviar} className="mt-3 space-y-4">
+        <form onSubmit={enviar} className="mt-3 space-y-4 text-left">
           <div className="rounded-lg bg-sand p-4 text-sm text-ink">
             <p className="font-medium">Si la cierras:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
@@ -111,6 +116,6 @@ export function CerrarEmpresa({ nombre }: { nombre: string }) {
           </div>
         </form>
       )}
-    </section>
+    </Tarjeta>
   );
 }

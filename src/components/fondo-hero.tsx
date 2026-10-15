@@ -64,7 +64,18 @@ type Particula = {
 const DENSIDAD = { semillas: 0.9, luciernagas: 0.45, hojas: 0.55, primavera: 0.55 } as const;
 const TOPE = { semillas: 140, luciernagas: 60, hojas: 70, primavera: 70 } as const;
 
-export function FondoHero({ variante }: { variante: VarianteFondo }) {
+export function FondoHero({
+  variante,
+  densidad = 1,
+}: {
+  variante: VarianteFondo;
+  /**
+   * Multiplica cuántas partículas caben. 1 en los heros; menos detrás de un
+   * formulario (`fondo-botanico.tsx`), donde unas pocas hojas acompañan y
+   * muchas distraen de lo que hay que llenar.
+   */
+  densidad?: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -179,8 +190,8 @@ export function FondoHero({ variante }: { variante: VarianteFondo }) {
       canvas.height = alto * dpr;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       const n = Math.min(
-        Math.round(((ancho * alto) / 10000) * DENSIDAD[variante]),
-        TOPE[variante],
+        Math.round(((ancho * alto) / 10000) * DENSIDAD[variante] * densidad),
+        Math.round(TOPE[variante] * densidad),
       );
       particulas = Array.from({ length: n }, () => nuevaParticula(true));
     }
@@ -354,7 +365,7 @@ export function FondoHero({ variante }: { variante: VarianteFondo }) {
       hero.removeEventListener("pointerleave", alSalir);
       canvas.remove();
     };
-  }, [variante]);
+  }, [variante, densidad]);
 
   return <div ref={ref} aria-hidden className="pointer-events-none absolute inset-0" />;
 }

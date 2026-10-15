@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Building2, KeyRound, Receipt, ShieldCheck, UserRound } from "lucide-react";
 import { Dispositivos, type DispositivoVisible } from "./dispositivos";
 import { EliminarCuenta } from "./eliminar-cuenta";
 import { guardarFoto, quitarFoto } from "./actions";
+import { FondoBotanico } from "@/components/fondo-botanico";
 import { ProgresoNivel } from "@/components/progreso-nivel";
 import { SelectorImagen } from "@/components/selector-imagen";
 import { getSesion, requireUser } from "@/lib/auth";
@@ -77,14 +79,18 @@ export default async function CuentaPage() {
   }));
 
   const tieneClave = user.user_metadata?.tiene_clave === true;
+  // El orden en que brota cada bloque (`.tarjeta-viva`, ver `tarjeta.tsx`).
+  const brota = (i: number) => ({ "--i": i }) as CSSProperties;
 
   return (
+    <div className="relative isolate">
+    <FondoBotanico />
     <div className="container-page py-12">
       <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
         <UserRound className="size-4" />
         Tu cuenta
       </p>
-      <h1 className="mt-3 font-display text-3xl text-ink">
+      <h1 className="mt-3 font-display text-3xl text-ink sm:text-4xl">
         {perfil?.full_name || sesion?.nombre}
       </h1>
 
@@ -93,7 +99,7 @@ export default async function CuentaPage() {
           dispositivos). En el teléfono, una sola columna en ese orden. */}
       <div className="mt-6 grid gap-8 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[26rem_minmax(0,1fr)]">
       <div className="space-y-6">
-      <div className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+      <div className="tarjeta-viva rounded-xl bg-white p-5 ring-1 ring-hairline" style={brota(0)}>
         <SelectorImagen
           nombre={perfil?.full_name || sesion?.nombre || "Tu cuenta"}
           imagenUrl={perfil?.avatar_url ?? undefined}
@@ -104,7 +110,10 @@ export default async function CuentaPage() {
         />
       </div>
 
-      <dl className="grid gap-3 rounded-xl bg-white p-5 ring-1 ring-hairline sm:grid-cols-2 lg:grid-cols-1">
+      <dl
+        className="tarjeta-viva grid gap-3 rounded-xl bg-white p-5 ring-1 ring-hairline sm:grid-cols-2 lg:grid-cols-1"
+        style={brota(1)}
+      >
         <div>
           <dt className="text-xs font-medium text-muted">Correo</dt>
           <dd className="text-sm text-ink">{user.email}</dd>
@@ -145,7 +154,7 @@ export default async function CuentaPage() {
 
       <section>
         <h2 className="font-display text-xl text-ink">Contraseña</h2>
-        <div className="mt-3 flex flex-col gap-3 rounded-xl bg-white p-5 ring-1 ring-hairline">
+        <div className="tarjeta-viva mt-3 flex flex-col gap-3 rounded-xl bg-white p-5 ring-1 ring-hairline" style={brota(2)}>
           <p className="text-sm text-muted">
             {tieneClave
               ? "Tu cuenta tiene contraseña."
@@ -166,7 +175,7 @@ export default async function CuentaPage() {
       {empresa && (
         <section>
           <h2 className="font-display text-xl text-ink">Tu empresa</h2>
-          <div className="mt-3 rounded-xl bg-white p-6 ring-1 ring-hairline">
+          <div className="tarjeta-viva mt-3 rounded-xl bg-white p-6 ring-1 ring-hairline" style={brota(1)}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="flex items-center gap-2 font-display text-lg text-ink">
                 <Building2 className="size-4 shrink-0 text-brand-600" aria-hidden />
@@ -197,7 +206,7 @@ export default async function CuentaPage() {
             .
           </p>
         ) : (
-          <ul className="mt-3 divide-y divide-hairline rounded-xl bg-white ring-1 ring-hairline">
+          <ul className="tarjeta-viva mt-3 divide-y divide-hairline rounded-xl bg-white ring-1 ring-hairline" style={brota(2)}>
             {pedidos.map((o) => (
               <li key={o.id}>
                 <Link
@@ -240,11 +249,18 @@ export default async function CuentaPage() {
         <Dispositivos items={items} />
       </section>
 
-      {/* Al final y cerrado: es lo último que alguien viene a hacer aquí. Solo
-          con la 0021, que es la que sabe si se puede. */}
-      {conBaja && <EliminarCuenta esAdmin={Boolean(sesion?.esAdmin)} conEmpresa={Boolean(empresa)} />}
       </div>
       </div>
+
+      {/* Al final, cerrado y centrado debajo de las dos columnas: es lo último
+          que alguien viene a hacer aquí. Solo con la 0021, que es la que sabe
+          si se puede. */}
+      {conBaja && (
+        <div className="mt-10">
+          <EliminarCuenta esAdmin={Boolean(sesion?.esAdmin)} conEmpresa={Boolean(empresa)} />
+        </div>
+      )}
+    </div>
     </div>
   );
 }

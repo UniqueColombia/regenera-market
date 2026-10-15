@@ -307,6 +307,61 @@
   }
 }
 
+/**
+ * Las pantallas de la cuenta y los formularios (`tarjeta.tsx`,
+ * `fondo-botanico.tsx`).
+ *
+ * - **Las tarjetas brotan**: suben un poco y aparecen, una detrás de otra según
+ *   su `--i`. Es CSS desde el primer pintado, así que no hay «se ve, se
+ *   esconde, aparece» al hidratar. `backwards` y no `both`: con `both` la
+ *   animación se quedaría con el `transform` final y pisaría cualquier otro.
+ * - **Los árboles se mecen**, cada uno con su duración y su desfase (`--d`,
+ *   `--r`), girando desde la base del tronco (`transform-box: fill-box`). Es un
+ *   vaivén de poco más de un grado: se nota de reojo, no se mira.
+ *
+ * Con `prefers-reduced-motion`, ni lo uno ni lo otro.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .tarjeta-viva {
+    animation: brotar-tarjeta 560ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+    animation-delay: calc(60ms + var(--i, 0) * 70ms);
+  }
+
+  .arbol-bosque {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: mecer var(--d, 9s) ease-in-out var(--r, 0s) infinite alternate;
+  }
+}
+
+/* El velo verde de `fondo-botanico.tsx`. Es una clase y no `from-brand-50`
+   porque el modo oscuro devuelve la paleta clara a `[class*="from-brand-"]`
+   (capa 3, más abajo); aquí `--color-brand-50` sí es el remapeado. */
+.velo-botanico {
+  background-image: linear-gradient(
+    to bottom,
+    var(--color-brand-50),
+    color-mix(in oklab, var(--color-brand-50) 50%, transparent) 50%,
+    transparent
+  );
+}
+
+@keyframes brotar-tarjeta {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+@keyframes mecer {
+  from {
+    transform: rotate(-1.4deg);
+  }
+  to {
+    transform: rotate(1.4deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),
   ::view-transition-new(*),
