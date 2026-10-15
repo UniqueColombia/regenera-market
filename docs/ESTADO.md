@@ -17,6 +17,17 @@ qué hacer, empieza aquí y no en el ROADMAP.
   corren en el CI. Cómo están hechas y por qué, en
   [el hito](../.claude/hitos/2026-10-12-pruebas-de-la-base-y-0015.md).
 
+> ## 🗣️ Para conversar con Ivan — lo que ya está programado y espera un dato suyo
+>
+> Abierta el 2026-10-14 a pedido de Jesús: todo lo que quedó **listo en el código
+> pero apagado** porque depende de una cuenta, una llave o un dato que no está en
+> el repositorio. Cada punto dice qué hace falta y dónde se pone; nada de esto
+> se escribe en un chat ni en un commit si es una clave.
+>
+> | # | Qué | Qué necesitamos | Dónde se pone | Mientras tanto |
+> |---|---|---|---|---|
+> | 1 | **Redes de Seregenera** en el pie, en los correos y en los datos de la portada | La URL de cada perfil que exista (Instagram, Facebook, LinkedIn, TikTok, YouTube, WhatsApp `https://wa.me/57…`) | `REDES` en `src/lib/legal.ts` — no es secreto, va en el código | No se pinta ningún ícono |
+
 > ## 🔴 Nuevo del 2026-10-12 (tarde): aplicar la migración `0016`
 >
 > **Nadie se beneficia a sí mismo.** Cierra dos huecos críticos: una empresa

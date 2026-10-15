@@ -1,3 +1,4 @@
+import { redesActivas } from "../legal";
 import type { Mensaje } from "./tipos";
 
 /**
@@ -79,7 +80,7 @@ ${cuerpo}
         <tr><td align="center" style="padding:26px 32px 30px 32px;">
           <p style="margin:0; font-family:${SANS}; font-size:12px; line-height:1.6; color:${APAGADO};">
             <strong style="color:${VERDE};">Seregenera</strong><br>
-            Marketplace regenerativo para el turismo
+            Marketplace regenerativo para el turismo${pieDeRedes()}
           </p>
         </td></tr>
       </table>
@@ -87,6 +88,23 @@ ${cuerpo}
   </table>
 </body>
 </html>`;
+}
+
+/**
+ * Las redes, como enlaces de texto al pie. Texto y no íconos: Gmail bloquea las
+ * imágenes remotas hasta que se piden y no admite SVG, así que un ícono saldría
+ * como un cuadro vacío. Sin redes configuradas, nada.
+ */
+function pieDeRedes(): string {
+  const redes = redesActivas();
+  if (redes.length === 0) return "";
+  const enlaces = redes
+    .map(
+      (r) =>
+        `<a href="${escapar(r.url)}" style="color:${VERDE}; text-decoration:underline;">${escapar(r.nombre)}</a>`,
+    )
+    .join(" · ");
+  return `<br>${enlaces}`;
 }
 
 function seccion(html: string): string {

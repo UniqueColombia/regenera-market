@@ -1,5 +1,5 @@
 import { categoriaLabel } from "@/lib/taxonomy";
-import { CONTACTO } from "@/lib/legal";
+import { CONTACTO, redesActivas } from "@/lib/legal";
 import type { Calificacion, Listing, Provider } from "@/lib/types";
 
 /**
@@ -89,6 +89,9 @@ export function DatosDelSitio() {
               telephone: CONTACTO.telefonoE164,
               availableLanguage: ["es"],
             },
+            // Los perfiles propios en redes: le dicen al buscador que esas
+            // cuentas son esta organización. Los mismos que se ven en el pie.
+            ...(redesActivas().length > 0 && { sameAs: redesActivas().map((r) => r.url) }),
           },
           {
             "@type": "WebSite",
@@ -130,7 +133,12 @@ export function DatosDeOferta({
   /** Solo si hay reseñas: un `aggregateRating` inventado o vacío es motivo de penalización. */
   calificacion?: Calificacion;
 }) {
-  const imagenes = listing.images.filter((i) => i.startsWith("/")).map(url);
+  // Todas las fotos, también las que subió el proveedor (URL absoluta de
+  // Storage): desde el 2026-10-14 la ficha las enseña todas en la galería, así
+  // que declararlas es describir lo que se ve.
+  const imagenes = listing.images
+    .filter((i) => i.startsWith("/") || i.startsWith("https://"))
+    .map((i) => (i.startsWith("/") ? url(i) : i));
 
   return (
     <Script

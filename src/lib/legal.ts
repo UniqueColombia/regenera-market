@@ -37,3 +37,43 @@ export const CONTACTO = {
  */
 export const VIGENCIA_TERMINOS = "2026-09-19";
 export const VIGENCIA_PRIVACIDAD = "2026-09-24";
+
+/**
+ * Las redes de Seregenera.
+ *
+ * **Vacías a propósito hasta tener los enlaces de verdad** (pendiente con Ivan,
+ * ver «Para conversar con Ivan» en `docs/ESTADO.md`). Cada una aparece sola en
+ * el pie, en el pie de los correos y en el `sameAs` de la portada en cuanto
+ * tiene dirección; mientras esté vacía no se pinta nada. Un ícono que lleva a
+ * una cuenta que no existe, o a la de otra empresa con el mismo nombre, es peor
+ * que no tener ícono.
+ *
+ * Se escribe la URL completa del perfil (`https://www.instagram.com/…`). Para
+ * WhatsApp, el enlace `https://wa.me/57XXXXXXXXXX`.
+ */
+export const REDES: Record<RedSocial, string> = {
+  instagram: "",
+  facebook: "",
+  linkedin: "",
+  tiktok: "",
+  youtube: "",
+  whatsapp: "",
+};
+
+export type RedSocial = "instagram" | "facebook" | "linkedin" | "tiktok" | "youtube" | "whatsapp";
+
+export const NOMBRE_RED: Record<RedSocial, string> = {
+  instagram: "Instagram",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  whatsapp: "WhatsApp",
+};
+
+/** Las que tienen enlace, en el orden de arriba. Solo `https://`: lo demás no se pinta. */
+export function redesActivas(): { red: RedSocial; nombre: string; url: string }[] {
+  return (Object.keys(REDES) as RedSocial[])
+    .map((red) => ({ red, nombre: NOMBRE_RED[red], url: REDES[red].trim() }))
+    .filter((r) => r.url.startsWith("https://"));
+}

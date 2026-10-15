@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { AddToCart, RequestQuote } from "@/components/add-to-cart";
 import { DatosDeMiga, DatosDeOferta } from "@/components/datos-estructurados";
+import { GaleriaOferta } from "@/components/galeria-oferta";
 import { ImpactChips } from "@/components/impact-chips";
 import { ListingCard } from "@/components/listing-card";
 import { ListingMedia } from "@/components/listing-media";
@@ -122,17 +123,27 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
         <div>
           {/* 3:2 y no 16:9: las fotos vienen en 4:3, y a 16:9 el recorte se
               come el 12 % de arriba y el 12 % de abajo. A 3:2 se queda en un
-              6 % por lado y ningún producto pierde la cabeza. */}
-          <div className="relative aspect-3/2 overflow-hidden rounded-2xl">
-            <ListingMedia
-              title={listing.title}
-              category={listing.category}
-              images={listing.images}
-              iconClassName="size-20"
+              6 % por lado y ningún producto pierde la cabeza. Con más de una
+              foto, la galería las enseña todas; con una o ninguna, la foto o
+              el tapiz de siempre. */}
+          {listing.images.length > 1 ? (
+            <GaleriaOferta
+              fotos={listing.images}
+              titulo={listing.title}
               sizes="(min-width: 1024px) 60vw, 100vw"
-              priority
             />
-          </div>
+          ) : (
+            <div className="relative aspect-3/2 overflow-hidden rounded-2xl">
+              <ListingMedia
+                title={listing.title}
+                category={listing.category}
+                images={listing.images}
+                iconClassName="size-20"
+                sizes="(min-width: 1024px) 60vw, 100vw"
+                priority
+              />
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-sand px-2.5 py-1 text-xs font-medium text-ink">
