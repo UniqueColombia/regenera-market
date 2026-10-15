@@ -160,8 +160,9 @@ Para agregar uno: archivo nuevo en `.claude/agents/`, frontmatter `name` +
 ## Límites duros
 
 - **No se commitea `.env.local` ni ninguna clave.** `SUPABASE_SERVICE_ROLE_KEY`
-  y las llaves de Wompi nunca aparecen en el repo, ni en un comentario, ni en un
-  hito, ni en un mensaje de PR. `.env.example` documenta el *nombre* de la
+  y las llaves de la pasarela de pagos (BOLD) nunca aparecen en el repo, ni en
+  un comentario, ni en un hito, ni en un mensaje de PR. Tampoco los datos de la
+  cuenta bancaria (`PAGO_*`). `.env.example` documenta el *nombre* de la
   variable, nunca el valor.
 - **No se hace `push --force` a `main` ni a `staging`.** Única excepción: quitar
   de verdad una atribución a Claude que se coló (ver la Regla 0, arriba), siempre

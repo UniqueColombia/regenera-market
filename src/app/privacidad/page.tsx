@@ -210,9 +210,12 @@ export default function PrivacidadPage() {
           acceso y los avisos de tus pedidos.
         </li>
         <li>
-          <strong>La pasarela de pago</strong>, cuando pagues en línea. Hoy los
-          pagos se coordinan por transferencia y no interviene ninguna: los
-          datos de tu cuenta bancaria no pasan por Seregenera ni se guardan aquí.
+          <strong>La pasarela de pago (BOLD)</strong>, solo si eliges pagar en
+          línea con tarjeta, PSE o Nequi. Los datos de tu tarjeta o de tu cuenta
+          los recibe directamente la pasarela y no pasan por Seregenera: aquí
+          solo llega la confirmación del pago, el medio y el número de la
+          transacción. Si pagas con llave o por transferencia no interviene
+          ninguna.
         </li>
       </ul>
       <p>

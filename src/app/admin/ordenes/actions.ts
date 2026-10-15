@@ -12,10 +12,10 @@ import type { OrderStatus } from "@/lib/types";
  * Mover una orden de estado. Hoy eso es, sobre todo, **confirmar un pago a
  * mano**.
  *
- * Seregenera todavía no cobra: `ManualGateway` le muestra al comprador los datos
- * para transferir y alguien mira la cuenta y confirma. Este botón es ese
- * «alguien». Cuando entre Wompi, el webhook hará lo mismo **validando la firma
- * con `WOMPI_EVENTS_SECRET` antes de tocar nada** (invariante 9): un webhook sin
+ * Lo que se paga con llave Bre-B o por transferencia no lo ve ninguna
+ * pasarela: alguien mira la cuenta y confirma. Este botón es ese «alguien».
+ * Lo que se paga en línea lo confirma el webhook de BOLD (`/api/webhooks/bold`)
+ * **validando la firma antes de tocar nada** (invariante 9): un webhook sin
  * verificar es un botón de «marcar como pagado» abierto a internet.
  *
  * Con el cliente de sesión: la política `orders_admin` es la que autoriza.
