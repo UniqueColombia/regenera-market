@@ -233,6 +233,22 @@
   animation: none;
 }
 
+/**
+ * El selector «Una oferta | Varias desde Excel» (`elegir-cantidad-ofertas.tsx`).
+ *
+ * Al pasar de una pantalla a la otra, la píldora verde viaja de una opción a la
+ * otra en vez de aparecer de golpe. El selector entero también lleva nombre: así
+ * se queda en su sitio mientras el resto de la página sale y entra, y los
+ * rótulos se funden en lugar de saltar. La duración está en el grupo porque las
+ * imágenes vieja y nueva la heredan. Curva con arranque rápido y llegada
+ * suave: la píldora «cae» en su lugar.
+ */
+::view-transition-group(selector-oferta),
+::view-transition-group(pildora-oferta) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),
   ::view-transition-new(*),

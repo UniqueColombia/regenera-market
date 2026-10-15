@@ -36,12 +36,13 @@ export default async function ImportarOfertasAdminPage() {
         Ofertas
       </Link>
 
-      <h1 className="mt-3 font-display text-3xl text-ink sm:text-4xl">Cargar ofertas desde Excel</h1>
       <ElegirCantidadOfertas
         activa="varias"
         hrefUna="/admin/ofertas/nueva"
         hrefVarias="/admin/ofertas/importar"
       />
+
+      <h1 className="mt-6 font-display text-3xl text-ink sm:text-4xl">Cargar ofertas desde Excel</h1>
       <p className="mt-2 max-w-2xl text-muted">
         Para el portafolio que un proveedor te mandó: pásalo a la plantilla,
         elige de quién es y súbelo con sus fotos. Si el proveedor tiene cuenta,
