@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { guardarOferta, subirImagenDeOfertaAdmin } from "../actions";
+import { ElegirCantidadOfertas } from "@/components/elegir-cantidad-ofertas";
 import { FormularioOferta } from "@/components/formulario-oferta";
 import { enviosPorZonaDisponible, getProvidersForReview, logisticaDisponible } from "@/lib/repo";
 
@@ -28,6 +29,11 @@ export default async function NuevaOfertaPage() {
       </Link>
 
       <h1 className="mt-3 font-display text-3xl text-ink sm:text-4xl">Nueva oferta</h1>
+      <ElegirCantidadOfertas
+        activa="una"
+        hrefUna="/admin/ofertas/nueva"
+        hrefVarias="/admin/ofertas/importar"
+      />
       <p className="mt-2 max-w-2xl text-muted">
         Nace en borrador si así lo dejas al final. Publicarla la hace aparecer en
         el catálogo sin desplegar nada.

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Building2, Plus, Tags, Truck } from "lucide-react";
+import { ArrowRight, BadgeCheck, Building2, FileSpreadsheet, Plus, Tags, Truck } from "lucide-react";
 import { Giros } from "./giros";
 import { CerrarEmpresa } from "./cerrar-empresa";
 import { Historial } from "./historial";
@@ -124,6 +124,13 @@ export default async function EmpresaPage() {
             >
               <Plus className="size-4" />
               Nueva oferta
+            </Link>
+            <Link
+              href="/cuenta/empresa/ofertas/importar"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-brand-200 transition hover:bg-sand"
+            >
+              <FileSpreadsheet className="size-4" />
+              Cargar varias desde Excel
             </Link>
             {ofertas.length > 0 && (
               <Link

@@ -77,6 +77,17 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
           >
             {sesion?.esProveedor ? "Publica una oferta" : "Da de alta tu empresa"}
           </Link>
+          {sesion?.esProveedor && (
+            <>
+              {" "}o{" "}
+              <Link
+                href="/cuenta/empresa/ofertas/importar"
+                className="font-medium text-brand-700 underline underline-offset-4"
+              >
+                cárgalas varias desde Excel
+              </Link>
+            </>
+          )}
           .
         </p>
       </header>
