@@ -7,6 +7,7 @@ import {
   ChevronDown,
   LogOut,
   Menu,
+  Share2,
   ShieldCheck,
   ShoppingBasket,
   Store,
@@ -23,6 +24,8 @@ import { IconoCategoria } from "./icono-categoria";
 import { SelectorIdioma } from "./selector-idioma";
 import { SelectorTema } from "./selector-tema";
 import { Flotante, Plegable, usePresencia } from "./presencia";
+import { FilaRedes, ListaRedes, hayRedesActivas } from "./redes-sociales";
+import { CONTACTO } from "@/lib/legal";
 import type { Tema } from "@/lib/tema";
 
 const NAV = [
@@ -125,7 +128,7 @@ export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema
               type="button"
               onClick={() => setOpenCategories(!openCategories)}
               aria-expanded={openCategories}
-              className="group relative flex items-center gap-1 rounded-full px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-sand hover:text-brand-700"
+              className="group relative flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-sand hover:text-brand-700 xl:px-3.5"
             >
               Categorías
               <ChevronDown
@@ -191,7 +194,7 @@ export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema
                 key={item.href}
                 href={item.href}
                 aria-current={activo ? "page" : undefined}
-                className={`group relative rounded-full px-3.5 py-2 text-sm font-medium transition-colors hover:bg-sand ${
+                className={`group relative rounded-full px-3 py-2 text-sm font-medium transition-colors hover:bg-sand xl:px-3.5 ${
                   activo ? "bg-sand text-brand-700" : "text-ink hover:text-brand-700"
                 }`}
               >
@@ -213,6 +216,7 @@ export function SiteHeader({ sesion, tema }: { sesion: Sesion | null; tema: Tema
               Entrar
             </Link>
           )}
+          <MenuRedes />
           <SelectorTema inicial={tema} />
           <SelectorIdioma />
           <CartButton />
@@ -417,6 +421,18 @@ function MenuMovil({
           </>
         )}
       </ul>
+
+      {/* Las redes, en el teléfono: el desplegable «Síguenos» del encabezado es
+          `hidden sm:block`, así que por debajo de 640 px tienen que estar aquí. */}
+      <div className="container-page border-t border-hairline py-4">
+        <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted">Síguenos</p>
+        <div className="mt-3">
+          <FilaRedes fondo="claro" />
+        </div>
+        {!hayRedesActivas() && (
+          <p className="mt-2 text-xs text-muted">Nuestras redes abren pronto.</p>
+        )}
+      </div>
       </div>
     </nav>
   );
@@ -494,6 +510,80 @@ function FilaMovil({
       />
       {children}
     </Link>
+  );
+}
+
+/**
+ * «Síguenos»: el acceso rápido a las redes de Seregenera.
+ *
+ * Un solo botón con desplegable y no una fila de íconos en la barra: entre el
+ * menú, la cuenta, el tema, el idioma y la cesta no caben seis íconos más sin
+ * apretar el encabezado a 1024 px. Aun este botón partía en dos el lema del
+ * logo entre 1024 y 1100 px; por eso los enlaces del menú llevan `px-3` hasta
+ * `xl` y `px-3.5` desde ahí. Mismo patrón que la cuenta —`aria-expanded`,
+ * cierre con Escape y con clic afuera—. En el teléfono las redes están al final
+ * del menú (`MenuMovil`).
+ *
+ * Mientras no haya ninguna con dirección, dice que abren pronto y deja el
+ * correo, que es la forma de hablarnos que sí existe.
+ */
+function MenuRedes() {
+  const pathname = usePathname();
+  const ref = useRef<HTMLDivElement>(null);
+  const [abiertoEn, setAbiertoEn] = useState<string | null>(null);
+  const abierto = abiertoEn === pathname;
+
+  useEffect(() => {
+    if (!abierto) return;
+    function onPointerDown(e: PointerEvent) {
+      if (!ref.current?.contains(e.target as Node)) setAbiertoEn(null);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setAbiertoEn(null);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [abierto]);
+
+  return (
+    <div ref={ref} className="relative hidden sm:block">
+      <button
+        type="button"
+        onClick={() => setAbiertoEn(abierto ? null : pathname)}
+        aria-expanded={abierto}
+        aria-label="Síguenos en redes"
+        title="Síguenos en redes"
+        className="rounded-full p-2 text-ink transition-colors hover:bg-sand hover:text-brand-700 active:bg-sand"
+      >
+        <Share2 className="size-5" />
+      </button>
+
+      <Flotante
+        abierto={abierto}
+        className="absolute right-0 top-full mt-2 w-72 rounded-xl bg-white p-3 shadow-xl ring-1 ring-hairline"
+      >
+        <>
+          <p className="px-2.5 pb-2 font-display text-base text-ink">Síguenos</p>
+          <ListaRedes />
+          {!hayRedesActivas() && (
+            <p className="mt-2 border-t border-hairline px-2.5 pt-2 text-xs text-muted">
+              Nuestras redes abren pronto. Mientras, escríbenos a{" "}
+              <a
+                href={`mailto:${CONTACTO.correo}`}
+                className="font-medium text-brand-700 underline underline-offset-2"
+              >
+                {CONTACTO.correo}
+              </a>
+              .
+            </p>
+          )}
+        </>
+      </Flotante>
+    </div>
   );
 }
 
