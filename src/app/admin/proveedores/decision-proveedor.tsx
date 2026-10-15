@@ -20,10 +20,17 @@ export function DecisionProveedor({
   providerId,
   estado,
   nombre,
+  cerrada = false,
 }: {
   providerId: string;
   estado: ReviewStatus;
   nombre: string;
+  /**
+   * La cerró su dueña (0021). No se ofrece «Aprobar»: volvería al catálogo sin
+   * nadie que la gestione, y la base lo rechaza igual (`empresa-cerrada`,
+   * 0022). Vuelve cuando se da de alta otra vez con su documento.
+   */
+  cerrada?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +54,7 @@ export function DecisionProveedor({
       <div className="flex flex-wrap items-center justify-end gap-2">
         {pendiente && <Loader2 className="size-4 animate-spin text-muted" />}
 
-        {estado !== "approved" && (
+        {estado !== "approved" && !cerrada && (
           <button
             type="button"
             disabled={pendiente}

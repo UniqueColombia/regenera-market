@@ -58,6 +58,13 @@ export async function decidirProveedor(
     .eq("id", parsed.data.providerId)
     .select("id");
 
+  if (error?.message.includes("empresa-cerrada")) {
+    return {
+      ok: false,
+      error:
+        "La cerró su dueña. No se aprueba desde aquí: volvería al catálogo sin nadie que la gestione. Vuelve sola cuando ella (u otra persona que apruebes con su documento) la da de alta otra vez.",
+    };
+  }
   if (error) return { ok: false, error: error.message };
   // RLS no devuelve error cuando niega: devuelve cero filas afectadas. Sin esta
   // comprobación, un intento denegado se vería como un éxito silencioso.
