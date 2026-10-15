@@ -490,6 +490,60 @@ export function correoOfertaEnRevision(d: {
 }
 
 /**
+ * Varias ofertas que entraron a revisión de una vez, desde la planilla.
+ *
+ * Una sola carta y no una por oferta: treinta correos seguidos con el mismo
+ * asunto son ruido, y Gmail empieza a tratarlos como tal.
+ */
+export function correoOfertasImportadas(d: {
+  nombre: string;
+  correo: string;
+  titulos: string[];
+}): Mensaje {
+  const url = sitio();
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+  const n = d.titulos.length;
+  const visibles = d.titulos.slice(0, 15);
+  const resto = n - visibles.length;
+  const lista = visibles
+    .map((t) => `<li style="margin:4px 0;">${escapar(t)}</li>`)
+    .join("");
+
+  const cuerpo =
+    seccion(
+      h1(n === 1 ? "Tu oferta está en revisión" : `Tus ${n} ofertas están en revisión`) +
+        p(
+          `${nombre}, recibimos lo que cargaste desde la planilla. El equipo revisa cada oferta antes de mostrarla en el catálogo y te avisamos apenas estén publicadas.`,
+        ) +
+        `<ul style="margin:14px 0 0 0; padding-left:20px; font-family:${SANS}; font-size:15px; line-height:1.5; color:${TINTA};">${lista}</ul>` +
+        (resto > 0 ? p(`Y ${resto} más.`) : ""),
+    ) +
+    boton(`${url}/cuenta/empresa/ofertas`, "Ver mis ofertas");
+
+  return {
+    para: d.correo,
+    asunto: n === 1 ? `Recibimos tu oferta «${d.titulos[0]}»` : `Recibimos tus ${n} ofertas`,
+    html: envolver({
+      titulo: "Tus ofertas están en revisión",
+      preencabezado: `${n} ${n === 1 ? "oferta" : "ofertas"} · te avisamos cuando estén publicadas`,
+      cuerpo,
+    }),
+    texto: [
+      n === 1 ? "Tu oferta está en revisión" : `Tus ${n} ofertas están en revisión`,
+      "",
+      "Recibimos lo que cargaste desde la planilla. El equipo revisa cada oferta antes de mostrarla en el catálogo.",
+      "",
+      ...visibles.map((t) => `- ${t}`),
+      ...(resto > 0 ? [`Y ${resto} más.`] : []),
+      "",
+      `Mis ofertas: ${url}/cuenta/empresa/ofertas`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
+
+/**
  * Una oferta aprobada: ya está en el catálogo.
  *
  * **Escrita y sin conectar todavía.** Iría en `cambiarEstadoOferta()` de

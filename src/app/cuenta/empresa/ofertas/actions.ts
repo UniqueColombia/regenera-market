@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getUser } from "@/lib/auth";
 import { enviarCorreo } from "@/lib/correo";
-import { correoOfertaEnRevision } from "@/lib/correo/plantillas";
+import { correoOfertaEnRevision, correoOfertasImportadas } from "@/lib/correo/plantillas";
 import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 import {
-  CamposOferta,
+  CamposOfertaEmpresa,
   erroresDeOferta,
   escribirOferta,
   filaDeOferta,
@@ -24,6 +24,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ResultadoGuardarOferta } from "@/components/formulario-oferta";
 import type { ResultadoImagenUI } from "@/components/selector-imagen";
 import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
+import { dentroDelRitmo } from "@/lib/ritmo";
 
 /**
  * Lo que una empresa puede hacer con sus propias ofertas.
@@ -50,22 +51,22 @@ import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
  * depender de lo que la base corrija por detrás.
  */
 
-const OfertaEmpresaSchema = CamposOferta.extend({
-  aporteAmbiental: z
-    .string()
-    .trim()
-    .min(20, "Cuéntanos qué aporta al ambiente, aunque sea en una frase")
-    .max(1000, "Cuéntalo en menos de 1.000 caracteres"),
-  consecuenciaAmbiental: z
-    .string()
-    .trim()
-    .min(20, "Cuéntanos también qué cuesta: de dónde viene, cómo llega, qué deja")
-    .max(1000, "Cuéntalo en menos de 1.000 caracteres"),
+const OfertaEmpresaSchema = CamposOfertaEmpresa.extend({
   enviar: z.enum(["borrador", "revision"]).default("revision"),
 });
 
+/**
+ * Guarda una oferta de la empresa, nueva o editada.
+ *
+ * `opciones.avisar` es para la carga desde Excel: cada fila se guarda por esta
+ * misma acción —con las mismas validaciones y la misma llave contra
+ * duplicados—, pero el correo de «está en revisión» sale **uno solo** al final
+ * (`avisarOfertasImportadas()`) y no uno por fila. Quien lo apaga solo deja de
+ * recibir su propio aviso.
+ */
 export async function guardarOfertaDeEmpresa(
   datos: unknown,
+  opciones: { avisar?: boolean } = {},
 ): Promise<ResultadoGuardarOferta> {
   const user = await getUser();
   if (!user) return { ok: false, errors: { form: "Tu sesión se cerró. Entra otra vez." } };
@@ -169,7 +170,12 @@ export async function guardarOfertaDeEmpresa(
     // en cada guardado. Va fuera del camino crítico, como el correo del
     // pedido: la oferta ya está guardada y un SMTP caído no puede hacer que la
     // persona la reenvíe.
-    if (status === "pending_review" && !escrita.repetida && estadoPrevio !== "pending_review") {
+    if (
+      opciones.avisar !== false &&
+      status === "pending_review" &&
+      !escrita.repetida &&
+      estadoPrevio !== "pending_review"
+    ) {
       try {
         const usuario = await getUser();
         if (usuario?.email) {
@@ -260,4 +266,36 @@ export async function subirImagenDeOferta(datos: FormData): Promise<ResultadoIma
     revisada.tipo,
     `oferta-${crypto.randomUUID()}`,
   );
+}
+
+/**
+ * El aviso único de una carga desde Excel: «recibimos tus N ofertas».
+ *
+ * Lo llama la pantalla de carga al terminar, con los títulos de lo que quedó
+ * en revisión. Solo le escribe a quien llama (a su propio correo) y con freno,
+ * así que repetirlo no le sirve a nadie para mandar correos a otros.
+ */
+export async function avisarOfertasImportadas(titulos: string[]): Promise<void> {
+  const usuario = await getUser();
+  if (!usuario?.email) return;
+  const limpios = titulos
+    .filter((t) => typeof t === "string")
+    .map((t) => t.trim().slice(0, 140))
+    .filter(Boolean)
+    .slice(0, 300);
+  if (limpios.length === 0) return;
+  if (!dentroDelRitmo(`importar-aviso:${usuario.id}`, 5, 3600)) return;
+  try {
+    const meta = usuario.user_metadata as { full_name?: string } | undefined;
+    const envio = await enviarCorreo(
+      correoOfertasImportadas({
+        nombre: meta?.full_name || usuario.email.split("@")[0],
+        correo: usuario.email,
+        titulos: limpios,
+      }),
+    );
+    if (!envio.ok) console.error(`[importar-correo] no enviado (${envio.via}): ${envio.error}`);
+  } catch (e) {
+    registrarFallo("importar-correo", e);
+  }
 }
