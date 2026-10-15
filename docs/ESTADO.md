@@ -4,10 +4,10 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-10-12
+- **Corte:** 2026-10-14
 - **Producción:** `main` → **https://regenera-market.vercel.app**, con las
-  migraciones hasta la `0015` **aplicadas** (Jesús, 2026-10-12). La `0016` está
-  escrita y probada, **sin aplicar** (ver abajo).
+  migraciones hasta la `0015` **aplicadas** (Jesús, 2026-10-12). Las `0016`,
+  `0017`, `0018` y `0019` están escritas y probadas, **sin aplicar** (ver abajo).
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
   empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.
@@ -17,7 +17,51 @@ qué hacer, empieza aquí y no en el ROADMAP.
   corren en el CI. Cómo están hechas y por qué, en
   [el hito](../.claude/hitos/2026-10-12-pruebas-de-la-base-y-0015.md).
 
-> ## 🔴 Nuevo del 2026-10-12 (tarde): aplicar la migración `0016`
+> ## 🗣️ Para conversar con Ivan — lo que ya está programado y espera un dato suyo
+>
+> Abierta el 2026-10-14 a pedido de Jesús: todo lo que quedó **listo en el código
+> pero apagado** porque depende de una cuenta, una llave o un dato que no está en
+> el repositorio. Cada punto dice qué hace falta y dónde se pone; nada de esto
+> se escribe en un chat ni en un commit si es una clave.
+>
+> | # | Qué | Qué necesitamos | Dónde se pone | Mientras tanto |
+> |---|---|---|---|---|
+> | 1 | **Redes de Seregenera** en el pie, en los correos y en los datos de la portada | La URL de cada perfil que exista (Instagram, Facebook, LinkedIn, TikTok, YouTube, WhatsApp `https://wa.me/57…`) | `REDES` en `src/lib/legal.ts` — no es secreto, va en el código | No se pinta ningún ícono |
+> | 2 | **Pago en línea con BOLD** (tarjeta, PSE, Nequi, Botón Bancolombia) | Cuenta de comercio en BOLD y sus dos llaves del **Botón de pagos** (identidad y secreta); las de pruebas para Preview. Revisar en su panel los montos máximos por medio de pago | Vercel: `BOLD_LLAVE_IDENTIDAD` y `BOLD_LLAVE_SECRETA` (Production; en Preview las de pruebas y `BOLD_MODO_PRUEBAS=1`). En el panel de BOLD, el webhook `https://regenera-market.vercel.app/api/webhooks/bold` | El pedido ofrece solo llave Bre-B y transferencia |
+> | 3 | **Al encender BOLD**, los términos | Revisar el texto | «Pedidos, pago y entrega» en `src/app/terminos/page.tsx` y `VIGENCIA_TERMINOS` en `src/lib/legal.ts` | Dicen que el pago se coordina por transferencia, que hoy es cierto |
+> | 4 | **Llave Bre-B y cuenta bancaria** para pagar sin pasarela | La llave de la cuenta de la sociedad; banco, tipo y número de cuenta, titular y NIT | Vercel: `PAGO_LLAVE_BREB`, `PAGO_BANCO`, `PAGO_TIPO_CUENTA`, `PAGO_NUMERO_CUENTA`, `PAGO_TITULAR`, `PAGO_NIT` (y `PAGO_CORREO_COMPROBANTES` si no es el de contacto). **No en el código**: el repo es público | El pedido dice «escríbenos y te mandamos los datos» |
+> | 5 | **Las `SMTP_*`** (ya pendiente, ver «Para Ivan» más abajo) | — | Vercel | Además de lo de siempre, **no sale ningún correo de «Contactar proveedores»**: la pantalla lo avisa y deja invitar por WhatsApp |
+> | 6 | **A qué buzón llegan las respuestas** a las invitaciones | Confirmar que es `CONTACTO.correo` (hoy el Gmail de la sociedad) o dar otro | `CONTACTO` en `src/lib/legal.ts` | Llegan a ese Gmail |
+> | 7 | **El texto de la invitación** | Leerlo y ajustarlo | `TEXTOS` en `src/lib/prospectos.ts` (también se edita antes de cada envío) | Sale el que está |
+> | 8 | **Convenio con Aveonline** (o la transportadora que sea) | Si su API cotiza por peso, medidas y destino | Una implementación detrás de `envioDeLinea()` (skill `nueva-integracion`) | Cada proveedor declara su tarifa local, nacional y por unidad |
+> | 9 | **Conseguir correos de prospectos** | Decidir si se enriquecen más lotes con el subagente `prospector-proveedores` | — | Del Excel del prospector, solo 17 de 2.827 empresas tienen correo |
+
+> ## 🔴 Nuevo del 2026-10-14: cuatro migraciones por aplicar, en orden
+>
+> **`0016` → `0017` → `0018` → `0019`**, cada una pegada entera en el SQL Editor
+> y con Run. El orden importa: la `0017` reemplaza la `crear_orden()` **de la
+> 0016**. El código ya funciona sin ellas y enciende cada parte sola en menos de
+> un minuto después de aplicarla. Lo que trae cada una, y el detalle en
+> [el hito](../.claude/hitos/2026-10-14-fotos-excel-contactar-pagos-y-envios.md):
+>
+> - **`0017`** — el envío se cobra según el destino y las unidades: tarifa local
+>   (mismo departamento de donde sale), nacional, y lo que suma cada unidad
+>   adicional; peso y medidas opcionales. Sin ella, tarifa fija como hasta hoy.
+> - **`0018`** — «Contactar proveedores» en `/admin/contactar`: prospectos,
+>   invitaciones y noticias por correo, bajas. Sin ella, la pantalla dice que
+>   falta.
+> - **`0019`** — el registro de los pagos en línea. Sin ella, un pago de BOLD
+>   confirma la orden igual pero no queda anotado con su transacción.
+>
+> El mismo día, sin migración: **todas las fotos de cada oferta** (galería en la
+> ficha y fundido en la tarjeta del catálogo), **carga de ofertas desde Excel**
+> (plantilla en `/api/plantilla-ofertas`, carga en «Tus ofertas» y en
+> `/admin/ofertas/importar`), los datos de **llave Bre-B y transferencia**
+> copiables en el pedido, y **BOLD programado y apagado** hasta tener las llaves.
+> La política de privacidad cambió (vigencia 2026-10-14): datos de empresas
+> invitadas y la pasarela.
+
+> ## 🔴 Del 2026-10-12 (tarde): aplicar la migración `0016`
 >
 > **Nadie se beneficia a sí mismo.** Cierra dos huecos críticos: una empresa
 > podía **aprobarse sola su evaluación** (sello «Green Watching» y 250 puntos) y

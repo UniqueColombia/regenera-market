@@ -28,7 +28,7 @@ import { ImpactChips } from "@/components/impact-chips";
 import { Plegable } from "@/components/presencia";
 import { ListingMedia } from "@/components/listing-media";
 import { money, shortDate } from "@/lib/format";
-import { plazoDeEntrega, textoCostoEnvio } from "@/lib/envios";
+import { plazoDeEntrega, textoEnvioDeLinea } from "@/lib/envios";
 import type { Cotizacion } from "@/lib/tipo-de-cambio";
 import { DEPARTMENTS, KIND_LABEL } from "@/lib/taxonomy";
 
@@ -64,11 +64,14 @@ export function Cesta({
     key: string;
     data: PricedCartDTO;
   } | null>(null);
+  // El departamento elegido en el formulario. Con la 0017 cambia el envío
+  // (tarifa local o nacional), así que elegirlo vuelve a valorizar la cesta.
+  const [destino, setDestino] = useState("");
 
   useEffect(() => {
     if (!hydrated || lines.length === 0) return;
     let cancelled = false;
-    priceCart(lines).then((data) => {
+    priceCart(lines, destino || undefined).then((data) => {
       if (cancelled) return;
       setResult({ key: cartKey, data });
       // Una oferta retirada del catálogo se cae sola de la cesta. Se quita por
@@ -80,7 +83,7 @@ export function Cesta({
     return () => {
       cancelled = true;
     };
-  }, [cartKey, lines, hydrated]);
+  }, [cartKey, lines, hydrated, destino]);
 
   // Mientras se revaloriza se siguen mostrando los datos anteriores. Vaciar la
   // pantalla en cada cambio de cantidad desmontaría el campo que se está
@@ -215,7 +218,7 @@ export function Cesta({
                       el producto: es la pregunta que decide si se compra. */}
                   {priced.pideDestino && l.kind === "product" && (
                     <p className="mt-1 text-xs text-muted">
-                      {textoCostoEnvio(l.envio, money)}
+                      {textoEnvioDeLinea(l.envio, l.envioCop, money)}
                       {plazoDeEntrega(l.envio?.diasMin, l.envio?.diasMax) &&
                         ` · llega ${plazoDeEntrega(l.envio?.diasMin, l.envio?.diasMax)}`}
                     </p>
@@ -291,7 +294,12 @@ export function Cesta({
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <CheckoutPanel priced={priced} comprador={comprador} cotizacion={cotizacion} />
+          <CheckoutPanel
+            priced={priced}
+            comprador={comprador}
+            cotizacion={cotizacion}
+            alElegirDestino={setDestino}
+          />
         </aside>
       </div>
     </div>
@@ -428,10 +436,13 @@ function CheckoutPanel({
   priced,
   comprador,
   cotizacion,
+  alElegirDestino,
 }: {
   priced: PricedCartDTO;
   comprador: Comprador | null;
   cotizacion?: Cotizacion;
+  /** Avisa a la cesta del departamento elegido, para cobrar el envío local (0017). */
+  alElegirDestino: (departamento: string) => void;
 }) {
   const lines = useCartLines();
   const router = useRouter();
@@ -657,6 +668,7 @@ function CheckoutPanel({
                   name="departamento"
                   required
                   defaultValue=""
+                  onChange={(e) => alElegirDestino(e.target.value)}
                   aria-invalid={errors.departamento ? true : undefined}
                   className={`w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 ${
                     errors.departamento ? "border-red-500" : "border-control"

@@ -20,6 +20,8 @@ export const RUTAS_PRIVADAS = [
   "/auth",
   "/api",
   "/salir",
+  // La página de baja de un correo a un prospecto: lleva un token en la URL.
+  "/baja",
 ] as const;
 
 /**

@@ -148,6 +148,10 @@ export interface OfertaPrueba {
   envioCop?: number | null;
   despacho?: "vendedor" | "transportadora" | null;
   status?: string;
+  /** Desde la 0017. */
+  envioLocalCop?: number | null;
+  envioAdicionalCop?: number | null;
+  department?: string | null;
 }
 
 /** Una oferta aprobada de `empresa`. Por defecto, un producto de $20.000 sin stock limitado. */
@@ -156,8 +160,9 @@ export async function crearOferta(sql: Sql, empresa: string, o: OfertaPrueba = {
   const kind = o.kind ?? "product";
   await sql.query(
     `insert into listings (id, slug, provider_id, kind, title, category, price_cop,
-       wholesale_price_cop, wholesale_min_qty, stock, quote_only, envio_cop, despacho, status)
-     values ($1, $2, $3, $4, 'Oferta de prueba', 'hogar', $5, $6, $7, $8, $9, $10, $11, $12)`,
+       wholesale_price_cop, wholesale_min_qty, stock, quote_only, envio_cop, despacho, status,
+       envio_local_cop, envio_adicional_cop, department)
+     values ($1, $2, $3, $4, 'Oferta de prueba', 'hogar', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
     [
       id,
       `oferta-${id.slice(0, 8)}`,
@@ -171,6 +176,9 @@ export async function crearOferta(sql: Sql, empresa: string, o: OfertaPrueba = {
       o.envioCop ?? null,
       o.despacho ?? (kind === "product" ? "vendedor" : null),
       o.status ?? "approved",
+      o.envioLocalCop ?? null,
+      o.envioAdicionalCop ?? null,
+      o.department ?? null,
     ],
   );
   return id;

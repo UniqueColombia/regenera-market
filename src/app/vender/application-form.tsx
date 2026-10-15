@@ -84,6 +84,12 @@ export interface DatosConocidos {
   contactName?: string;
   email?: string;
   phone?: string;
+  /** Los de la empresa, cuando se llega por el enlace de una invitación (0018). */
+  name?: string;
+  taxId?: string;
+  department?: string;
+  city?: string;
+  website?: string;
 }
 
 export function ApplicationForm({
@@ -220,6 +226,7 @@ export function ApplicationForm({
           name="name"
           label="Nombre de tu empresa, cooperativa o comunidad"
           autoComplete="organization"
+          defaultValue={conocidos.name}
           error={errors.name}
           required
         />
@@ -251,6 +258,7 @@ export function ApplicationForm({
                en México RFC. Decirle «RUT» a todo el mundo es lo que hacía que
                este formulario se leyera como colombiano —o peor, chileno. */
             label={`${paisElegido.documento} de tu organización`}
+            defaultValue={conocidos.taxId}
             error={errors.taxId}
             required
             ayuda={
@@ -312,6 +320,7 @@ export function ApplicationForm({
             /* Departamento en Colombia, Región en Chile y Perú, Estado en
                México. La palabra sale de la tabla de países. */
             label={paisElegido.division}
+            defaultValue={conocidos.department}
             error={errors.department}
             required
           />
@@ -322,6 +331,7 @@ export function ApplicationForm({
             paso={1}
             name="city"
             label="Ciudad o municipio"
+            defaultValue={conocidos.city}
             error={errors.city}
             required
           />
@@ -334,6 +344,7 @@ export function ApplicationForm({
             // el `https://` (ver `website` en actions.ts).
             autoComplete="url"
             placeholder="www.tuempresa.com"
+            defaultValue={conocidos.website}
             error={errors.website}
           />
         </div>

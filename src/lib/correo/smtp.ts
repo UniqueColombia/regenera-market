@@ -95,6 +95,7 @@ export class EnviadorSmtp implements EnviadorCorreo {
         subject: mensaje.asunto,
         text: mensaje.texto,
         html: mensaje.html,
+        headers: mensaje.cabeceras,
       });
       return { ok: true, via: this.nombre };
     } catch (e) {

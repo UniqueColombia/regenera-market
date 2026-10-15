@@ -15,7 +15,7 @@ import {
   filaDeOferta,
   reglasDeOferta,
 } from "@/lib/ofertas";
-import { logisticaDisponible } from "@/lib/repo";
+import { enviosPorZonaDisponible, logisticaDisponible } from "@/lib/repo";
 
 /**
  * Crear y editar ofertas: el CRUD que convierte esto en algo operable.
@@ -65,7 +65,8 @@ export async function guardarOferta(datos: unknown): Promise<ResultadoOferta> {
 
   const d = parsed.data;
   const logistica = await logisticaDisponible();
-  const reglas = reglasDeOferta(d, { logistica });
+  const zonas = logistica && (await enviosPorZonaDisponible());
+  const reglas = reglasDeOferta(d, { logistica, zonas });
   if (Object.keys(reglas).length > 0) return { ok: false, errors: reglas };
 
   const supabase = await createClient();
@@ -89,7 +90,7 @@ export async function guardarOferta(datos: unknown): Promise<ResultadoOferta> {
       });
 
   const fila = {
-    ...filaDeOferta(d, { logistica }),
+    ...filaDeOferta(d, { logistica, zonas }),
     provider_id: d.providerId,
     slug,
     status: d.status,

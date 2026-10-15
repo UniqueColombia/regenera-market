@@ -15,6 +15,7 @@ import { ApplicationForm, type DatosConocidos } from "./application-form";
 import { HeroBanner } from "@/components/hero-banner";
 import { Revelar } from "@/components/revelar";
 import { getSesion } from "@/lib/auth";
+import { getInvitacion } from "@/lib/repo";
 import { createClient } from "@/lib/supabase/server";
 import { mostrarTelefono } from "@/lib/telefono";
 import { NIVELES, comisionEnPorcentaje } from "@/lib/niveles";
@@ -134,9 +135,30 @@ async function datosConocidos(): Promise<DatosConocidos> {
 
 export const dynamic = "force-dynamic";
 
-export default async function VenderPage() {
+export default async function VenderPage(props: PageProps<"/vender">) {
   const sesion = await getSesion();
-  const conocidos = await datosConocidos();
+  const { invitacion: token } = await props.searchParams;
+  // El enlace de una invitación de «Contactar proveedores» (0018) trae los
+  // datos que la empresa publica: se escriben en el formulario para que solo
+  // tenga que revisarlos. Lo de la sesión manda sobre quién representa; lo de
+  // la invitación, sobre la empresa.
+  const invitacion = await getInvitacion(typeof token === "string" ? token : undefined);
+  const deLaSesion = await datosConocidos();
+  const conocidos: DatosConocidos = invitacion
+    ? {
+        ...deLaSesion,
+        name: invitacion.nombre,
+        taxId: invitacion.nit,
+        email: invitacion.correo ?? deLaSesion.email,
+        phone: deLaSesion.phone ?? invitacion.telefono,
+        department: invitacion.departamento,
+        city: invitacion.ciudad,
+        website: invitacion.sitioWeb,
+      }
+    : deLaSesion;
+  const volver = encodeURIComponent(
+    invitacion && typeof token === "string" ? `/vender?invitacion=${token}#postular` : "/vender",
+  );
 
   return (
     <div>
@@ -318,6 +340,13 @@ export default async function VenderPage() {
       <section id="postular" className="container-page py-14">
         <div className="mx-auto max-w-2xl">
           <h2 className="font-display text-3xl text-ink">Registra tu empresa</h2>
+          {invitacion && (
+            <p className="mt-3 rounded-xl bg-brand-50 p-4 text-sm text-brand-800 ring-1 ring-brand-200">
+              Hola, equipo de <strong className="font-semibold">{invitacion.nombre}</strong>:
+              ya escribimos los datos que publican en su sitio. Revísalos y
+              completa lo que falta.
+            </p>
+          )}
           <p className="mt-2 text-muted">
             Tres pasos y unos dos minutos: los datos de la organización, quién la
             representa y qué vende. Con la sesión abierta, al terminar ya tienes
@@ -327,7 +356,7 @@ export default async function VenderPage() {
             <p className="mt-3 text-sm text-muted">
               ¿Todavía no tienes cuenta?{" "}
               <Link
-                href="/registro?volver=%2Fvender"
+                href={`/registro?volver=${volver}`}
                 className="font-medium text-brand-700 underline underline-offset-4"
               >
                 Créala primero

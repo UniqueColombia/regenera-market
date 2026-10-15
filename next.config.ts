@@ -71,6 +71,14 @@ const anfitrion = anfitrionDeSupabase();
 const TRADUCTOR_SCRIPTS =
   "https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.google.com https://www.gstatic.com";
 
+/**
+ * La pasarela de pago (BOLD, desde el 2026-10-14): su librería pinta el botón
+ * en la página del pedido y abre el pago en un recuadro (`iframe`) sobre el
+ * sitio. Se declara aunque la pasarela esté apagada: sin llaves, el pedido no
+ * pide ese script y estas líneas no abren nada.
+ */
+const PASARELA = "https://checkout.bold.co";
+
 function cabecerasDeSeguridad(produccion: boolean) {
   const supabase = anfitrion ? `https://${anfitrion} wss://${anfitrion}` : "";
 
@@ -80,17 +88,17 @@ function cabecerasDeSeguridad(produccion: boolean) {
     // El traductor (`selector-idioma.tsx`) necesita estos dominios de Google.
     // Pide también la lista de idiomas a `translate-pa.googleapis.com`: dejarlo
     // fuera hace que el combo salga vacío sin error visible.
-    `script-src 'self' 'unsafe-inline'${produccion ? "" : " 'unsafe-eval'"} ${TRADUCTOR_SCRIPTS}`,
+    `script-src 'self' 'unsafe-inline'${produccion ? "" : " 'unsafe-eval'"} ${TRADUCTOR_SCRIPTS} ${PASARELA}`,
     "style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${supabase} https://translate.googleapis.com https://translate-pa.googleapis.com`.trim(),
+    `connect-src 'self' ${supabase} https://translate.googleapis.com https://translate-pa.googleapis.com ${PASARELA}`.trim(),
     "media-src 'self'",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
-    "frame-src https://translate.google.com",
+    `frame-src https://translate.google.com ${PASARELA}`,
     "frame-ancestors 'none'",
-    "form-action 'self'",
+    `form-action 'self' ${PASARELA}`,
     "base-uri 'self'",
     "object-src 'none'",
     ...(produccion ? ["upgrade-insecure-requests"] : []),

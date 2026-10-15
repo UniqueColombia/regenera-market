@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   MessagesSquare,
   Receipt,
+  Send,
   Star,
   Store,
   Tags,
@@ -22,7 +23,7 @@ import {
  * servidor. Si el layout entero llevara `"use client"`, la comprobación de rol
  * tendría que mudarse a otra parte y el panel completo viajaría al navegador.
  *
- * Barra desplazable en horizontal en móvil: nueve pestañas no caben en 360 px, y
+ * Barra desplazable en horizontal en móvil: diez pestañas no caben en 360 px, y
  * apilarlas empujaría el contenido media pantalla hacia abajo.
  *
  * ## Por qué las píldoras se veían cortadas
@@ -44,6 +45,7 @@ const SECCIONES = [
   { href: "/admin", label: "Resumen", icono: LayoutGrid, exacto: true },
   { href: "/admin/ofertas", label: "Ofertas", icono: Tags },
   { href: "/admin/proveedores", label: "Proveedores", icono: Store },
+  { href: "/admin/contactar", label: "Contactar proveedores", icono: Send },
   { href: "/admin/postulaciones", label: "Postulaciones", icono: ClipboardList },
   { href: "/admin/ordenes", label: "Órdenes", icono: Receipt },
   { href: "/admin/comunidad", label: "Comunidad", icono: MessagesSquare },

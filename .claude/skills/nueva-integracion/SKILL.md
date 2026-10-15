@@ -76,7 +76,8 @@ cualquier otra ruta es un botón de "marcar como pagado" abierto a internet.
 
 Orden obligatorio dentro del handler:
 
-1. **Verificar la firma primero.** Wompi: `WOMPI_EVENTS_SECRET`. Si no valida,
+1. **Verificar la firma primero.** BOLD: `x-bold-signature`, HMAC del cuerpo
+   en Base64 con `BOLD_LLAVE_SECRETA` (`src/lib/payments.ts`). Si no valida,
    `401` y no se toca nada. Sin excepciones para "probar rápido".
 2. **Idempotencia.** La pasarela reintenta. El mismo evento debe poder llegar
    tres veces y producir el mismo estado final. Guarda el id del evento y

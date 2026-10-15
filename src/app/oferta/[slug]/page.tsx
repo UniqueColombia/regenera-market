@@ -13,12 +13,18 @@ import {
 } from "lucide-react";
 import { AddToCart, RequestQuote } from "@/components/add-to-cart";
 import { DatosDeMiga, DatosDeOferta } from "@/components/datos-estructurados";
+import { GaleriaOferta } from "@/components/galeria-oferta";
 import { ImpactChips } from "@/components/impact-chips";
 import { ListingCard } from "@/components/listing-card";
 import { ListingMedia } from "@/components/listing-media";
 import { Estrellas, ResumenCalificacion } from "@/components/estrellas";
 import { TierBadge } from "@/components/tier-badge";
-import { ETIQUETA_DESPACHO, plazoDeEntrega, textoCostoEnvio } from "@/lib/envios";
+import {
+  condicionesDeEnvio,
+  ETIQUETA_DESPACHO,
+  plazoDeEntrega,
+  textoCostoEnvio,
+} from "@/lib/envios";
 import { duration, grupoDePersonas, longDate, money, num } from "@/lib/format";
 import {
   getCalificacionDeOferta,
@@ -122,17 +128,27 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
         <div>
           {/* 3:2 y no 16:9: las fotos vienen en 4:3, y a 16:9 el recorte se
               come el 12 % de arriba y el 12 % de abajo. A 3:2 se queda en un
-              6 % por lado y ningún producto pierde la cabeza. */}
-          <div className="relative aspect-3/2 overflow-hidden rounded-2xl">
-            <ListingMedia
-              title={listing.title}
-              category={listing.category}
-              images={listing.images}
-              iconClassName="size-20"
+              6 % por lado y ningún producto pierde la cabeza. Con más de una
+              foto, la galería las enseña todas; con una o ninguna, la foto o
+              el tapiz de siempre. */}
+          {listing.images.length > 1 ? (
+            <GaleriaOferta
+              fotos={listing.images}
+              titulo={listing.title}
               sizes="(min-width: 1024px) 60vw, 100vw"
-              priority
             />
-          </div>
+          ) : (
+            <div className="relative aspect-3/2 overflow-hidden rounded-2xl">
+              <ListingMedia
+                title={listing.title}
+                category={listing.category}
+                images={listing.images}
+                iconClassName="size-20"
+                sizes="(min-width: 1024px) 60vw, 100vw"
+                priority
+              />
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-sand px-2.5 py-1 text-xs font-medium text-ink">
@@ -379,6 +395,12 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
                 {textoCostoEnvio(listing.envio, money)}
               </p>
               <ul className="mt-2 space-y-1 text-muted">
+                {/* Desde la 0017: la tarifa dentro del departamento de origen y
+                    lo que suma cada unidad. La cesta lo calcula con el destino
+                    que se elija; aquí se dice para que no sea una sorpresa. */}
+                {condicionesDeEnvio(listing.envio, listing.department, money).map((c) => (
+                  <li key={c}>{c}.</li>
+                ))}
                 {plazoDeEntrega(listing.envio.diasMin, listing.envio.diasMax) && (
                   <li>
                     Llega {plazoDeEntrega(listing.envio.diasMin, listing.envio.diasMax)} después

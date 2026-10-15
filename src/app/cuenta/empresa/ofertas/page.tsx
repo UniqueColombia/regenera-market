@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Pencil, Plus, Tags } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileSpreadsheet, Pencil, Plus, Tags } from "lucide-react";
 import { RetirarOferta } from "./retirar-oferta";
 import { ListingMedia } from "@/components/listing-media";
 import { requireUser } from "@/lib/auth";
@@ -81,13 +81,22 @@ export default async function OfertasDeEmpresaPage() {
           </p>
           <h1 className="mt-2 font-display text-3xl text-ink">Tus ofertas</h1>
         </div>
-        <Link
-          href="/cuenta/empresa/ofertas/nueva"
-          className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
-        >
-          <Plus className="size-4" />
-          Nueva oferta
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/cuenta/empresa/ofertas/importar"
+            className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand"
+          >
+            <FileSpreadsheet className="size-4" />
+            Cargar desde Excel
+          </Link>
+          <Link
+            href="/cuenta/empresa/ofertas/nueva"
+            className="inline-flex items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
+          >
+            <Plus className="size-4" />
+            Nueva oferta
+          </Link>
+        </div>
       </div>
 
       <p className="mt-3 max-w-2xl text-sm text-muted">
@@ -110,6 +119,13 @@ export default async function OfertasDeEmpresaPage() {
             <Plus className="size-4" />
             Publicar mi primera oferta
           </Link>
+          <p className="mt-4 text-xs text-muted">
+            ¿Tienes muchas, o ya están en un Excel?{" "}
+            <Link href="/cuenta/empresa/ofertas/importar" className="font-medium text-brand-700 underline">
+              Cárgalas todas de una vez
+            </Link>
+            .
+          </p>
         </div>
       ) : (
         <ul className="mt-8 grid gap-3 lg:grid-cols-2">

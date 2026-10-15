@@ -1,3 +1,4 @@
+import { redesActivas } from "../legal";
 import type { Mensaje } from "./tipos";
 
 /**
@@ -79,7 +80,7 @@ ${cuerpo}
         <tr><td align="center" style="padding:26px 32px 30px 32px;">
           <p style="margin:0; font-family:${SANS}; font-size:12px; line-height:1.6; color:${APAGADO};">
             <strong style="color:${VERDE};">Seregenera</strong><br>
-            Marketplace regenerativo para el turismo
+            Marketplace regenerativo para el turismo${pieDeRedes()}
           </p>
         </td></tr>
       </table>
@@ -87,6 +88,23 @@ ${cuerpo}
   </table>
 </body>
 </html>`;
+}
+
+/**
+ * Las redes, como enlaces de texto al pie. Texto y no íconos: Gmail bloquea las
+ * imágenes remotas hasta que se piden y no admite SVG, así que un ícono saldría
+ * como un cuadro vacío. Sin redes configuradas, nada.
+ */
+function pieDeRedes(): string {
+  const redes = redesActivas();
+  if (redes.length === 0) return "";
+  const enlaces = redes
+    .map(
+      (r) =>
+        `<a href="${escapar(r.url)}" style="color:${VERDE}; text-decoration:underline;">${escapar(r.nombre)}</a>`,
+    )
+    .join(" · ");
+  return `<br>${enlaces}`;
 }
 
 function seccion(html: string): string {
@@ -463,6 +481,131 @@ export function correoOfertaEnRevision(d: {
       "",
       `Recibimos «${d.titulo}». El equipo la revisa antes de mostrarla en el catálogo y te avisamos apenas esté publicada.`,
       "Si la editas, vuelve a la cola de revisión.",
+      "",
+      `Mis ofertas: ${url}/cuenta/empresa/ofertas`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
+
+/**
+ * Un correo de «Contactar proveedores»: una invitación a vender o una noticia,
+ * a una empresa que todavía no está en Seregenera.
+ *
+ * El texto lo escribe el equipo en el panel (con `{empresa}` ya reemplazado);
+ * esta plantilla pone lo que no se puede borrar sin querer al editarlo:
+ *
+ * - en la invitación, el botón para darse de alta, con el token de la empresa
+ *   (`/vender?invitacion=…` llega con sus datos ya escritos) y el enlace a la
+ *   plantilla de Excel para quien tiene el catálogo en un archivo;
+ * - en todos, **de dónde sacamos su correo y cómo darse de baja**, en el pie y
+ *   en las cabeceras `List-Unsubscribe` (el botón «Anular suscripción» de Gmail
+ *   hace un POST a `/api/baja` sin abrir nada). Sin baja visible un envío en
+ *   bloque es spam, para la ley y para los filtros.
+ */
+export function correoDeCampana(d: {
+  tipo: "invitacion" | "noticia";
+  para: string;
+  empresa: string;
+  asunto: string;
+  /** Texto plano: los párrafos se separan con una línea en blanco. */
+  cuerpo: string;
+  token: string;
+  responderA: string;
+}): Mensaje {
+  const url = sitio();
+  const baja = `${url}/baja?t=${d.token}`;
+  const parrafos = d.cuerpo
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  const html = parrafos.map((b) => p(escapar(b).replace(/\n/g, "<br>"))).join("");
+  const alta = `${url}/vender?invitacion=${d.token}`;
+
+  const cuerpo =
+    seccion(html) +
+    (d.tipo === "invitacion"
+      ? boton(alta, "Publicar mis productos") +
+        seccion(
+          p(
+            `¿Tienes muchos productos? <a href="${url}/api/plantilla-ofertas" style="color:${VERDE};">Descarga la plantilla de Excel</a>, llénala y súbela desde tu cuenta, o respóndenos con ella.`,
+          ),
+        )
+      : "") +
+    separador() +
+    seccion(
+      `<p style="margin:14px 0 0 0; font-family:${SANS}; font-size:12px; line-height:1.6; color:${APAGADO};">Te escribimos a ${escapar(d.para)} porque ${escapar(d.empresa)} lo publica como contacto en su sitio web o en un registro público. Si no quieres recibir más correos de Seregenera, <a href="${baja}" style="color:${APAGADO}; text-decoration:underline;">date de baja aquí</a>.</p>`,
+    );
+
+  return {
+    para: d.para,
+    asunto: d.asunto,
+    responderA: d.responderA,
+    html: envolver({ titulo: d.asunto, preencabezado: parrafos[1] ?? parrafos[0] ?? d.asunto, cuerpo }),
+    texto: [
+      ...parrafos.flatMap((b) => [b, ""]),
+      ...(d.tipo === "invitacion"
+        ? [`Publicar mis productos: ${alta}`, `Plantilla de Excel: ${url}/api/plantilla-ofertas`, ""]
+        : []),
+      "— Seregenera",
+      "",
+      `Te escribimos a ${d.para} porque ${d.empresa} lo publica como contacto en su sitio web o en un registro público.`,
+      `Para no recibir más correos: ${baja}`,
+    ].join("\n"),
+    cabeceras: {
+      "List-Unsubscribe": `<${url}/api/baja?t=${d.token}>, <mailto:${d.responderA}?subject=Baja>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+  };
+}
+
+/**
+ * Varias ofertas que entraron a revisión de una vez, desde la planilla.
+ *
+ * Una sola carta y no una por oferta: treinta correos seguidos con el mismo
+ * asunto son ruido, y Gmail empieza a tratarlos como tal.
+ */
+export function correoOfertasImportadas(d: {
+  nombre: string;
+  correo: string;
+  titulos: string[];
+}): Mensaje {
+  const url = sitio();
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+  const n = d.titulos.length;
+  const visibles = d.titulos.slice(0, 15);
+  const resto = n - visibles.length;
+  const lista = visibles
+    .map((t) => `<li style="margin:4px 0;">${escapar(t)}</li>`)
+    .join("");
+
+  const cuerpo =
+    seccion(
+      h1(n === 1 ? "Tu oferta está en revisión" : `Tus ${n} ofertas están en revisión`) +
+        p(
+          `${nombre}, recibimos lo que cargaste desde la planilla. El equipo revisa cada oferta antes de mostrarla en el catálogo y te avisamos apenas estén publicadas.`,
+        ) +
+        `<ul style="margin:14px 0 0 0; padding-left:20px; font-family:${SANS}; font-size:15px; line-height:1.5; color:${TINTA};">${lista}</ul>` +
+        (resto > 0 ? p(`Y ${resto} más.`) : ""),
+    ) +
+    boton(`${url}/cuenta/empresa/ofertas`, "Ver mis ofertas");
+
+  return {
+    para: d.correo,
+    asunto: n === 1 ? `Recibimos tu oferta «${d.titulos[0]}»` : `Recibimos tus ${n} ofertas`,
+    html: envolver({
+      titulo: "Tus ofertas están en revisión",
+      preencabezado: `${n} ${n === 1 ? "oferta" : "ofertas"} · te avisamos cuando estén publicadas`,
+      cuerpo,
+    }),
+    texto: [
+      n === 1 ? "Tu oferta está en revisión" : `Tus ${n} ofertas están en revisión`,
+      "",
+      "Recibimos lo que cargaste desde la planilla. El equipo revisa cada oferta antes de mostrarla en el catálogo.",
+      "",
+      ...visibles.map((t) => `- ${t}`),
+      ...(resto > 0 ? [`Y ${resto} más.`] : []),
       "",
       `Mis ofertas: ${url}/cuenta/empresa/ofertas`,
       "",

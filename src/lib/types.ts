@@ -192,10 +192,22 @@ export interface EnvioOferta {
   /** Aveonline, Servientrega, Coordinadora… La elige el vendedor. */
   transportadora?: string;
   /**
-   * Lo que cuesta enviarlo, una vez por pedido sin importar las unidades.
-   * 0 es envío gratis; ausente es «no lo declaró» y no se cobra.
+   * Lo que cuesta enviarlo a cualquier parte del país (la tarifa **nacional**).
+   * 0 es envío gratis; ausente es «no lo declaró» y no se cobra. Hasta la 0017
+   * era la única tarifa, una vez por línea sin importar las unidades.
    */
   costoCop?: number;
+  /**
+   * Desde la 0017: la tarifa cuando el destino está en el mismo departamento
+   * de donde sale el producto (`Listing.department`). Ausente = se cobra la
+   * nacional también ahí.
+   */
+  costoLocalCop?: number;
+  /** Desde la 0017: lo que suma cada unidad después de la primera. */
+  adicionalCop?: number;
+  /** Desde la 0017, opcionales: para cotizar con una transportadora algún día. */
+  pesoKg?: number;
+  medidasCm?: { largo?: number; ancho?: number; alto?: number };
   /** Días hábiles desde que se confirma el pago. */
   diasMin?: number;
   diasMax?: number;

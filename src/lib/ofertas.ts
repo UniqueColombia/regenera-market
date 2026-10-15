@@ -120,6 +120,14 @@ export const CamposOferta = z.object({
   envioCop: pesosOpcional,
   entregaDiasMin: numeroOpcional,
   entregaDiasMax: numeroOpcional,
+  // Envío por zona y por unidad, peso y medidas (0017). Opcionales todos: un
+  // producto que solo declara la tarifa nacional cobra lo mismo que antes.
+  envioLocalCop: pesosOpcional,
+  envioAdicionalCop: pesosOpcional,
+  pesoKg: numeroOpcional,
+  largoCm: numeroOpcional,
+  anchoCm: numeroOpcional,
+  altoCm: numeroOpcional,
   /**
    * La versión sobre la que se editó (0014). Al guardar, la fila tiene que
    * seguir en esa versión; si otro la cambió entretanto, no se pisa.
@@ -137,6 +145,28 @@ export const CamposOferta = z.object({
 export type Campos = z.infer<typeof CamposOferta>;
 
 /**
+ * Lo que una empresa tiene que decir además de lo común: qué aporta su oferta
+ * al ambiente y qué le cuesta. El equipo puede cargar una oferta sin eso (la
+ * completa después); una empresa no.
+ *
+ * Vive aquí y no en la acción de la empresa porque la usan dos: esa acción, que
+ * es la que manda, y la carga desde Excel, que valida cada fila en el navegador
+ * antes de mandar nada para decirle a la persona qué corregir en qué fila.
+ */
+export const CamposOfertaEmpresa = CamposOferta.extend({
+  aporteAmbiental: z
+    .string()
+    .trim()
+    .min(20, "Cuéntanos qué aporta al ambiente, aunque sea en una frase")
+    .max(1000, "Cuéntalo en menos de 1.000 caracteres"),
+  consecuenciaAmbiental: z
+    .string()
+    .trim()
+    .min(20, "Cuéntanos también qué cuesta: de dónde viene, cómo llega, qué deja")
+    .max(1000, "Cuéntalo en menos de 1.000 caracteres"),
+});
+
+/**
  * Las reglas que miran dos campos a la vez, sobre datos ya validados.
  *
  * Van después de `safeParse` y no como `.refine()` por dos razones de Zod 4:
@@ -147,9 +177,19 @@ export type Campos = z.infer<typeof CamposOferta>;
  *
  * Devuelve `{}` si no hay nada que objetar.
  */
+/**
+ * Qué migraciones de envío están aplicadas: la 0014 (despacho, tarifa, días) y
+ * la 0017 (tarifa local, por unidad, peso y medidas). Lo deciden
+ * `logisticaDisponible()` y `enviosPorZonaDisponible()` de `repo.ts`.
+ */
+export interface OpcionesEnvio {
+  logistica: boolean;
+  zonas?: boolean;
+}
+
 export function reglasDeOferta(
   d: Campos,
-  opciones: { logistica: boolean } = { logistica: false },
+  opciones: OpcionesEnvio = { logistica: false },
 ): Record<string, string> {
   const errores: Record<string, string> = {};
 
@@ -176,6 +216,31 @@ export function reglasDeOferta(
       d.entregaDiasMin > d.entregaDiasMax
     ) {
       errores.entregaDiasMin = "El mínimo no puede ser mayor que el máximo";
+    }
+
+    // La 0017: la tarifa local se cobra cuando el destino es el departamento
+    // de donde sale el producto, así que sin ese departamento no aplicaría
+    // nunca. Se dice aquí en vez de guardarla para que no sirva de nada.
+    if (opciones.zonas) {
+      for (const campo of ["envioLocalCop", "envioAdicionalCop"] as const) {
+        const v = d[campo];
+        if (v !== null && (v < 0 || !Number.isInteger(v))) {
+          errores[campo] = "En pesos enteros, sin puntos";
+        }
+      }
+      if (d.envioLocalCop !== null && !d.department) {
+        errores.department =
+          "Di de qué departamento sale el producto: ahí se cobra el envío local";
+      }
+      if (d.pesoKg !== null && (d.pesoKg <= 0 || d.pesoKg > 10_000)) {
+        errores.pesoKg = "El peso va en kilos, entre 0,01 y 10.000";
+      }
+      for (const campo of ["largoCm", "anchoCm", "altoCm"] as const) {
+        const v = d[campo];
+        if (v !== null && (v < 1 || v > 1000 || !Number.isInteger(v))) {
+          errores[campo] = "En centímetros enteros, entre 1 y 1.000";
+        }
+      }
     }
   }
 
@@ -223,7 +288,7 @@ export function erroresDeOferta(error: z.ZodError): Record<string, string> {
  */
 export function filaDeOferta(
   d: Campos,
-  opciones: { logistica: boolean } = { logistica: false },
+  opciones: OpcionesEnvio = { logistica: false },
 ) {
   const esExperiencia = d.kind === "experience";
   const esServicio = d.kind === "service";
@@ -241,9 +306,22 @@ export function filaDeOferta(
         entrega_dias_max: esProducto ? entero(d.entregaDiasMax) : null,
       }
     : {};
+  // Lo mismo con las de la 0017.
+  const zonas =
+    opciones.logistica && opciones.zonas
+      ? {
+          envio_local_cop: esProducto ? entero(d.envioLocalCop) : null,
+          envio_adicional_cop: esProducto ? entero(d.envioAdicionalCop) : null,
+          peso_kg: esProducto && d.pesoKg !== null ? Math.round(d.pesoKg * 100) / 100 : null,
+          largo_cm: esProducto ? entero(d.largoCm) : null,
+          ancho_cm: esProducto ? entero(d.anchoCm) : null,
+          alto_cm: esProducto ? entero(d.altoCm) : null,
+        }
+      : {};
 
   return {
     ...envio,
+    ...zonas,
     kind: d.kind,
     title: d.title,
     summary: d.summary ?? "",
