@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, FileSpreadsheet, Pencil, Plus, Tags } from "lucide-react";
 import { RetirarOferta } from "./retirar-oferta";
+import { FondoBotanico } from "@/components/fondo-botanico";
 import { ListingMedia } from "@/components/listing-media";
 import { requireUser } from "@/lib/auth";
 import { money } from "@/lib/format";
@@ -64,6 +66,8 @@ export default async function OfertasDeEmpresaPage() {
   const ofertas = await getOfertasDeEmpresa(empresa.id);
 
   return (
+    <div className="relative isolate">
+    <FondoBotanico />
     <div className="container-page py-12">
       <Link
         href="/cuenta/empresa"
@@ -84,7 +88,7 @@ export default async function OfertasDeEmpresaPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/cuenta/empresa/ofertas/importar"
-            className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand"
           >
             <FileSpreadsheet className="size-4" />
             Cargar desde Excel
@@ -129,10 +133,11 @@ export default async function OfertasDeEmpresaPage() {
         </div>
       ) : (
         <ul className="mt-8 grid gap-3 lg:grid-cols-2">
-          {ofertas.map((o) => (
+          {ofertas.map((o, i) => (
             <li
               key={o.id}
-              className="flex gap-4 rounded-xl bg-white p-4 ring-1 ring-hairline transition hover:ring-brand-300"
+              style={{ "--i": Math.min(i, 8) } as CSSProperties}
+              className="tarjeta-viva flex gap-4 rounded-xl bg-white p-4 ring-1 ring-hairline transition hover:ring-brand-300"
             >
               <div className="relative size-20 shrink-0 overflow-hidden rounded-lg">
                 <ListingMedia
@@ -159,7 +164,19 @@ export default async function OfertasDeEmpresaPage() {
                   {money(o.priceCop)} / {o.unit}
                 </p>
               </div>
+              {/* «Ver» va arriba a la derecha, en la esquina, y las acciones
+                  debajo: entre «Editar» y «Retirar» se leía como una tercera
+                  acción del mismo peso, y es solo un enlace a la ficha. */}
               <div className="flex shrink-0 flex-col items-end gap-2">
+                {o.status === "approved" && (
+                  <Link
+                    href={`/oferta/${o.slug}`}
+                    className="-mt-1 flex items-center gap-1 text-xs font-medium text-brand-700 underline underline-offset-4 hover:text-brand-900"
+                  >
+                    Ver
+                    <ExternalLink className="size-3" aria-hidden />
+                  </Link>
+                )}
                 <Link
                   href={`/cuenta/empresa/ofertas/${o.id}`}
                   className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand"
@@ -167,23 +184,13 @@ export default async function OfertasDeEmpresaPage() {
                   <Pencil className="size-3.5" />
                   Editar
                 </Link>
-                {o.status === "approved" && (
-                  <>
-                    <Link
-                      href={`/oferta/${o.slug}`}
-                      className="flex items-center gap-1 text-xs text-brand-700 underline underline-offset-4"
-                    >
-                      Ver
-                      <ExternalLink className="size-3" />
-                    </Link>
-                    <RetirarOferta id={o.id} titulo={o.title} />
-                  </>
-                )}
+                {o.status === "approved" && <RetirarOferta id={o.id} titulo={o.title} />}
               </div>
             </li>
           ))}
         </ul>
       )}
+    </div>
     </div>
   );
 }

@@ -14,6 +14,9 @@ import type { EventoExperiencia } from "@/lib/repo";
  * está en la tabla `EXPERIENCIA` porque no es algo que nadie pueda volver a
  * hacer. Esconderlo haría que la suma de la lista no cuadrara con el total —
  * justo lo que una auditoría tiene que poder comprobar.
+ *
+ * Va dentro de la tarjeta de la página, a lo ancho y en rejilla: una tarjeta
+ * por punto, apiladas, convertían diez logros en media pantalla de scroll.
  */
 
 /** Las claves que no están en `EXPERIENCIA` porque no son un logro repetible. */
@@ -24,7 +27,7 @@ const ESPECIALES: Record<string, string> = {
 export function Historial({ eventos }: { eventos: EventoExperiencia[] }) {
   if (eventos.length === 0) {
     return (
-      <p className="mt-4 rounded-xl bg-white p-6 text-sm text-muted ring-1 ring-hairline">
+      <p className="mt-4 rounded-lg bg-sand p-4 text-sm text-muted">
         Todavía no tienes puntos apuntados. Los primeros los dan completar tu
         ficha y publicar tu primera oferta.
       </p>
@@ -32,17 +35,14 @@ export function Historial({ eventos }: { eventos: EventoExperiencia[] }) {
   }
 
   return (
-    <ul className="mt-4 space-y-2">
+    <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {eventos.map((e) => {
         const conocido = EXPERIENCIA.find((x) => x.clave === e.clave);
         const titulo = conocido?.titulo ?? ESPECIALES[e.clave] ?? e.clave;
 
         return (
-          <li
-            key={e.id}
-            className="flex items-center gap-4 rounded-xl bg-white p-4 ring-1 ring-hairline"
-          >
-            <p className="w-14 shrink-0 text-right font-display text-xl tabular-nums text-brand-700">
+          <li key={e.id} className="flex items-center gap-3 rounded-lg bg-sand/70 px-3 py-2.5">
+            <p className="w-12 shrink-0 text-right font-display text-xl tabular-nums text-brand-700">
               +{e.puntos}
             </p>
             <div className="min-w-0 flex-1">

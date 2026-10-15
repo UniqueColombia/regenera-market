@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { guardarOfertaDeEmpresa, subirImagenDeOferta } from "../actions";
+import { FondoBotanico } from "@/components/fondo-botanico";
 import { ElegirCantidadOfertas } from "@/components/elegir-cantidad-ofertas";
 import { FormularioOferta } from "@/components/formulario-oferta";
 import { requireUser } from "@/lib/auth";
@@ -22,6 +23,8 @@ export default async function NuevaOfertaDeEmpresaPage() {
   if (!empresa) redirect("/cuenta/empresa/ofertas");
 
   return (
+    <div className="relative isolate">
+    <FondoBotanico hojas="primavera" />
     <div className="container-page py-12">
       <Link
         href="/cuenta/empresa/ofertas"
@@ -71,6 +74,7 @@ export default async function NuevaOfertaDeEmpresaPage() {
         destino="/cuenta/empresa/ofertas"
         verificada={empresa.evaluacionVerificada}
       />
+    </div>
     </div>
   );
 }

@@ -41,6 +41,11 @@ sí tienes que saber:
   Agrega la clase a la lista o ponle `data-tema-fijo`.
 - **Un color de Tailwind fuera de la paleta** (un rojo o un ámbar que no esté
   remapeado) se verá igual en los dos temas. Agrégale su valor oscuro.
+- **Un degradado claro no puede usar `from-brand-…` ni `from-clay-…`.** La capa
+  3 devuelve la paleta clara a todo lo que lleve esas clases (son los tapices
+  que ya eran oscuros), así que un velo `from-brand-50` sale verde claro sobre
+  la página oscura y el texto de encima no se lee. Escríbelo como clase propia
+  con `var(--color-…)`, como `.velo-botanico` en `globals.css`.
 - Antes de cerrar algo visual, míralo también en oscuro (cookie
   `sgr_tema=oscuro`, o el botón de la luna).
 
@@ -140,6 +145,8 @@ compite con el producto. Lo que ya existe, y dónde:
 | Una cifra que sube | `<Contador valor={n} sufijo="%" />` |
 | Celebrar una acción del usuario | `soltarHojas(boton, x, y)` de `src/lib/hojas.ts`, desde el manejador del evento |
 | Un desplegable, un aviso, un pulso | `animate-desplegar`, `animate-aviso`, `animate-latido` (tema en `globals.css`) |
+| Los bloques de una pantalla de la cuenta o de un formulario | `<Tarjeta i={n}>` (`src/components/tarjeta.tsx`): brotan en orden al cargar y se iluminan mientras se escribe dentro |
+| Que una pantalla de la cuenta o un formulario tenga el tema del sitio | `<FondoBotanico>`: velo verde, bosque que se mece y pocas hojas, solo en la cabecera. La página se envuelve en `relative isolate` |
 
 Reglas, cada una con su porqué en el hito
 [heros vivos](../../hitos/2026-10-03-heros-vivos-y-movimiento-tematico.md):

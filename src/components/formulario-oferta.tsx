@@ -16,6 +16,7 @@ import type { Despacho, Listing, ListingKind } from "@/lib/types";
 import { CampoDinero } from "./campo-dinero";
 import { ImagenesOferta } from "./imagenes-oferta";
 import type { ResultadoImagenUI } from "./selector-imagen";
+import { Tarjeta } from "./tarjeta";
 
 /**
  * El formulario de oferta. Es el más grande del proyecto y tenía que serlo:
@@ -65,9 +66,10 @@ import type { ResultadoImagenUI } from "./selector-imagen";
  *
  * ## Maquetación
  *
- * Cada bloque es una tarjeta, no un `fieldset` con borde arriba: con el borde,
- * el navegador dibuja el `legend` encima de la raya («Envío» pegado a una
- * línea). En pantalla ancha van dos columnas de tarjetas —lo que se vende, las
+ * Cada bloque es una tarjeta (`tarjeta.tsx`), no un `fieldset` con borde
+ * arriba: con el borde, el navegador dibuja el `legend` encima de la raya
+ * («Envío» pegado a una línea). Las tarjetas brotan una detrás de otra al
+ * cargar y se iluminan mientras se escribe dentro. En pantalla ancha van dos columnas de tarjetas —lo que se vende, las
  * fotos y el origen a la izquierda; precio y envío o detalle del tipo a la
  * derecha—, y el impacto ocupa todo el ancho debajo. Así las dos columnas miden
  * casi lo mismo: con el origen a la derecha, la izquierda dejaba un hueco.
@@ -297,7 +299,7 @@ export function FormularioOferta({
           teléfono es una sola columna, en ese mismo orden. */}
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <div className="contents lg:block lg:space-y-6">
-          <Tarjeta className="order-1">
+          <Tarjeta i={0} className="order-1">
             <fieldset className="space-y-4" disabled={pendiente}>
               <legend className="font-display text-xl text-ink">Qué se vende</legend>
 
@@ -471,7 +473,7 @@ export function FormularioOferta({
             </fieldset>
           </Tarjeta>
 
-          <Tarjeta className="order-2">
+          <Tarjeta i={2} className="order-2">
             <fieldset className="space-y-3" disabled={pendiente}>
               <legend className="font-display text-xl text-ink">Fotos</legend>
               <ImagenesOferta
@@ -488,7 +490,7 @@ export function FormularioOferta({
             </fieldset>
           </Tarjeta>
 
-          <Tarjeta className="order-5">
+          <Tarjeta i={4} className="order-5">
             <fieldset className="space-y-4" disabled={pendiente}>
               <legend className="font-display text-xl text-ink">Origen y certificaciones</legend>
 
@@ -541,7 +543,7 @@ export function FormularioOferta({
         </div>
 
         <div className="contents lg:block lg:space-y-6">
-          <Tarjeta className="order-3">
+          <Tarjeta i={1} className="order-3">
             <fieldset className="space-y-4" disabled={pendiente}>
               <legend className="font-display text-xl text-ink">Precio</legend>
 
@@ -644,7 +646,7 @@ export function FormularioOferta({
           </Tarjeta>
 
           {kind === "product" && logistica && (
-            <Tarjeta className="order-4">
+            <Tarjeta i={3} className="order-4">
               <fieldset className="space-y-4" disabled={pendiente}>
                 <legend className="font-display text-xl text-ink">Envío</legend>
 
@@ -852,7 +854,7 @@ export function FormularioOferta({
           )}
 
           {kind === "experience" && (
-            <Tarjeta className="order-4">
+            <Tarjeta i={3} className="order-4">
               <fieldset className="space-y-4" disabled={pendiente}>
                 <legend className="font-display text-xl text-ink">De la experiencia</legend>
 
@@ -929,7 +931,7 @@ export function FormularioOferta({
           )}
 
           {kind === "service" && (
-            <Tarjeta className="order-4">
+            <Tarjeta i={3} className="order-4">
               <fieldset className="space-y-4" disabled={pendiente}>
                 <legend className="font-display text-xl text-ink">Del servicio</legend>
 
@@ -965,7 +967,8 @@ export function FormularioOferta({
       <details
         open={impactoAbierto}
         onToggle={(e) => setImpactoAbierto(e.currentTarget.open)}
-        className="group rounded-xl bg-white ring-1 ring-hairline"
+        style={{ "--i": 5 } as React.CSSProperties}
+        className="tarjeta-viva group rounded-xl bg-white ring-1 ring-hairline transition-shadow duration-300 focus-within:shadow-lg focus-within:shadow-brand-900/5 focus-within:ring-brand-300"
       >
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 sm:p-6 [&::-webkit-details-marker]:hidden">
           <span>
@@ -1073,7 +1076,7 @@ export function FormularioOferta({
       </details>
 
       {!esEmpresa && (
-        <Tarjeta>
+        <Tarjeta i={6}>
           <fieldset className="space-y-4" disabled={pendiente}>
             <legend className="font-display text-xl text-ink">Publicación</legend>
 
@@ -1225,15 +1228,6 @@ function Estrella() {
       <span className="sr-only"> (obligatorio)</span>
     </>
   );
-}
-
-/**
- * Un bloque del formulario. Es una tarjeta y no un `fieldset` con borde
- * arriba: con el borde, el navegador pinta el `legend` encima de la raya, y la
- * palabra «Envío» quedaba pegada a una línea.
- */
-function Tarjeta({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-6 ${className}`}>{children}</section>;
 }
 
 /**

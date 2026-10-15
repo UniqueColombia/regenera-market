@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { eliminarMiCuenta } from "./actions";
 import { CampoClave } from "@/components/campo-clave";
+import { Tarjeta } from "@/components/tarjeta";
 
 /**
  * Eliminar la cuenta, al final de «Tu cuenta».
@@ -17,6 +18,10 @@ import { CampoClave } from "@/components/campo-clave";
  * Quién puede y quién no lo decide la base (`preparar_baja_de_cuenta()`, 0021);
  * aquí solo se le dice al administrador por qué no le sirve, para no hacerle
  * escribir la contraseña en vano.
+ *
+ * Centrada y estrecha, debajo de las dos columnas: en la columna derecha
+ * quedaba al lado de un hueco y se leía como parte de los dispositivos. Al
+ * abrirla, lo que hay que leer va alineado a la izquierda.
  */
 export function EliminarCuenta({ esAdmin, conEmpresa }: { esAdmin: boolean; conEmpresa: boolean }) {
   const [abierto, setAbierto] = useState(false);
@@ -34,7 +39,7 @@ export function EliminarCuenta({ esAdmin, conEmpresa }: { esAdmin: boolean; conE
   }
 
   return (
-    <section className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+    <Tarjeta i={6} className="mx-auto w-full max-w-xl text-center">
       <h2 className="font-display text-xl text-ink">Eliminar tu cuenta</h2>
 
       {!abierto ? (
@@ -61,7 +66,7 @@ export function EliminarCuenta({ esAdmin, conEmpresa }: { esAdmin: boolean; conE
           y después podrás eliminar tu cuenta desde aquí.
         </p>
       ) : (
-        <form onSubmit={enviar} className="mt-3 space-y-4">
+        <form onSubmit={enviar} className="mt-3 space-y-4 text-left">
           <div className="rounded-lg bg-sand p-4 text-sm text-ink">
             <p className="font-medium">Si la eliminas:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
@@ -114,6 +119,6 @@ export function EliminarCuenta({ esAdmin, conEmpresa }: { esAdmin: boolean; conE
           </div>
         </form>
       )}
-    </section>
+    </Tarjeta>
   );
 }
