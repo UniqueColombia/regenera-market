@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { BotonCookies } from "./aviso-cookies";
-import { IconoRed } from "./iconos-redes";
 import { Isotipo } from "./isotipo";
 import { Onda } from "./onda";
-import { CONTACTO, redesActivas } from "@/lib/legal";
+import { FilaRedes, hayRedesActivas } from "./redes-sociales";
+import { CONTACTO } from "@/lib/legal";
 import { VERTICALS } from "@/lib/taxonomy";
 
 export function SiteFooter() {
-  // Solo las que tienen enlace (`REDES` en `src/lib/legal.ts`). Sin ninguna, la
-  // fila no existe: un hueco de íconos vacío se lee como roto.
-  const redes = redesActivas();
+  // Todas las redes, con o sin dirección (`redes-sociales.tsx`): la que no tiene
+  // sale como «pronto» y no lleva a ningún lado.
+  const algunaActiva = hayRedesActivas();
 
   return (
     <footer className="pie-suave mt-20 bg-brand-900 text-brand-100">
@@ -28,23 +28,12 @@ export function SiteFooter() {
             Conectamos empresas turísticas con proveedores que regeneran el
             territorio donde operan.
           </p>
-          {redes.length > 0 && (
-            <ul className="mt-5 flex flex-wrap gap-2" aria-label="Seregenera en redes">
-              {redes.map((r) => (
-                <li key={r.red}>
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer me"
-                    aria-label={`Seregenera en ${r.nombre}`}
-                    className="grid size-11 place-items-center rounded-full text-brand-200 ring-1 ring-brand-700 transition hover:bg-brand-800 hover:text-white active:text-white"
-                  >
-                    <IconoRed red={r.red} />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="mt-5">
+            <FilaRedes fondo="oscuro" />
+            {!algunaActiva && (
+              <p className="mt-2 text-xs text-brand-300">Nuestras redes abren pronto.</p>
+            )}
+          </div>
         </div>
 
         <div>

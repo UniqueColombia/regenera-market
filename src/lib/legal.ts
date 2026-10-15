@@ -43,15 +43,21 @@ export const VIGENCIA_PRIVACIDAD = "2026-10-14";
 /**
  * Las redes de Seregenera.
  *
- * **Vacías a propósito hasta tener los enlaces de verdad** (pendiente con Ivan,
- * ver «Para conversar con Ivan» en `docs/ESTADO.md`). Cada una aparece sola en
- * el pie, en el pie de los correos y en el `sameAs` de la portada en cuanto
- * tiene dirección; mientras esté vacía no se pinta nada. Un ícono que lleva a
- * una cuenta que no existe, o a la de otra empresa con el mismo nombre, es peor
- * que no tener ícono.
+ * **Vacías hasta tener los enlaces de verdad** (pendiente con Ivan, ver «Para
+ * conversar con Ivan» en `docs/ESTADO.md`). Se escribe la URL completa del
+ * perfil (`https://www.instagram.com/…`); para WhatsApp, `https://wa.me/57…`.
  *
- * Se escribe la URL completa del perfil (`https://www.instagram.com/…`). Para
- * WhatsApp, el enlace `https://wa.me/57XXXXXXXXXX`.
+ * Dos usos, con dos reglas distintas:
+ *
+ * - **Los íconos del sitio** (pie, encabezado, menú del teléfono) se ven
+ *   siempre, con `redesParaMostrar()`. Hasta el 2026-10-15 no se pintaba
+ *   ninguno mientras estuvieran vacías; Jesús pidió que se vean ya. La que no
+ *   tiene dirección sale como «pronto» y **no es un enlace**: así sigue sin
+ *   llevar a una cuenta que no existe, o a la de otra empresa con el mismo
+ *   nombre, que era el motivo de esconderlas.
+ * - **Lo que leen otros** —el `sameAs` de los buscadores y el pie de los
+ *   correos— usa `redesActivas()`: solo las que tienen dirección. Un buscador
+ *   o un correo no tienen cómo decir «pronto».
  */
 export const REDES: Record<RedSocial, string> = {
   instagram: "",
@@ -72,6 +78,17 @@ export const NOMBRE_RED: Record<RedSocial, string> = {
   youtube: "YouTube",
   whatsapp: "WhatsApp",
 };
+
+/**
+ * Todas, en el orden de arriba, con su dirección o `null` si todavía no la
+ * tienen. Para los íconos del sitio (`redes-sociales.tsx`).
+ */
+export function redesParaMostrar(): { red: RedSocial; nombre: string; url: string | null }[] {
+  return (Object.keys(REDES) as RedSocial[]).map((red) => {
+    const url = REDES[red].trim();
+    return { red, nombre: NOMBRE_RED[red], url: url.startsWith("https://") ? url : null };
+  });
+}
 
 /** Las que tienen enlace, en el orden de arriba. Solo `https://`: lo demás no se pinta. */
 export function redesActivas(): { red: RedSocial; nombre: string; url: string }[] {
