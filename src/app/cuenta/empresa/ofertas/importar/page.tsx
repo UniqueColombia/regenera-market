@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, FileSpreadsheet } from "lucide-react";
 import { avisarOfertasImportadas, guardarOfertaDeEmpresa, subirImagenDeOferta } from "../actions";
+import { ElegirCantidadOfertas } from "@/components/elegir-cantidad-ofertas";
 import { ImportarOfertas } from "@/components/importar-ofertas";
 import { requireUser } from "@/lib/auth";
 import { enviosPorZonaDisponible, getMiEmpresa, logisticaDisponible } from "@/lib/repo";
@@ -40,7 +41,13 @@ export default async function ImportarOfertasPage() {
         Tus ofertas
       </Link>
 
-      <p className="mt-3 flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
+      <ElegirCantidadOfertas
+        activa="varias"
+        hrefUna="/cuenta/empresa/ofertas/nueva"
+        hrefVarias="/cuenta/empresa/ofertas/importar"
+      />
+
+      <p className="mt-6 flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
         <FileSpreadsheet className="size-4" />
         Carga masiva
       </p>

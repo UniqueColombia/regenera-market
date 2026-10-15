@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { guardarOferta, subirImagenDeOfertaAdmin } from "../actions";
+import { ElegirCantidadOfertas } from "@/components/elegir-cantidad-ofertas";
 import { ImportarOfertas } from "@/components/importar-ofertas";
 import { enviosPorZonaDisponible, getProvidersForReview, logisticaDisponible } from "@/lib/repo";
 
@@ -36,6 +37,11 @@ export default async function ImportarOfertasAdminPage() {
       </Link>
 
       <h1 className="mt-3 font-display text-3xl text-ink sm:text-4xl">Cargar ofertas desde Excel</h1>
+      <ElegirCantidadOfertas
+        activa="varias"
+        hrefUna="/admin/ofertas/nueva"
+        hrefVarias="/admin/ofertas/importar"
+      />
       <p className="mt-2 max-w-2xl text-muted">
         Para el portafolio que un proveedor te mandó: pásalo a la plantilla,
         elige de quién es y súbelo con sus fotos. Si el proveedor tiene cuenta,
