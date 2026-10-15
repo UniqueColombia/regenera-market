@@ -46,7 +46,7 @@ const BENEFICIOS = [
     icon: Store,
     titulo: "Tu catálogo publicado y buscable",
     cuerpo:
-      "Una ficha por cada producto, experiencia o servicio, con fotos, precio mayorista y tiempo de entrega. Aparece en el catálogo, en el buscador y en los filtros por vertical y por territorio.",
+      "Una ficha por cada producto, experiencia o servicio, con fotos, precio mayorista y tiempo de entrega. Las subes de una en una o todas juntas desde un Excel. Aparece en el catálogo, en el buscador y en los filtros por vertical y por territorio.",
   },
   {
     icon: Banknote,
