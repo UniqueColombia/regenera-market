@@ -143,6 +143,23 @@ export default function PrivacidadPage() {
           </tr>
           <tr>
             <td>
+              El nombre, el NIT y los datos de contacto de una empresa que
+              todavía no vende en Seregenera: correo, teléfono, sitio web y
+              ciudad
+            </td>
+            <td>
+              Los tomamos de lo que la propia empresa publica en su sitio web o
+              de un registro público, como el registro mercantil
+            </td>
+            <td>
+              Invitarla a vender en Seregenera y, si no pide lo contrario,
+              contarle novedades. Cada correo dice de dónde sacamos la dirección
+              y trae un enlace para <strong>no recibir más</strong>; quien lo
+              usa no vuelve a recibir nada. No guardamos nombres de personas
+            </td>
+          </tr>
+          <tr>
+            <td>
               Qué páginas visitas: la dirección de la página (sin lo que
               buscaste), el sitio desde el que llegaste, si usas teléfono,
               tableta o computador, y el país
@@ -225,6 +242,12 @@ export default function PrivacidadPage() {
         <li>
           <strong>La medición de visitas</strong> se borra sola a los trece
           meses.
+        </li>
+        <li>
+          <strong>Los datos de una empresa que invitamos a vender</strong>, hasta
+          que se da de alta o nos pide que la borremos. Si pide no recibir más
+          correos, conservamos su dirección marcada con esa baja: es lo único
+          que impide volver a escribirle si su nombre aparece en otra lista.
         </li>
       </ul>
 

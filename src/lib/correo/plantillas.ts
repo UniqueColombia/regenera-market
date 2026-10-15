@@ -490,6 +490,77 @@ export function correoOfertaEnRevision(d: {
 }
 
 /**
+ * Un correo de «Contactar proveedores»: una invitación a vender o una noticia,
+ * a una empresa que todavía no está en Seregenera.
+ *
+ * El texto lo escribe el equipo en el panel (con `{empresa}` ya reemplazado);
+ * esta plantilla pone lo que no se puede borrar sin querer al editarlo:
+ *
+ * - en la invitación, el botón para darse de alta, con el token de la empresa
+ *   (`/vender?invitacion=…` llega con sus datos ya escritos) y el enlace a la
+ *   plantilla de Excel para quien tiene el catálogo en un archivo;
+ * - en todos, **de dónde sacamos su correo y cómo darse de baja**, en el pie y
+ *   en las cabeceras `List-Unsubscribe` (el botón «Anular suscripción» de Gmail
+ *   hace un POST a `/api/baja` sin abrir nada). Sin baja visible un envío en
+ *   bloque es spam, para la ley y para los filtros.
+ */
+export function correoDeCampana(d: {
+  tipo: "invitacion" | "noticia";
+  para: string;
+  empresa: string;
+  asunto: string;
+  /** Texto plano: los párrafos se separan con una línea en blanco. */
+  cuerpo: string;
+  token: string;
+  responderA: string;
+}): Mensaje {
+  const url = sitio();
+  const baja = `${url}/baja?t=${d.token}`;
+  const parrafos = d.cuerpo
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  const html = parrafos.map((b) => p(escapar(b).replace(/\n/g, "<br>"))).join("");
+  const alta = `${url}/vender?invitacion=${d.token}`;
+
+  const cuerpo =
+    seccion(html) +
+    (d.tipo === "invitacion"
+      ? boton(alta, "Publicar mis productos") +
+        seccion(
+          p(
+            `¿Tienes muchos productos? <a href="${url}/api/plantilla-ofertas" style="color:${VERDE};">Descarga la plantilla de Excel</a>, llénala y súbela desde tu cuenta, o respóndenos con ella.`,
+          ),
+        )
+      : "") +
+    separador() +
+    seccion(
+      `<p style="margin:14px 0 0 0; font-family:${SANS}; font-size:12px; line-height:1.6; color:${APAGADO};">Te escribimos a ${escapar(d.para)} porque ${escapar(d.empresa)} lo publica como contacto en su sitio web o en un registro público. Si no quieres recibir más correos de Seregenera, <a href="${baja}" style="color:${APAGADO}; text-decoration:underline;">date de baja aquí</a>.</p>`,
+    );
+
+  return {
+    para: d.para,
+    asunto: d.asunto,
+    responderA: d.responderA,
+    html: envolver({ titulo: d.asunto, preencabezado: parrafos[1] ?? parrafos[0] ?? d.asunto, cuerpo }),
+    texto: [
+      ...parrafos.flatMap((b) => [b, ""]),
+      ...(d.tipo === "invitacion"
+        ? [`Publicar mis productos: ${alta}`, `Plantilla de Excel: ${url}/api/plantilla-ofertas`, ""]
+        : []),
+      "— Seregenera",
+      "",
+      `Te escribimos a ${d.para} porque ${d.empresa} lo publica como contacto en su sitio web o en un registro público.`,
+      `Para no recibir más correos: ${baja}`,
+    ].join("\n"),
+    cabeceras: {
+      "List-Unsubscribe": `<${url}/api/baja?t=${d.token}>, <mailto:${d.responderA}?subject=Baja>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+  };
+}
+
+/**
  * Varias ofertas que entraron a revisión de una vez, desde la planilla.
  *
  * Una sola carta y no una por oferta: treinta correos seguidos con el mismo

@@ -28,6 +28,13 @@ export interface Mensaje {
   texto: string;
   /** A dónde contesta quien le dé a «Responder». */
   responderA?: string;
+  /**
+   * Cabeceras extra. Hoy solo las de baja (`List-Unsubscribe` y
+   * `List-Unsubscribe-Post`) de los correos a prospectos: con ellas Gmail
+   * enseña su propio botón de «Anular suscripción», y sin ellas trata los
+   * envíos en bloque como sospechosos.
+   */
+  cabeceras?: Record<string, string>;
 }
 
 export interface ResultadoEnvio {

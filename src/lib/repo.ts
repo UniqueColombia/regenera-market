@@ -4,6 +4,7 @@ import { createClient } from "./supabase/server";
 import { nivelesDesde } from "./niveles";
 import { cuantasPaginas, rango, type Pagina } from "./paginacion";
 import { esReaccion, leerConteos, type ReaccionId } from "./comunidad";
+import type { Encaje, EstadoProspecto, Prospecto } from "./prospectos";
 import type {
   AdminUsuario,
   Calificacion,
@@ -1666,4 +1667,252 @@ export async function getResenasParaModerar(limite = 200): Promise<ResenaAdmin[]
     listingTitle: f.listings?.title ?? "Oferta retirada",
     listingSlug: f.listings?.slug ?? "",
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Contactar proveedores (0018)
+// ---------------------------------------------------------------------------
+
+let sondeo0018: { aplicada: boolean; hasta: number } | null = null;
+
+/**
+ * ¿Está aplicada la migración 0018 (prospectos e invitaciones)?
+ *
+ * El mismo sondeo que los demás: sin ella, «Contactar proveedores» dice qué
+ * falta en vez de reventar, y `/vender?invitacion=…` se abre vacío como
+ * siempre.
+ */
+export async function contactarDisponible(): Promise<boolean> {
+  const ahora = Date.now();
+  if (!sondeo0018 || (!sondeo0018.aplicada && ahora > sondeo0018.hasta)) {
+    const db = await createClient();
+    const { error } = await db.from("prospectos").select("id").limit(1);
+    sondeo0018 = { aplicada: !error, hasta: ahora + 60_000 };
+    if (error) console.warn(`[repo] la migración 0018 no está aplicada: ${error.code}`);
+  }
+  return sondeo0018.aplicada;
+}
+
+interface FilaProspecto {
+  id: string;
+  nombre: string;
+  nit: string | null;
+  correo: string | null;
+  telefono: string | null;
+  sitio_web: string | null;
+  instagram: string | null;
+  ciudad: string | null;
+  departamento: string | null;
+  categoria: string | null;
+  encaje: Encaje | null;
+  fuente: string | null;
+  notas: string | null;
+  estado: EstadoProspecto;
+  token: string;
+  baja_at: string | null;
+  ultimo_envio_at: string | null;
+  created_at: string;
+  envios_de_campana?: { count: number }[] | null;
+}
+
+/**
+ * Tipado como `string` y no como literal a propósito: con el literal, el
+ * analizador de tipos de `select()` de supabase-js se mete en el `count`
+ * embebido y TypeScript corta con «excessively deep».
+ */
+const COLUMNAS_PROSPECTO: string =
+  "id, nombre, nit, correo, telefono, sitio_web, instagram, ciudad, departamento, categoria, encaje, fuente, notas, estado, token, baja_at, ultimo_envio_at, created_at, envios_de_campana(count)";
+
+export interface FiltrosProspectos {
+  estado?: EstadoProspecto | "baja";
+  encaje?: Encaje;
+  contacto?: "correo" | "telefono" | "ninguno";
+  q?: string;
+}
+
+/** Solo dígitos y los primeros nueve: el NIT con o sin dígito de verificación. */
+function nitBase(v: string | null | undefined): string | undefined {
+  const d = (v ?? "").replace(/\D/g, "");
+  return d.length >= 6 ? d.slice(0, 9) : undefined;
+}
+
+/**
+ * Los filtros, como condiciones de la consulta. Se aplican igual a la página y
+ * a «todos los que cumplen el filtro» (para mandarles a todos), así que viven
+ * en un solo sitio. Genérico sobre el constructor de PostgREST para no
+ * depender de sus tipos internos, que cambian entre versiones.
+ */
+interface Filtrable {
+  eq(c: string, v: unknown): Filtrable;
+  is(c: string, v: null): Filtrable;
+  not(c: string, o: string, v: unknown): Filtrable;
+  or(f: string): Filtrable;
+}
+
+function filtrarProspectos<T>(consulta: T, f: FiltrosProspectos): T {
+  // El tipo de la consulta se lleva tal cual y se mira por esta ventana
+  // estrecha: comparar los tipos completos de PostgREST contra una restricción
+  // genérica hace que TypeScript corte con «excessively deep».
+  let c = consulta as unknown as Filtrable;
+  if (f.estado === "baja") c = c.not("baja_at", "is", null);
+  else if (f.estado) c = c.eq("estado", f.estado).is("baja_at", null);
+  if (f.encaje) c = c.eq("encaje", f.encaje);
+  if (f.contacto === "correo") c = c.not("correo", "is", null);
+  if (f.contacto === "telefono") c = c.not("telefono", "is", null);
+  if (f.contacto === "ninguno") c = c.is("correo", null).is("telefono", null);
+  // Fuera lo que PostgREST lee como sintaxis dentro de un `or`.
+  const q = (f.q ?? "").replace(/[%_,()*\\.:]/g, " ").trim();
+  if (q) {
+    c = c.or(
+      ["nombre", "ciudad", "departamento", "categoria", "correo", "nit"]
+        .map((k) => `${k}.ilike.%${q}%`)
+        .join(","),
+    );
+  }
+  return c as unknown as T;
+}
+
+/**
+ * Una página de prospectos, con cuántos correos recibió cada uno y si ya está
+ * registrado en Seregenera (mismo correo o mismo NIT que una empresa de
+ * `providers`). Lo segundo se calcula aquí y no se guarda: una empresa se
+ * puede dar de alta por su cuenta sin pasar por la invitación.
+ */
+export async function getProspectos(
+  filtros: FiltrosProspectos,
+  pagina: number,
+  porPagina = 50,
+): Promise<Pagina<Prospecto>> {
+  const db = await createClient();
+  const [desde, hasta] = rango(pagina, porPagina);
+  const { data, error, count } = await filtrarProspectos(
+    db
+      .from("prospectos")
+      .select(COLUMNAS_PROSPECTO, { count: "exact" })
+      .eq("envios_de_campana.estado", "enviado"),
+    filtros,
+  )
+    .order("created_at", { ascending: false })
+    .order("id")
+    .range(desde, hasta);
+  if (error) throw new Error(`prospectos: ${error.message}`);
+
+  const empresas = await getProvidersForReview();
+  const porCorreo = new Map(empresas.map((e) => [e.email.toLowerCase(), e]));
+  const porNit = new Map<string, Provider>();
+  for (const e of empresas) {
+    const n = nitBase(e.taxId);
+    if (n) porNit.set(n, e);
+  }
+
+  const filas = ((data ?? []) as unknown as FilaProspecto[]).map((f): Prospecto => {
+    const n = nitBase(f.nit);
+    const empresa =
+      (f.correo ? porCorreo.get(f.correo.toLowerCase()) : undefined) ?? (n ? porNit.get(n) : undefined);
+    return {
+      id: f.id,
+      nombre: f.nombre,
+      nit: f.nit ?? undefined,
+      correo: f.correo ?? undefined,
+      telefono: f.telefono ?? undefined,
+      sitioWeb: f.sitio_web ?? undefined,
+      instagram: f.instagram ?? undefined,
+      ciudad: f.ciudad ?? undefined,
+      departamento: f.departamento ?? undefined,
+      categoria: f.categoria ?? undefined,
+      encaje: f.encaje ?? undefined,
+      fuente: f.fuente ?? undefined,
+      notas: f.notas ?? undefined,
+      estado: f.estado,
+      token: f.token,
+      bajaAt: f.baja_at ?? undefined,
+      ultimoEnvioAt: f.ultimo_envio_at ?? undefined,
+      envios: f.envios_de_campana?.[0]?.count ?? 0,
+      registrada: empresa ? { slug: empresa.slug, nombre: empresa.name } : undefined,
+      createdAt: f.created_at,
+    };
+  });
+
+  const total = count ?? filas.length;
+  return { filas, total, pagina, porPagina, paginas: cuantasPaginas(total, porPagina) };
+}
+
+/** Los `id` de todos los que cumplen el filtro, para mandarles a todos. Hasta 2.000. */
+export async function getIdsDeProspectos(filtros: FiltrosProspectos): Promise<string[]> {
+  const db = await createClient();
+  const { data, error } = await filtrarProspectos(db.from("prospectos").select("id"), filtros)
+    .order("created_at", { ascending: false })
+    .order("id")
+    .limit(2000);
+  if (error) throw new Error(`prospectos (ids): ${error.message}`);
+  return ((data ?? []) as { id: string }[]).map((r) => r.id);
+}
+
+export interface ResumenProspectos {
+  total: number;
+  conCorreo: number;
+  invitados: number;
+  interesados: number;
+  bajas: number;
+  enviadosHoy: number;
+}
+
+/** Las cifras de arriba del panel, contadas en la base y no sobre la página. */
+export async function getResumenProspectos(): Promise<ResumenProspectos> {
+  const db = await createClient();
+  const contar = async (f: FiltrosProspectos) => {
+    const { count } = await filtrarProspectos(
+      db.from("prospectos").select("id", { count: "exact", head: true }),
+      f,
+    );
+    return count ?? 0;
+  };
+  const [total, conCorreo, invitados, interesados, bajas, hoy] = await Promise.all([
+    contar({}),
+    contar({ contacto: "correo" }),
+    contar({ estado: "invitado" }),
+    contar({ estado: "interesado" }),
+    contar({ estado: "baja" }),
+    db.rpc("envios_de_hoy"),
+  ]);
+  return {
+    total,
+    conCorreo,
+    invitados,
+    interesados,
+    bajas,
+    enviadosHoy: (hoy.data as number | null) ?? 0,
+  };
+}
+
+export interface Invitacion {
+  nombre: string;
+  nit?: string;
+  correo?: string;
+  telefono?: string;
+  sitioWeb?: string;
+  ciudad?: string;
+  departamento?: string;
+}
+
+/**
+ * Los datos que trae un enlace de invitación, para no volver a preguntarlos en
+ * `/vender`. Con la clave pública: la función solo devuelve la fila de ese
+ * token. Cualquier fallo —token raro, 0018 sin aplicar— es «sin datos».
+ */
+export async function getInvitacion(token: string | undefined): Promise<Invitacion | undefined> {
+  if (!token || !UUID.test(token)) return undefined;
+  const db = await createClient();
+  const { data, error } = await db.rpc("invitacion_de_prospecto", { _token: token });
+  if (error || !Array.isArray(data) || data.length === 0) return undefined;
+  const f = data[0] as Record<string, string | null>;
+  return {
+    nombre: f.nombre ?? "",
+    nit: f.nit ?? undefined,
+    correo: f.correo ?? undefined,
+    telefono: f.telefono ?? undefined,
+    sitioWeb: f.sitio_web ?? undefined,
+    ciudad: f.ciudad ?? undefined,
+    departamento: f.departamento ?? undefined,
+  };
 }
