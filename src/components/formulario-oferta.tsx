@@ -79,6 +79,7 @@ export function FormularioOferta({
   verificada = false,
   subirImagen,
   logistica = false,
+  zonas = false,
 }: {
   modo?: "admin" | "empresa";
   proveedores?: ProveedorOpcion[];
@@ -93,6 +94,8 @@ export function FormularioOferta({
   subirImagen: (datos: FormData) => Promise<ResultadoImagenUI>;
   /** ¿Está la 0014? Entonces un producto dice cómo se despacha. */
   logistica?: boolean;
+  /** ¿Está la 0017? Entonces dice también la tarifa local, la de cada unidad, peso y medidas. */
+  zonas?: boolean;
 }) {
   const formulario = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -156,6 +159,12 @@ export function FormularioOferta({
       envioCop: fd.get("envioCop"),
       entregaDiasMin: fd.get("entregaDiasMin"),
       entregaDiasMax: fd.get("entregaDiasMax"),
+      envioLocalCop: fd.get("envioLocalCop"),
+      envioAdicionalCop: fd.get("envioAdicionalCop"),
+      pesoKg: fd.get("pesoKg"),
+      largoCm: fd.get("largoCm"),
+      anchoCm: fd.get("anchoCm"),
+      altoCm: fd.get("altoCm"),
       // Como texto: el esquema lo convierte con `numeroOpcional`, igual que el
       // resto de números del formulario.
       version: oferta?.version !== undefined ? String(oferta.version) : null,
@@ -582,19 +591,65 @@ export function FormularioOferta({
             </Campo>
           )}
 
+          {/* Con la 0017 el envío depende del destino y de las unidades: la
+              tarifa nacional sigue siendo la obligatoria, y las otras dos solo
+              la afinan. Un proveedor que no las llena cobra como antes. */}
+          {zonas && (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Campo
+                label="Al resto del país"
+                error={errors.envioCop}
+                ayuda="Una unidad, a cualquier destino. 0 = gratis."
+              >
+                <CampoDinero
+                  name="envioCop"
+                  defaultValue={oferta?.envio?.costoCop}
+                  invalido={!!errors.envioCop}
+                  className={entrada(errors.envioCop)}
+                />
+              </Campo>
+              <Campo
+                label="Dentro de tu departamento"
+                error={errors.envioLocalCop}
+                ayuda="Opcional. Si el pedido va al departamento de donde sale (arriba, en «Producido en»)."
+              >
+                <CampoDinero
+                  name="envioLocalCop"
+                  defaultValue={oferta?.envio?.costoLocalCop}
+                  invalido={!!errors.envioLocalCop}
+                  className={entrada(errors.envioLocalCop)}
+                />
+              </Campo>
+              <Campo
+                label="Cada unidad adicional"
+                error={errors.envioAdicionalCop}
+                ayuda="Opcional. Lo que suma cada unidad después de la primera."
+              >
+                <CampoDinero
+                  name="envioAdicionalCop"
+                  defaultValue={oferta?.envio?.adicionalCop}
+                  invalido={!!errors.envioAdicionalCop}
+                  className={entrada(errors.envioAdicionalCop)}
+                />
+              </Campo>
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-3">
-            <Campo
-              label="Costo del envío"
-              error={errors.envioCop}
-              ayuda="Por pedido, sin importar cuántas unidades. 0 = gratis."
-            >
-              <CampoDinero
-                name="envioCop"
-                defaultValue={oferta?.envio?.costoCop}
-                invalido={!!errors.envioCop}
-                className={entrada(errors.envioCop)}
-              />
-            </Campo>
+            {!zonas && (
+              <Campo
+                label="Costo del envío"
+                error={errors.envioCop}
+                ayuda="Por pedido, sin importar cuántas unidades. 0 = gratis."
+              >
+                <CampoDinero
+                  name="envioCop"
+                  defaultValue={oferta?.envio?.costoCop}
+                  invalido={!!errors.envioCop}
+                  className={entrada(errors.envioCop)}
+                />
+              </Campo>
+            )}
             <Campo label="Llega desde (días)" error={errors.entregaDiasMin} ayuda="Opcional.">
               <input
                 name="entregaDiasMin"
@@ -622,6 +677,50 @@ export function FormularioOferta({
               />
             </Campo>
           </div>
+
+          {zonas && (
+            <div>
+              <p className="text-sm font-medium text-ink">Peso y medidas del paquete</p>
+              <p className="mt-0.5 text-xs text-muted">
+                Opcional. De una unidad ya empacada: es lo que pide una
+                transportadora para cotizar.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Campo label="Peso (kg)" error={errors.pesoKg}>
+                  <input
+                    name="pesoKg"
+                    type="number"
+                    min={0.01}
+                    max={10000}
+                    step={0.01}
+                    inputMode="decimal"
+                    defaultValue={oferta?.envio?.pesoKg ?? ""}
+                    className={entrada(errors.pesoKg)}
+                  />
+                </Campo>
+                {(
+                  [
+                    ["largoCm", "Largo (cm)", oferta?.envio?.medidasCm?.largo],
+                    ["anchoCm", "Ancho (cm)", oferta?.envio?.medidasCm?.ancho],
+                    ["altoCm", "Alto (cm)", oferta?.envio?.medidasCm?.alto],
+                  ] as const
+                ).map(([nombre, etiqueta, valor]) => (
+                  <Campo key={nombre} label={etiqueta} error={errors[nombre]}>
+                    <input
+                      name={nombre}
+                      type="number"
+                      min={1}
+                      max={1000}
+                      step={1}
+                      inputMode="numeric"
+                      defaultValue={valor ?? ""}
+                      className={entrada(errors[nombre])}
+                    />
+                  </Campo>
+                ))}
+              </div>
+            </div>
+          )}
         </fieldset>
       )}
 
@@ -973,6 +1072,12 @@ const ETIQUETA_CAMPO: Record<string, string> = {
   despacho: "Quién lo lleva",
   transportadora: "Transportadora",
   envioCop: "Costo del envío",
+  envioLocalCop: "Envío dentro de tu departamento",
+  envioAdicionalCop: "Envío por unidad adicional",
+  pesoKg: "Peso",
+  largoCm: "Largo",
+  anchoCm: "Ancho",
+  altoCm: "Alto",
   entregaDiasMin: "Llega desde",
   entregaDiasMax: "Llega hasta",
   version: "Versión",

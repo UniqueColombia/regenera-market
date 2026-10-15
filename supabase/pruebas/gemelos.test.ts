@@ -4,15 +4,16 @@
  * otro»); aquí se comprueba con los dos lados de verdad.
  *
  * - `priceLine()`/`totalsFor()` ↔ `crear_orden()` (invariantes 2–7 y 10b)
+ * - `envioDeLinea()` ↔ `envio_de_linea()` (22, desde la 0017)
  * - `TRANSICIONES` ↔ trigger `orders_transicion` (10c)
  * - `puedeResenar()` ↔ `puede_resenar()` (23)
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { TRANSICIONES } from "@/lib/order-status";
-import { puedeResenar } from "@/lib/envios";
+import { envioDeLinea, puedeResenar } from "@/lib/envios";
 import { priceLine, totalsFor } from "@/lib/pricing";
 import type { Listing, OrderStatus } from "@/lib/types";
-import { baseNueva, comprar, crearEmpresa, crearOferta, crearUsuario, falla, type Nivel, type Sql } from "./arnes";
+import { baseNueva, comprar, crearEmpresa, crearOferta, crearUsuario, DESTINO, falla, type Nivel, type Sql } from "./arnes";
 
 let sql: Sql;
 let cerrar: () => Promise<void>;
@@ -48,6 +49,11 @@ describe("gemelo de precios", () => {
         const wholesaleMinQty = conMayorista ? 2 + r(8) : undefined;
         const wholesalePriceCop = conMayorista ? Math.max(1, priceCop - 1 - r(priceCop)) : undefined;
         const envioCop = kind === "product" ? [0, 5_000, 12_345][r(3)] : undefined;
+        // 0017: tarifa local y por unidad a veces, y un origen que unas veces
+        // coincide con el destino de `comprar()` (Antioquia) y otras no.
+        const envioLocalCop = kind === "product" && r(2) === 0 ? [0, 3_210][r(2)] : undefined;
+        const envioAdicionalCop = kind === "product" && r(2) === 0 ? [500, 1_234][r(2)] : undefined;
+        const department = (["Antioquia", "antioquia ", "Magdalena", undefined] as const)[r(4)];
         const quoteOnly = r(10) === 0;
         const id = await crearOferta(sql, empresas[t], {
           kind,
@@ -55,6 +61,9 @@ describe("gemelo de precios", () => {
           wholesalePriceCop: wholesalePriceCop ?? null,
           wholesaleMinQty: wholesaleMinQty ?? null,
           envioCop: envioCop ?? null,
+          envioLocalCop: envioLocalCop ?? null,
+          envioAdicionalCop: envioAdicionalCop ?? null,
+          department: department ?? null,
           quoteOnly,
         });
         lineas.push({
@@ -69,12 +78,18 @@ describe("gemelo de precios", () => {
             wholesaleMinQty,
             quoteOnly,
             impact: {},
-            envio: envioCop !== undefined ? ({ costoCop: envioCop } as Listing["envio"]) : undefined,
+            department,
+            envio:
+              envioCop !== undefined
+                ? ({ costoCop: envioCop, costoLocalCop: envioLocalCop, adicionalCop: envioAdicionalCop } as Listing["envio"])
+                : undefined,
           } as Listing,
         });
       }
 
-      const esperado = totalsFor(lineas.map((l) => priceLine({ listingId: l.listing.id, qty: l.qty }, l.listing, l.tier)));
+      const esperado = totalsFor(
+        lineas.map((l) => priceLine({ listingId: l.listing.id, qty: l.qty }, l.listing, l.tier, DESTINO.departamento)),
+      );
       if (esperado.purchasable.length === 0) continue;
 
       const orden = await comprar(
@@ -106,6 +121,32 @@ describe("gemelo de precios", () => {
           envio_cop: p.envioCop,
         });
       }
+    }
+  });
+});
+
+describe("gemelo del envío por zona (0017)", () => {
+  it("envio_de_linea() da lo mismo que envioDeLinea() en 300 casos al azar", async () => {
+    const r = azar(20261014);
+    const deptos = ["Magdalena", "magdalena", "Bogotá D.C.", "Bogota D.C.", "Nariño", "Narino", "", "  "];
+    const tarifa = () => [undefined, 0, 4_500, 12_345][r(4)];
+    for (let caso = 0; caso < 300; caso++) {
+      const nacional = tarifa();
+      const local = tarifa();
+      const adicional = tarifa();
+      const origen = r(5) === 0 ? undefined : deptos[r(deptos.length)];
+      const destino = r(5) === 0 ? undefined : deptos[r(deptos.length)];
+      const qty = 1 + r(20);
+      const { rows } = await sql.query(`select envio_de_linea($1, $2, $3, $4, $5, $6) as e`, [
+        nacional ?? null,
+        local ?? null,
+        adicional ?? null,
+        origen ?? null,
+        destino ?? null,
+        qty,
+      ]);
+      const ts = envioDeLinea({ costoCop: nacional, costoLocalCop: local, adicionalCop: adicional }, origen, qty, destino);
+      expect(rows[0].e, `caso ${caso}: ${JSON.stringify({ nacional, local, adicional, origen, destino, qty })}`).toBe(ts);
     }
   });
 });

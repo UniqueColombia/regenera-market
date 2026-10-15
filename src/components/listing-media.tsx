@@ -1,24 +1,22 @@
-import Image from "next/image";
+import { FotoOferta } from "./foto-oferta";
 import { IconoCategoria } from "./icono-categoria";
 import { categoriaLabel } from "@/lib/taxonomy";
 
 /**
- * Imagen de la oferta.
+ * La primera imagen de la oferta, o su tapiz si no tiene ninguna.
  *
- * Tres caminos, y el orden importa:
+ * Con foto, la pinta `FotoOferta` (local con next/image, subida con `<img>`).
+ * Sin foto, un tapiz derivado del propio título: gradiente estable por
+ * categoría más un ícono. Es preferible a un placeholder gris repetido, que es
+ * exactamente lo que se veía roto en el prototipo.
  *
- * 1. Ruta local (`/img/ofertas/…`) → next/image. Es lo que hay hoy: fotos del
- *    repositorio, que Next puede recortar y servir en el tamaño que pida cada
- *    hueco.
- * 2. URL absoluta → `<img>` pelado. Es lo que habrá cuando el proveedor suba su
- *    foto a Supabase Storage: el dominio no se conoce en build y next/image
- *    exige declararlo en next.config antes de tocarlo.
- * 3. Sin imagen → tapiz derivado del propio título: gradiente estable por
- *    categoría más un ícono. Es preferible a un placeholder gris repetido, que
- *    es exactamente lo que se veía roto en el prototipo.
+ * **Solo la primera.** Las demás las enseñan `FundidoTarjeta` (catálogo) y
+ * `GaleriaOferta` (ficha), que se montan encima o en su lugar. Esta sigue
+ * siendo la que pinta el servidor: la que cuenta para el LCP y la que ve quien
+ * llega sin JavaScript.
  *
- * El contenedor tiene que ser `relative`: las dos primeras ramas se posicionan
- * en absoluto para llenarlo.
+ * El contenedor tiene que ser `relative`: la foto se posiciona en absoluto para
+ * llenarlo.
  */
 
 const GRADIENTS = [
@@ -60,28 +58,9 @@ export function ListingMedia({
 }) {
   const src = images[0];
 
-  if (src?.startsWith("/")) {
-    return (
-      <Image
-        src={src}
-        alt={title}
-        fill
-        sizes={sizes}
-        priority={priority}
-        className={`object-cover ${className}`}
-      />
-    );
-  }
-
   if (src) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt={title}
-        className={`absolute inset-0 size-full object-cover ${className}`}
-        loading="lazy"
-      />
+      <FotoOferta src={src} alt={title} sizes={sizes} priority={priority} className={className} />
     );
   }
 

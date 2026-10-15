@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus, SquarePen } from "lucide-react";
+import { FileSpreadsheet, Plus, SquarePen } from "lucide-react";
 import { EstadoOferta } from "./estado-oferta";
 import { Paginacion } from "@/components/paginacion";
 import { leerPagina, urlDePagina } from "@/lib/paginacion";
@@ -68,13 +68,22 @@ export default async function OfertasPage(props: PageProps<"/admin/ofertas">) {
           </p>
         </div>
 
-        <Link
-          href="/admin/ofertas/nueva"
-          className="flex shrink-0 items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
-        >
-          <Plus className="size-4" />
-          Nueva oferta
-        </Link>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Link
+            href="/admin/ofertas/importar"
+            className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-brand-700 ring-1 ring-control transition hover:bg-sand"
+          >
+            <FileSpreadsheet className="size-4" />
+            Cargar desde Excel
+          </Link>
+          <Link
+            href="/admin/ofertas/nueva"
+            className="flex items-center gap-2 rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
+          >
+            <Plus className="size-4" />
+            Nueva oferta
+          </Link>
+        </div>
       </header>
 
       <nav aria-label="Filtrar por estado" className="mt-6 flex flex-wrap gap-2">

@@ -1,3 +1,4 @@
+import { envioDeLinea } from "./envios";
 import { COMISION_BASE, comisionPara } from "./niveles";
 import type { CartLine, ImpactMetrics, Listing, Tier } from "./types";
 
@@ -37,8 +38,8 @@ export interface PricedLine {
   commissionRate: number;
   commissionCop: number;
   /**
-   * El envío de esta línea, desde la 0014: lo que el vendedor declaró para el
-   * producto, **una vez por línea** sin importar las unidades. Cero en
+   * El envío de esta línea: desde la 0017, según el destino y las unidades
+   * (`envioDeLinea()`); hasta entonces, la tarifa fija por línea. Cero en
    * experiencias, servicios y productos que no lo declararon. No lleva
    * comisión: se le pasa entero al vendedor para pagar la transportadora.
    */
@@ -64,11 +65,15 @@ export function unitPriceFor(listing: Listing, qty: number): number {
  * `tierProveedor` es opcional y su ausencia no es un error: significa «no pude
  * averiguar el nivel», y entonces se cobra la tasa base. Quien llama desde el
  * carrito lo resuelve con `getProviderTiers()`.
+ *
+ * `destino` es el departamento a donde va el pedido, si ya se eligió: decide si
+ * aplica la tarifa local de envío (0017). Sin él, la nacional.
  */
 export function priceLine(
   line: CartLine,
   listing: Listing,
   tierProveedor?: Tier,
+  destino?: string,
 ): PricedLine {
   const unitPriceCop = unitPriceFor(listing, line.qty);
   const subtotalCop = unitPriceCop * line.qty;
@@ -84,7 +89,10 @@ export function priceLine(
     // Al peso, nunca `toFixed(2)`: todo el dinero del proyecto es entero en COP
     // (invariante 5). Con tasas como 0,085 esto importa más que con 0,12.
     commissionCop: Math.round(subtotalCop * commissionRate),
-    envioCop: listing.kind === "product" ? (listing.envio?.costoCop ?? 0) : 0,
+    envioCop:
+      listing.kind === "product"
+        ? envioDeLinea(listing.envio, listing.department, line.qty, destino)
+        : 0,
     impact: {
       co2KgSaved: mul(listing.impact.co2KgSaved, line.qty),
       waterLitersSaved: mul(listing.impact.waterLitersSaved, line.qty),

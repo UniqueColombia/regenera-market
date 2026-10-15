@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CheckCircle2, Info, MapPin, PartyPopper } from "lucide-react";
+import { CheckCircle2, CreditCard, Info, MapPin, PartyPopper } from "lucide-react";
 import { ConfirmarRecibido, FormularioResena } from "./acciones-item";
+import { BotonDePago, DatosDePago } from "./pagar";
 import { ImpactChips } from "@/components/impact-chips";
 import { getSesion } from "@/lib/auth";
 import {
@@ -15,6 +16,8 @@ import {
 import { longDate, money, shortDate } from "@/lib/format";
 import { getOrderByReference } from "@/lib/orders";
 import { COLOR_ESTADO, ETIQUETA_ESTADO } from "@/lib/order-status";
+import { confirmarDesdeLaPasarela } from "@/lib/confirmar-pago";
+import { registrarFallo } from "@/lib/incidencias";
 import { getGateway } from "@/lib/payments";
 import {
   getListingsByIds,
@@ -49,11 +52,26 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
     redirect(`/entrar?volver=${encodeURIComponent(`/orden/${reference}`)}`);
   }
 
-  const order = await getOrderByReference(reference);
-  if (!order) notFound();
+  const orden = await getOrderByReference(reference);
+  if (!orden) notFound();
 
   const sp = await props.searchParams;
   const nuevo = (Array.isArray(sp.nuevo) ? sp.nuevo[0] : sp.nuevo) === "1";
+
+  // Vuelta de la pasarela: BOLD trae de regreso al pedido con `bold-order-id`
+  // en la URL. No se cree lo que diga la URL: se le pregunta a la pasarela y,
+  // si el pago está aprobado, se confirma aquí mismo (respaldo del webhook).
+  let order = orden;
+  let pagoEnCurso = false;
+  if (order.status === "pending_payment" && sp["bold-order-id"] !== undefined) {
+    try {
+      const r = await confirmarDesdeLaPasarela(order.reference);
+      if (r === "pagada") order = (await getOrderByReference(reference)) ?? order;
+      else pagoEnCurso = r === "pendiente";
+    } catch (e) {
+      registrarFallo("pago-vuelta", e);
+    }
+  }
 
   const intent = await getGateway().createIntent(order);
   const providers = await Promise.all(
@@ -242,14 +260,38 @@ export default async function OrdenPage(props: PageProps<"/orden/[reference]">) 
         {/* Las instrucciones solo mientras falta pagar: a quien ya pagó,
             pedirle que transfiera otra vez es sembrarle la duda de si le
             llegó. */}
+        {order.status === "pending_payment" && pagoEnCurso && (
+          <p role="status" className="rounded-xl bg-brand-50 p-4 text-sm text-brand-800 ring-1 ring-brand-200">
+            Tu banco está procesando el pago. Te avisamos por correo en cuanto se
+            confirme; no hace falta que pagues otra vez.
+          </p>
+        )}
+
+        {order.status === "pending_payment" && intent.enLinea && (
+          <div className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+            <h2 className="flex items-center gap-2 font-display text-lg text-ink">
+              <CreditCard className="size-4 text-brand-600" aria-hidden />
+              Paga en línea
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              Con tarjeta, PSE, Nequi o Botón Bancolombia. El pedido se confirma
+              solo en cuanto el pago se aprueba.
+            </p>
+            <div className="mt-4">
+              <BotonDePago script={intent.enLinea.script} atributos={intent.enLinea.atributos} />
+            </div>
+          </div>
+        )}
+
         {order.status === "pending_payment" && (
           <div className="rounded-xl bg-clay-100 p-5">
             <h2 className="flex items-center gap-2 font-display text-lg text-ink">
               <Info className="size-4 text-clay-700" />
-              Cómo completar el pago
+              {intent.enLinea ? "O paga con llave o transferencia" : "Cómo completar el pago"}
             </h2>
+            <DatosDePago datos={intent.manual.datos} />
             <ol className="mt-3 space-y-2 text-sm text-ink">
-              {intent.instructions?.map((step, i) => (
+              {intent.manual.pasos.map((step, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="font-semibold text-clay-700">{i + 1}.</span>
                   {step}

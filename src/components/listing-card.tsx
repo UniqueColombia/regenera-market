@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { MapPin } from "lucide-react";
+import { FundidoTarjeta } from "./fundido-tarjeta";
 import { ImpactChips } from "./impact-chips";
 import { ListingMedia } from "./listing-media";
 import { TierBadge } from "./tier-badge";
 import { money } from "@/lib/format";
 import { KIND_LABEL, categoriaLabel } from "@/lib/taxonomy";
 import type { Listing, Provider } from "@/lib/types";
+
+/** El ancho real de la tarjeta en la rejilla del catálogo. */
+const TAMANOS = "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw";
+/** La foto crece al pasar por la tarjeta; las del fundido crecen con ella. */
+const CRECER = "transition duration-500 group-hover:scale-105 group-active/foto:scale-105";
 
 export function ListingCard({
   listing,
@@ -33,8 +39,14 @@ export function ListingCard({
           title={listing.title}
           category={listing.category}
           images={listing.images}
-          className="transition duration-500 group-hover:scale-105 group-active/foto:scale-105"
+          sizes={TAMANOS}
+          className={CRECER}
         />
+        {/* Las demás fotos, turnándose encima de la primera. Es la única isla de
+            cliente de la tarjeta: lo demás sigue siendo de servidor. */}
+        {listing.images.length > 1 && (
+          <FundidoTarjeta fotos={listing.images} sizes={TAMANOS} className={CRECER} />
+        )}
         <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2 py-0.5 text-xs font-medium text-ink shadow-sm">
           {KIND_LABEL[listing.kind]}
         </span>

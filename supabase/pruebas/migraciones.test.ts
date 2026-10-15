@@ -68,11 +68,17 @@ describe("migraciones", () => {
     expect(rows.map((r) => r.proname)).toEqual([
       // Las llama la aplicación sin sesión.
       "avatares_publicos",
+      // El enlace de baja de un correo a un prospecto (0018): sin cuenta, por
+      // definición. Solo marca la fila de ese token.
+      "baja_de_prospecto",
       // Las evalúan las políticas de lectura pública y de storage: una
       // política corre con los permisos de quien consulta.
       "carpeta_es_de_mi_empresa",
       "carpeta_es_mia",
       "has_role",
+      // El enlace de invitación prellena `/vender` (0018): solo lee la fila
+      // de ese token, que solo llega al correo de esa empresa.
+      "invitacion_de_prospecto",
       "is_admin",
       "manages_order",
       "manages_provider",

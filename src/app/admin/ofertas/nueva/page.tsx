@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { guardarOferta, subirImagenDeOfertaAdmin } from "../actions";
 import { FormularioOferta } from "@/components/formulario-oferta";
-import { getProvidersForReview, logisticaDisponible } from "@/lib/repo";
+import { enviosPorZonaDisponible, getProvidersForReview, logisticaDisponible } from "@/lib/repo";
 
 export const metadata: Metadata = { title: "Nueva oferta" };
 
@@ -37,6 +37,7 @@ export default async function NuevaOfertaPage() {
         guardar={guardarOferta}
         subirImagen={subirImagenDeOfertaAdmin}
         logistica={await logisticaDisponible()}
+        zonas={await enviosPorZonaDisponible()}
         destino="/admin/ofertas"
         proveedores={proveedores.map((p) => ({
           id: p.id,
