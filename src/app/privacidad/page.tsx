@@ -230,8 +230,17 @@ export default function PrivacidadPage() {
       <h2 id="cuanto">Cuánto tiempo los guardamos</h2>
       <ul>
         <li>
-          <strong>Mientras tengas cuenta.</strong> Si la cierras, se borran los
-          datos de tu perfil y lo que publicaste en la Comunidad.
+          <strong>Mientras tengas cuenta.</strong> Puedes eliminarla tú desde{" "}
+          <Link href="/cuenta">tu cuenta</Link>, al final de la página: se
+          borran tu perfil, tu foto, tus dispositivos de confianza, lo que
+          publicaste en la Comunidad y tus reseñas. Si tienes pedidos o
+          cotizaciones sin terminar, primero tienen que completarse o
+          cancelarse.
+        </li>
+        <li>
+          <strong>Si cierras tu empresa</strong>, sale del sitio con sus
+          ofertas. Si nunca vendió, la borramos entera; si vendió, guardamos su
+          ficha y sus ventas por lo mismo que las órdenes.
         </li>
         <li>
           <strong>Las órdenes y facturas se conservan aunque cierres la

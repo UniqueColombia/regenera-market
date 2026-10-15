@@ -1678,6 +1678,27 @@ export async function contactarDisponible(): Promise<boolean> {
   return sondeo0018.aplicada;
 }
 
+let sondeo0021: { aplicada: boolean; hasta: number } | null = null;
+
+/**
+ * ¿Está aplicada la 0021 (cerrar la empresa y eliminar la cuenta)?
+ *
+ * Pregunta por la columna `providers.cerrada_at`, que nace con las dos
+ * funciones. **Esa columna no se agrega a las listas de `columnas-ofertas.ts`**:
+ * nadie la necesita para pintar nada, y pedirla sin la migración rompería
+ * cada consulta de proveedores (lo que pasó con la 0017).
+ */
+export async function bajaDisponible(): Promise<boolean> {
+  const ahora = Date.now();
+  if (!sondeo0021 || (!sondeo0021.aplicada && ahora > sondeo0021.hasta)) {
+    const db = await createClient();
+    const { error } = await db.from("providers").select("cerrada_at").limit(1);
+    sondeo0021 = { aplicada: error?.code !== "42703", hasta: ahora + 60_000 };
+    if (!sondeo0021.aplicada) console.warn("[repo] la migración 0021 no está aplicada: sin baja de cuenta ni de empresa");
+  }
+  return sondeo0021.aplicada;
+}
+
 interface FilaProspecto {
   id: string;
   nombre: string;

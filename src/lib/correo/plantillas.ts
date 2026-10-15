@@ -1,4 +1,4 @@
-import { redesActivas } from "../legal";
+import { CONTACTO, redesActivas } from "../legal";
 import type { Mensaje } from "./tipos";
 
 /**
@@ -483,6 +483,79 @@ export function correoOfertaEnRevision(d: {
       "Si la editas, vuelve a la cola de revisión.",
       "",
       `Mis ofertas: ${url}/cuenta/empresa/ofertas`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
+
+/**
+ * La constancia de que se eliminó una cuenta. Se manda **después** de borrarla:
+ * si el borrado fallara, un correo que dice «eliminamos tu cuenta» mentiría.
+ * Es también el aviso para quien no la eliminó, si alguien entró con su
+ * contraseña: por eso dice a quién escribir.
+ */
+export function correoCuentaEliminada(d: { nombre: string; correo: string }): Mensaje {
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+  const cuerpo = seccion(
+    h1("Eliminamos tu cuenta") +
+      p(
+        `${nombre}, borramos tu perfil, tu foto, tus dispositivos de confianza, lo que publicaste en la Comunidad y tus reseñas.`,
+      ) +
+      p(
+        "Tus pedidos se conservan sin tu cuenta, con el nombre y el correo con los que compraste, porque la ley contable nos obliga a guardarlos.",
+      ) +
+      p(
+        `Si no fuiste tú, escríbenos ya a <a href="mailto:${CONTACTO.correo}" style="color:${VERDE};">${CONTACTO.correo}</a>.`,
+      ),
+  );
+  return {
+    para: d.correo,
+    asunto: "Eliminamos tu cuenta de Seregenera",
+    html: envolver({ titulo: "Eliminamos tu cuenta", preencabezado: "Tu perfil y lo que publicaste ya no están", cuerpo }),
+    texto: [
+      "Eliminamos tu cuenta",
+      "",
+      "Borramos tu perfil, tu foto, tus dispositivos de confianza, lo que publicaste en la Comunidad y tus reseñas.",
+      "Tus pedidos se conservan sin tu cuenta, con el nombre y el correo con los que compraste, porque la ley contable nos obliga a guardarlos.",
+      "",
+      `Si no fuiste tú, escríbenos ya a ${CONTACTO.correo}.`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
+
+/** La constancia de que se cerró una empresa, con lo que pasó según tuviera ventas o no. */
+export function correoEmpresaCerrada(d: {
+  nombre: string;
+  correo: string;
+  empresa: string;
+  resultado: "borrada" | "cerrada";
+}): Mensaje {
+  const url = sitio();
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+  const empresa = escapar(d.empresa);
+  const que =
+    d.resultado === "borrada"
+      ? "La borramos con sus ofertas y sus fotos: no había vendido nada todavía."
+      : "Ya no aparece en el sitio y sus ofertas quedaron retiradas. Guardamos sus ventas, porque la ley contable nos obliga a conservarlas.";
+  const cuerpo =
+    seccion(
+      h1(`Cerraste ${empresa}`) +
+        p(`${nombre}, ${escapar(que)}`) +
+        p("Si quieres vender con otra empresa, puedes darla de alta cuando quieras."),
+    ) + boton(`${url}/vender#postular`, "Dar de alta otra empresa");
+  return {
+    para: d.correo,
+    asunto: `Cerraste ${d.empresa} en Seregenera`,
+    html: envolver({ titulo: `Cerraste ${d.empresa}`, preencabezado: que, cuerpo }),
+    texto: [
+      `Cerraste ${d.empresa}`,
+      "",
+      que,
+      "Si quieres vender con otra empresa, puedes darla de alta cuando quieras:",
+      `${url}/vender#postular`,
       "",
       "— Seregenera",
     ].join("\n"),

@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Building2, KeyRound, Receipt, ShieldCheck, UserRound } from "lucide-react";
 import { Dispositivos, type DispositivoVisible } from "./dispositivos";
+import { EliminarCuenta } from "./eliminar-cuenta";
 import { guardarFoto, quitarFoto } from "./actions";
 import { ProgresoNivel } from "@/components/progreso-nivel";
 import { SelectorImagen } from "@/components/selector-imagen";
 import { getSesion, requireUser } from "@/lib/auth";
-import { getMiEmpresa } from "@/lib/repo";
+import { bajaDisponible, getMiEmpresa } from "@/lib/repo";
 import { getPedidosDe } from "@/lib/orders";
 import { COLOR_ESTADO, ETIQUETA_ESTADO } from "@/lib/order-status";
 import { longDate, money } from "@/lib/format";
@@ -58,7 +59,11 @@ export default async function CuentaPage() {
   // gestione ninguna recibe `undefined` y el bloque del nivel no se pinta. No se
   // mira `sesion.esProveedor` — el rol dice que alguien vende, no de qué
   // empresa, y son dos preguntas distintas.
-  const [empresa, pedidos] = await Promise.all([getMiEmpresa(), getPedidosDe(user.id)]);
+  const [empresa, pedidos, conBaja] = await Promise.all([
+    getMiEmpresa(),
+    getPedidosDe(user.id),
+    bajaDisponible(),
+  ]);
 
   const idActual = await leerIdDispositivo();
   const hashActual = idActual ? hashDispositivo(idActual) : null;
@@ -234,6 +239,10 @@ export default async function CuentaPage() {
         </p>
         <Dispositivos items={items} />
       </section>
+
+      {/* Al final y cerrado: es lo último que alguien viene a hacer aquí. Solo
+          con la 0021, que es la que sabe si se puede. */}
+      {conBaja && <EliminarCuenta esAdmin={Boolean(sesion?.esAdmin)} conEmpresa={Boolean(empresa)} />}
       </div>
       </div>
     </div>
