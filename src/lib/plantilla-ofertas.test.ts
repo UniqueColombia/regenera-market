@@ -83,6 +83,22 @@ describe("la plantilla de ofertas", () => {
     }
   });
 
+  it("una empresa puede publicar sin contar su impacto ambiental", async () => {
+    const hojas = await leerLibro(plantillaDeOfertas());
+    const ejemplo = hojas.find((h) => h.nombre === "Ejemplo")!;
+    const leida = leerPlanillaDeOfertas([{ ...ejemplo, nombre: "Ofertas" }]);
+    if ("error" in leida) throw new Error(leida.error);
+    for (const fila of leida.filas) {
+      const c = convertirFila({ ...fila.valores, aporteAmbiental: "", consecuenciaAmbiental: "" });
+      const r = CamposOfertaEmpresa.safeParse({ ...c.datos, images: "" });
+      expect(r.success, `fila ${fila.numero}: ${JSON.stringify(r.error?.issues)}`).toBe(true);
+    }
+    // Ninguna de las dos columnas se marca como obligatoria en la plantilla.
+    for (const clave of ["aporteAmbiental", "consecuenciaAmbiental"]) {
+      expect(COLUMNAS.find((c) => c.clave === clave)?.obligatoria).toBe("no");
+    }
+  });
+
   it("reconoce las columnas por su título aunque cambien de orden o falten", async () => {
     const libro = escribirLibro([
       {

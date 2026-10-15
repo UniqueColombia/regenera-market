@@ -145,26 +145,22 @@ export const CamposOferta = z.object({
 export type Campos = z.infer<typeof CamposOferta>;
 
 /**
- * Lo que una empresa tiene que decir además de lo común: qué aporta su oferta
- * al ambiente y qué le cuesta. El equipo puede cargar una oferta sin eso (la
- * completa después); una empresa no.
+ * Lo que valida una empresa al publicar una oferta.
  *
- * Vive aquí y no en la acción de la empresa porque la usan dos: esa acción, que
- * es la que manda, y la carga desde Excel, que valida cada fila en el navegador
- * antes de mandar nada para decirle a la persona qué corregir en qué fila.
+ * **Hasta el 2026-10-15 una empresa estaba obligada a contar qué aporta su
+ * oferta al ambiente y qué le cuesta** (mínimo 20 caracteres cada una). Jesús
+ * lo quitó: un proveedor que solo quiere vender no tiene por qué sentir que
+ * tiene que llenarlo todo, y quien quiere ser más colaborativo lo cuenta. Hoy
+ * es opcional y se valida igual que cuando carga el equipo; si se escribe,
+ * tiene que caber en 1.000 caracteres. La ficha pública ya pinta cada cuadro
+ * solo si trae texto, y la base nunca lo exigió.
+ *
+ * Sigue siendo un esquema aparte, aunque hoy sea el mismo, porque lo usan dos:
+ * la acción de la empresa, que es la que manda, y la carga desde Excel, que
+ * valida cada fila en el navegador antes de mandar nada. Si una regla solo de
+ * empresa vuelve, se pone aquí.
  */
-export const CamposOfertaEmpresa = CamposOferta.extend({
-  aporteAmbiental: z
-    .string()
-    .trim()
-    .min(20, "Cuéntanos qué aporta al ambiente, aunque sea en una frase")
-    .max(1000, "Cuéntalo en menos de 1.000 caracteres"),
-  consecuenciaAmbiental: z
-    .string()
-    .trim()
-    .min(20, "Cuéntanos también qué cuesta: de dónde viene, cómo llega, qué deja")
-    .max(1000, "Cuéntalo en menos de 1.000 caracteres"),
-});
+export const CamposOfertaEmpresa = CamposOferta;
 
 /**
  * Las reglas que miran dos campos a la vez, sobre datos ya validados.
