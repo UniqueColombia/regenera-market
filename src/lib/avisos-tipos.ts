@@ -16,6 +16,14 @@ export const AVISOS = {
     titulo: "Cerraste sesión",
     texto: "Hasta pronto. Tu cesta sigue guardada en este navegador.",
   },
+  "cuenta-eliminada": {
+    titulo: "Eliminamos tu cuenta",
+    texto: "Borramos tu perfil y lo que publicaste. Gracias por haber sido parte de Seregenera.",
+  },
+  "empresa-cerrada": {
+    titulo: "Cerraste tu empresa",
+    texto: "Ya no aparece en Seregenera. Si quieres, puedes dar de alta otra.",
+  },
 } as const;
 
 export type AvisoId = keyof typeof AVISOS;

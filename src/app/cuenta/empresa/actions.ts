@@ -6,6 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
 import { getMiEmpresa } from "@/lib/repo";
 import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
+import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { avisarAlVolver } from "@/lib/avisos";
+import { enviarCorreo } from "@/lib/correo";
+import { correoEmpresaCerrada } from "@/lib/correo/plantillas";
 import type { ResultadoImagenUI } from "@/components/selector-imagen";
 import { GIROS_POR_NIVEL, IDS_GIRO, type GiroId } from "@/lib/taxonomy";
 
@@ -212,4 +217,78 @@ export async function guardarGiros(
   revalidatePath(`/proveedor/${empresa.slug}`);
   revalidatePath("/proveedores");
   return { ok: true };
+}
+
+/** Lo que dice la pantalla cuando la base no deja cerrar la empresa (0021). */
+const MOTIVOS_CIERRE: Record<string, string> = {
+  "no-es-duena": "Solo la persona que dio de alta la empresa puede cerrarla.",
+  "ventas-en-curso":
+    "Tienes pedidos sin terminar: por pagar, pagados o por entregar. Cuando los entregues o se cancelen podrás cerrar la empresa.",
+  "solicitudes-abiertas":
+    "Tienes solicitudes de cotización abiertas. Respóndelas o ciérralas y después podrás cerrar la empresa.",
+};
+
+/** «Cooperativa  La Sierra» y «cooperativa la sierra» son la misma confirmación. */
+function mismoNombre(a: string, b: string): boolean {
+  const limpio = (s: string) => s.trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
+  return limpio(a) === limpio(b);
+}
+
+/**
+ * Cerrar la empresa de quien la gestiona. **No se puede deshacer.**
+ *
+ * La decide `cerrar_mi_empresa()` (0021), con la fila de la empresa tomada:
+ * solo la dueña, nunca con pedidos o cotizaciones pendientes; si nunca vendió
+ * se borra entera, y si vendió se cierra y se conserva por la contabilidad.
+ * En los dos casos la persona queda libre para dar de alta otra.
+ *
+ * Se confirma escribiendo el nombre de la empresa: un clic suelto no basta para
+ * algo que saca del catálogo a una empresa entera.
+ */
+export async function cerrarMiEmpresa(
+  datos: unknown,
+): Promise<{ ok: false; errors: Record<string, string> }> {
+  const user = await getUser();
+  if (!user) return { ok: false, errors: { form: "Tu sesión se cerró. Entra otra vez." } };
+
+  const empresa = await getMiEmpresa();
+  if (!empresa) return { ok: false, errors: { form: "Tu cuenta no gestiona ninguna empresa." } };
+
+  const escrito = typeof (datos as { nombre?: unknown } | null)?.nombre === "string" ? (datos as { nombre: string }).nombre : "";
+  if (!mismoNombre(escrito, empresa.name)) {
+    return { ok: false, errors: { nombre: `Escribe «${empresa.name}» tal cual para confirmar` } };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("cerrar_mi_empresa", { _provider_id: empresa.id });
+  if (error) {
+    const motivo = Object.keys(MOTIVOS_CIERRE).find((m) => error.message.includes(m));
+    if (motivo) return { ok: false, errors: { form: MOTIVOS_CIERRE[motivo] } };
+    const codigo = registrarFallo("cerrar-empresa", error, { codigo: error.code });
+    return { ok: false, errors: { form: mensajeDeFallo(codigo) } };
+  }
+
+  const resultado = (data as { resultado?: string } | null)?.resultado === "borrada" ? "borrada" : "cerrada";
+  if (resultado === "borrada") await getAlmacen().borrarCarpeta("logos", empresa.id);
+
+  if (user.email) {
+    const meta = user.user_metadata as { full_name?: string } | undefined;
+    const correo = user.email;
+    after(async () => {
+      const envio = await enviarCorreo(
+        correoEmpresaCerrada({
+          nombre: meta?.full_name || correo.split("@")[0],
+          correo,
+          empresa: empresa.name,
+          resultado,
+        }),
+      );
+      if (!envio.ok) console.error(`[cierre-correo] no enviado (${envio.via}): ${envio.error}`);
+    });
+  }
+
+  await avisarAlVolver("empresa-cerrada");
+  // El catálogo, la ficha de la empresa, sus ofertas y el menú de la cuenta.
+  revalidatePath("/", "layout");
+  redirect("/cuenta/empresa");
 }
