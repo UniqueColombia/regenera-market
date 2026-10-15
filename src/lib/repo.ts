@@ -1699,6 +1699,23 @@ export async function bajaDisponible(): Promise<boolean> {
   return sondeo0021.aplicada;
 }
 
+/**
+ * Las empresas que cerró su dueña, con la fecha (0021). Para que el panel diga
+ * «Cerrada por su dueña» en vez de un «suspendida» que se confunde con una
+ * decisión del equipo. Consulta aparte y no una columna más de
+ * `columnas-ofertas.ts`: así, sin la 0021, no rompe nada.
+ */
+export async function getEmpresasCerradas(): Promise<Map<string, string>> {
+  if (!(await bajaDisponible())) return new Map();
+  const db = await createClient();
+  const { data, error } = await db.from("providers").select("id, cerrada_at").not("cerrada_at", "is", null);
+  if (error) {
+    console.error(`[repo] empresas cerradas: ${error.message}`);
+    return new Map();
+  }
+  return new Map(((data ?? []) as { id: string; cerrada_at: string }[]).map((f) => [f.id, f.cerrada_at]));
+}
+
 interface FilaProspecto {
   id: string;
   nombre: string;

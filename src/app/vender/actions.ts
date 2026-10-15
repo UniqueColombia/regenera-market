@@ -208,6 +208,16 @@ export type ResultadoPostulacion =
       slug?: string;
       /** ¿Salió el correo de respaldo? Solo para lo que se muestra en pantalla. */
       correoEnviado: boolean;
+      /**
+       * Desde la 0022: su documento era el de una empresa que ella misma había
+       * cerrado, y volvió esa, tal como estaba (nivel, puntos, reseñas).
+       */
+      reactivada?: boolean;
+      /**
+       * Desde la 0022: ya hay otra empresa con ese documento. No se creó nada;
+       * la solicitud la revisa el equipo.
+       */
+      enRevision?: boolean;
     }
   | { ok: false; errors: Record<string, string> };
 
@@ -340,6 +350,9 @@ async function postular(form: unknown): Promise<ResultadoPostulacion> {
      * no se manda el correo otra vez.
      */
     repetida?: boolean;
+    /** Desde la 0022. Ver `ResultadoPostulacion`. */
+    reactivada?: boolean;
+    motivo?: string;
   };
   const activada = Boolean(resultado.activado);
 
@@ -349,7 +362,14 @@ async function postular(form: unknown): Promise<ResultadoPostulacion> {
   // le deja escribirlo. **Fuera del camino crítico**: la empresa ya existe, y si
   // esto fallara —o si la 0012 todavía no está aplicada y no hay columna— se
   // apunta y se sigue; el giro se puede poner después en `/cuenta/empresa`.
-  if (activada && (d.giros?.length ?? 0) > 0 && (resultado.provider_id || resultado.provider_slug)) {
+  // Una empresa reabierta vuelve tal como estaba, giro incluido: lo que se
+  // marcó en el formulario no la pisa (y su nivel ya decide cuántos caben).
+  if (
+    activada &&
+    !resultado.reactivada &&
+    (d.giros?.length ?? 0) > 0 &&
+    (resultado.provider_id || resultado.provider_slug)
+  ) {
     try {
       const consulta = supabase.from("providers").update({ giros: d.giros });
       const { error: errorGiros } = resultado.provider_id
@@ -418,5 +438,7 @@ async function postular(form: unknown): Promise<ResultadoPostulacion> {
     activada,
     slug: resultado.provider_slug,
     correoEnviado,
+    reactivada: Boolean(resultado.reactivada),
+    enRevision: resultado.motivo === "documento-existente",
   };
 }

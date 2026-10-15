@@ -37,7 +37,7 @@ export function CerrarEmpresa({ nombre }: { nombre: string }) {
       {!abierto ? (
         <>
           <p className="mt-1 text-sm text-muted">
-            Saca a {nombre} de Seregenera y te deja libre para dar de alta otra.
+            Saca a {nombre} de Seregenera, con todas sus ofertas.
           </p>
           <button
             type="button"
@@ -58,7 +58,11 @@ export function CerrarEmpresa({ nombre }: { nombre: string }) {
                 Si ya vendió algo, guardamos sus ventas, porque la ley contable nos
                 obliga. Si nunca vendió, la borramos con sus ofertas y sus fotos.
               </li>
-              <li>Su nivel y sus puntos no pasan a otra empresa.</li>
+              <li>
+                Si ya vendió, queda ligada a su documento tributario: si la das
+                de alta otra vez con el mismo, vuelve como la dejaste, con su
+                nivel, sus puntos y sus reseñas.
+              </li>
               <li>
                 Con pedidos o cotizaciones sin terminar no se puede: primero se
                 entregan, se responden o se cancelan.

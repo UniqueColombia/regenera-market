@@ -48,3 +48,4 @@ referencie al anterior.
 | 2026-10-14 | [Todas las fotos, carga desde Excel, «Contactar proveedores», BOLD y envío por zona](2026-10-14-fotos-excel-contactar-pagos-y-envios.md) | Jesús Seiler | — (adelanta la 3 y la 4) |
 | 2026-10-14 | [La 0017 vació el catálogo: la vista congela su `*`](2026-10-14-la-0017-vacio-el-catalogo.md) | Jesús Seiler | — (corrección) |
 | 2026-10-14 | [Eliminar la cuenta y cerrar la empresa](2026-10-14-eliminar-cuenta-y-cerrar-empresa.md) | Jesús Seiler | — |
+| 2026-10-14 | [Un documento tributario, una empresa](2026-10-14-un-documento-una-empresa.md) | Jesús Seiler | — |

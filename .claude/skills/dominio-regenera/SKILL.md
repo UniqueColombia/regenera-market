@@ -234,6 +234,15 @@ reseña o despublicar un artículo revierte sus puntos con
 nuevo que dé puntos lleva, en la misma migración, el camino que los quita.
 Y su prueba en `supabase/pruebas/autobeneficio.test.ts`.
 
+**31b. Un documento tributario, una empresa** (desde la 0022). Dos empresas
+no pueden tener la misma `clave_tributaria` (país + NIT, RUT… normalizado, sin
+signos ni dígito de verificación). Quien cerró su empresa y vuelve con su
+documento recupera **la misma**, con su nivel, sus puntos y sus reseñas; todo
+lo demás lo decide el equipo. Es lo que impide escapar de una mala reputación
+cerrando y reabriendo, o abriendo otra con otra cuenta. Toda forma nueva de
+crear empresas pasa por `clave_tributaria()` y el candado `nit:<clave>`, como
+`postular_proveedor()` y `aprobar_postulacion()`.
+
 **31. El dólar es solo referencia.** El «≈ US$» que se ve al lado de un precio
 sale de la TRM (`src/lib/tipo-de-cambio.ts`) y no entra en ningún cálculo, total
 ni cobro. Todo sigue en COP (invariante 5).
