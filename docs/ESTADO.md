@@ -6,8 +6,8 @@ qué hacer, empieza aquí y no en el ROADMAP.
 
 - **Corte:** 2026-10-14
 - **Producción:** `main` → **https://regenera-market.vercel.app**, con las
-  migraciones hasta la `0015` **aplicadas** (Jesús, 2026-10-12). Las `0016`,
-  `0017`, `0018` y `0019` están escritas y probadas, **sin aplicar** (ver abajo).
+  migraciones hasta la `0019` **aplicadas** (Jesús, 2026-10-14). La `0020` está
+  escrita y probada, **sin aplicar** (ver abajo).
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
   empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.
@@ -36,17 +36,26 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > | 8 | **Convenio con Aveonline** (o la transportadora que sea) | Si su API cotiza por peso, medidas y destino | Una implementación detrás de `envioDeLinea()` (skill `nueva-integracion`) | Cada proveedor declara su tarifa local, nacional y por unidad |
 > | 9 | **Conseguir correos de prospectos** | Decidir si se enriquecen más lotes con el subagente `prospector-proveedores` | — | Del Excel del prospector, solo 17 de 2.827 empresas tienen correo |
 
-> ## 🔴 Nuevo del 2026-10-14: cuatro migraciones por aplicar, en orden
+> ## 🔴 Nuevo del 2026-10-14 (noche): aplicar la `0020`
 >
-> **`0016` → `0017` → `0018` → `0019`**, cada una pegada entera en el SQL Editor
-> y con Run. El orden importa: la `0017` reemplaza la `crear_orden()` **de la
-> 0016**. El código ya funciona sin ellas y enciende cada parte sola en menos de
-> un minuto después de aplicarla. Lo que trae cada una, y el detalle en
+> **Al aplicar la `0017` se vació el catálogo** (portada en 500, fichas sin
+> cargar): la `0017` no recreó la vista `listings_publicos`, que congela su
+> `l.*`. **Ya está arreglado en el código**, desplegado y comprobado en
+> producción; el sitio funciona con la tarifa fija de envío. La `0020` recrea la
+> vista y, al aplicarla, se enciende el envío por zona y por unidad. SQL Editor →
+> pegar `supabase/migrations/0020_vista_del_catalogo_con_envio_por_zona.sql`
+> entero → Run. El detalle, en
+> [el hito](../.claude/hitos/2026-10-14-la-0017-vacio-el-catalogo.md).
+
+> ## ✅ Del 2026-10-14: las `0016` a `0019` están aplicadas (Jesús)
+>
+> Se aplicaron en orden, `0016` → `0017` → `0018` → `0019`; la `0017` reemplaza
+> la `crear_orden()` de la `0016`. Lo que trae cada una, y el detalle en
 > [el hito](../.claude/hitos/2026-10-14-fotos-excel-contactar-pagos-y-envios.md):
 >
 > - **`0017`** — el envío se cobra según el destino y las unidades: tarifa local
 >   (mismo departamento de donde sale), nacional, y lo que suma cada unidad
->   adicional; peso y medidas opcionales. Sin ella, tarifa fija como hasta hoy.
+>   adicional; peso y medidas opcionales. **Se enciende con la `0020`**.
 > - **`0018`** — «Contactar proveedores» en `/admin/contactar`: prospectos,
 >   invitaciones y noticias por correo, bajas. Sin ella, la pantalla dice que
 >   falta.
