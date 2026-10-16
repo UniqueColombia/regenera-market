@@ -58,8 +58,9 @@ necesita saber si hay pasarela, expón `getGateway().name`, no la variable.
 
 ## Variables de entorno
 
-Toda variable nueva se documenta en `.env.example` **en el mismo commit**, con:
-qué es, dónde se obtiene, y qué pasa si está vacía. Nunca el valor.
+Toda variable nueva se documenta en `docs/VARIABLES.md` **en el mismo commit**
+(una fila de su tabla), con: qué es, dónde se obtiene, y qué pasa si está vacía.
+Nunca el valor. No existe `.env.example`: ningún archivo `.env*` entra al repo.
 
 `NEXT_PUBLIC_` significa **"esto va a estar en el bundle del navegador y
 cualquiera lo puede leer"**. Una clave privada con ese prefijo es una fuga, no un
@@ -125,7 +126,7 @@ patrón, con dos exigencias extra:
 - [ ] Interfaz definida y al menos dos implementaciones (real + fallback)
 - [ ] Un solo `get<Servicio>()` decide cuál se usa
 - [ ] `npm run dev` levanta y la app es navegable con `.env.local` vacío
-- [ ] Variables documentadas en `.env.example`, sin valores
+- [ ] Variables documentadas en `docs/VARIABLES.md`, sin valores
 - [ ] Ningún secreto con prefijo `NEXT_PUBLIC_`
 - [ ] Si hay webhook: firma verificada, idempotente, monto validado
 - [ ] `npm run build`, luego `npx tsc --noEmit`, luego `npx eslint .` — los tres en limpio
