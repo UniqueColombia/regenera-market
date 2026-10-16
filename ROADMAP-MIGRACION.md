@@ -904,6 +904,12 @@ puesto al dominio provisional que asigne Hostinger mientras se prueba.
    (`next build` es pesado; los planes tienen límite de RAM) o una variable
    faltante. Un despliegue fallido **no tumba** la versión vigente: Hostinger
    conserva las dos últimas compilaciones buenas.
+4. **Turbopack no compila en Hostinger** (visto el 2026-10-16): revienta en
+   `src/app/globals.css` con «node process exited before we could connect to it».
+   Turbopack procesa el CSS en un proceso de Node aparte y el entorno de
+   compilación de Hostinger no lo deja conectarse. Por eso `npm run build` es
+   `next build --webpack`: webpack hace lo mismo dentro de su propio proceso. Si
+   alguien quita el `--webpack`, el siguiente despliegue en Hostinger falla.
 
 #### B1.5. Conectar el dominio `seregenera.com`
 
@@ -1101,13 +1107,13 @@ Este archivo está pensado para que **no haga falta recordar nada**. En orden:
 Marcar con `[x]` al terminar cada bloque (y hacer commit, para que el otro PC lo vea):
 
 - [x] Decisión (2026-10-16): **sin VPS por ahora → ruta activa: Vía B-1.** Vía A queda escrita para más adelante
-- [ ] Confirmado que el plan de Ivan incluye Node.js (hPanel → Sitios web → *Web App*): _______
+- [x] Confirmado que el plan de Ivan incluye Node.js (hPanel → Sitios web → *Web App*): **Business** (2026-10-16)
 - [ ] Ivan activó la renovación automática de `seregenera.com`
 - [ ] Borrado el token de API de prueba en hPanel
-- [ ] Fase 0: tag creado · paneles copiados · respaldo de la base · imágenes copiadas
+- [ ] Fase 0: tag creado (`v0.11.0`, hecho) · paneles copiados · respaldo de la base · imágenes copiadas
 - [ ] Fase 0, paso 7: cambio de `VERCEL_ENV` y de la página de privacidad
 - [ ] *(Futura, solo con VPS)* Vía A: A1–A5 (servidor y Supabase) · A6 (DNS y Caddy) · A7–A10 (esquema, datos, imágenes, correos) · A11–A12 (app y pruebas) · A13 (corte) · A14 (respaldos)
-- [ ] Vía B-1: B1.1–B1.4 (app desplegada y probada) · B1.5 (dominio) · B1.6 (ajustes)
+- [ ] Vía B-1: B1.1–B1.5 hechos el 2026-10-16 (`seregenera.com` sirve `v0.11.0` desde Hostinger; Vercel sigue de respaldo) · falta B1.6 (ajustes)
 - [ ] Documentación y hito escritos (`docs/DEPLOY.md`, `docs/ESTADO.md`, `registrar-hito`)
 
 ---
