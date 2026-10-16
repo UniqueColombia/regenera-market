@@ -37,7 +37,7 @@ export function requireSupabaseConfig(): SupabaseConfig {
   if (!config) {
     throw new Error(
       "Falta NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY. " +
-        "Copia .env.example a .env.local y llénalas con las claves del panel " +
+        "Ponlas en el .env de esta máquina con las claves del panel " +
         "(Settings → API). Ver docs/BETA.md, Bloque 0.",
     );
   }
