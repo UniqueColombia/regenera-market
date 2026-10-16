@@ -35,8 +35,8 @@ export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!url) {
     throw new Error(
-      "Falta NEXT_PUBLIC_SUPABASE_URL. Copia .env.example a .env.local y " +
-        "llénala. Ver docs/BETA.md, Bloque 0.",
+      "Falta NEXT_PUBLIC_SUPABASE_URL. Ponla en el .env de esta máquina. " +
+        "Ver docs/BETA.md, Bloque 0.",
     );
   }
 
