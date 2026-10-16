@@ -78,6 +78,7 @@ agente del otro.
 | `docs/IMAGENES.md` | Qué imágenes faltan, con qué prompt se generan y dónde van | Humanos y agentes |
 | `docs/NIVELES.md` | Cómo se gana el nivel de proveedor, el gemelo SQL/TS y sus trampas | Humanos y agentes |
 | `docs/PORTABILIDAD.md` | Qué depende de Supabase, qué costaría salir a una VPS y qué reglas lo mantienen barato | Humanos y agentes |
+| `ROADMAP-MIGRACION.md` | Paso a paso para salir de Vercel y Supabase hacia Hostinger, en dos vías: **A** (VPS con Supabase autoalojado) y **B** (plan Cloud: B-1 con Supabase en la nube, B-2 con MySQL). Trae el progreso marcado y la lista de variables de entorno | Humanos y agentes |
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
 | `.claude/agents/` | Subagentes con encargo propio. Un archivo por agente | Claude Code |
 | `.claude/hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
