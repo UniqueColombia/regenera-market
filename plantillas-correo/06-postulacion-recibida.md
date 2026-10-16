@@ -18,7 +18,7 @@
 escribe el correo en la consola. Las credenciales son **las mismas que ya usa
 Supabase** para los correos de acceso (Authentication → SMTP Settings); en la
 aplicación se declaran como `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` y, si hace
-falta, `SMTP_PORT` y `SMTP_REMITENTE` (ver `.env.example`).
+falta, `SMTP_PORT` y `SMTP_REMITENTE` (ver `docs/VARIABLES.md`).
 
 **Sin esas variables el formulario funciona igual**: la postulación se guarda y
 el correo se registra en la consola del servidor. Es deliberado — que falle el

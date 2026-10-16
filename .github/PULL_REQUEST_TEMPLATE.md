@@ -17,7 +17,7 @@
 - [ ] `npx tsc --noEmit` en limpio
 - [ ] `npx eslint .` en limpio
 - [ ] Ningún secreto en el diff (`.env.local`, llaves de Supabase o Wompi)
-- [ ] Variables de entorno nuevas documentadas en `.env.example`, sin valores
+- [ ] Variables de entorno nuevas documentadas en `docs/VARIABLES.md`, sin valores
 - [ ] Si toca precios, comisiones, órdenes, roles o puntajes: revisado contra la skill `dominio-regenera`
 - [ ] Si toca `supabase/migrations/`: migración aditiva, RLS activa, rollback comentado
 - [ ] Hito registrado en `.claude/hitos/` si el cambio es estructural

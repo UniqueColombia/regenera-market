@@ -78,7 +78,8 @@ agente del otro.
 | `docs/IMAGENES.md` | Qué imágenes faltan, con qué prompt se generan y dónde van | Humanos y agentes |
 | `docs/NIVELES.md` | Cómo se gana el nivel de proveedor, el gemelo SQL/TS y sus trampas | Humanos y agentes |
 | `docs/PORTABILIDAD.md` | Qué depende de Supabase, qué costaría salir a una VPS y qué reglas lo mantienen barato | Humanos y agentes |
-| `ROADMAP-MIGRACION.md` | Paso a paso para salir de Vercel y Supabase hacia Hostinger, en dos vías: **A** (VPS con Supabase autoalojado) y **B** (plan Cloud: B-1 con Supabase en la nube, B-2 con MySQL). Trae el progreso marcado y la lista de variables de entorno | Humanos y agentes |
+| `docs/VARIABLES.md` | **Las variables de entorno**: nombre, para qué sirve, de dónde sale y cómo recrear el `.env` en un PC nuevo. Sustituye al `.env.example`, que ya no existe | Humanos y agentes |
+| `ROADMAP-MIGRACION.md` | Paso a paso para salir de Vercel y Supabase hacia Hostinger. **Ruta activa: Vía B** (plan Cloud, sin VPS: B-1 con Supabase en la nube, B-2 con MySQL); la **Vía A** (VPS con Supabase autoalojado) queda escrita para cuando haya presupuesto. Trae el progreso marcado | Humanos y agentes |
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
 | `.claude/agents/` | Subagentes con encargo propio. Un archivo por agente | Claude Code |
 | `.claude/hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
@@ -160,11 +161,12 @@ Para agregar uno: archivo nuevo en `.claude/agents/`, frontmatter `name` +
 
 ## Límites duros
 
-- **No se commitea `.env.local` ni ninguna clave.** `SUPABASE_SERVICE_ROLE_KEY`
-  y las llaves de la pasarela de pagos (BOLD) nunca aparecen en el repo, ni en
-  un comentario, ni en un hito, ni en un mensaje de PR. Tampoco los datos de la
-  cuenta bancaria (`PAGO_*`). `.env.example` documenta el *nombre* de la
-  variable, nunca el valor.
+- **No se commitea ningún archivo `.env*` ni ninguna clave** (tampoco un
+  `.env.example`: no existe). `SUPABASE_SERVICE_ROLE_KEY` y las llaves de la
+  pasarela de pagos (BOLD) nunca aparecen en el repo, ni en un comentario, ni en
+  un hito, ni en un mensaje de PR. Tampoco los datos de la cuenta bancaria
+  (`PAGO_*`) ni las credenciales de Hostinger. `docs/VARIABLES.md` documenta el
+  *nombre* de cada variable, nunca el valor.
 - **No se hace `push --force` a `main` ni a `staging`.** Única excepción: quitar
   de verdad una atribución a Claude que se coló (ver la Regla 0, arriba), siempre
   con `--force-with-lease` y avisando al otro.

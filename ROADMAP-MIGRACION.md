@@ -2,22 +2,32 @@
 
 **Qué es este archivo.** El paso a paso para que Seregenera deje de depender de
 servicios gratuitos de terceros (Vercel Hobby, Supabase Free) y viva en lo que
-ya tiene o puede tener: **GitHub + Hostinger**. Hay **dos vías**, porque hoy no
-está decidido si se puede pagar un VPS:
+ya tiene: **GitHub + Hostinger**.
 
-| | **Vía A — VPS en Hostinger** | **Vía B — Hostinger Cloud (lo que hay hoy)** |
+> **Decisión vigente (Jesús, 2026-10-16): el plan de Ivan en Hostinger no incluye
+> VPS** —es el hosting web con el dominio— **y por ahora no se puede costear uno.**
+> Por eso **la ruta activa es la Vía B**. La **Vía A (VPS)** queda escrita completa
+> para el día en que haya presupuesto; no se ejecuta hoy.
+
+| | **Vía B — Hostinger Cloud (lo que hay hoy) — ACTIVA** | **Vía A — VPS en Hostinger — para cuando haya presupuesto** |
 |---|---|---|
-| Idea | Todo en un servidor propio: la app, Postgres y Supabase autoalojado | La app en el plan Cloud; la base queda donde se pueda |
-| Base de datos | **Postgres** (el esquema actual, sin tocar) | **B-1:** Supabase en la nube (puente) · **B-2:** MySQL (reescribir el backend) |
-| Código de la app | **No cambia** (solo variables de entorno) | B-1 no cambia · **B-2 se reescribe** |
-| Costo adicional | VPS KVM 2 ≈ US$9/mes el primer período, ≈ US$15 al renovar | B-1: US$0 (o Supabase Pro ≈ US$25/mes) · B-2: US$0 |
-| Esfuerzo | 1–2 días de montaje + mantenimiento mensual | B-1: medio día · B-2: **semanas** |
-| Cuándo | Cuando se pueda pagar el VPS | **Ahora**, si no se puede |
+| Idea | La app en el plan Cloud; la base queda donde se pueda | Todo en un servidor propio: la app, Postgres y Supabase autoalojado |
+| Base de datos | **B-1:** Supabase en la nube (puente) · **B-2:** MySQL (reescribir el backend) | **Postgres** (el esquema actual, sin tocar) |
+| Código de la app | B-1 no cambia · **B-2 se reescribe** | **No cambia** (solo variables de entorno) |
+| Costo adicional | B-1: US$0 (o Supabase Pro ≈ US$25/mes) · B-2: US$0 | VPS KVM 2 ≈ US$9/mes el primer período, ≈ US$15 al renovar |
+| Esfuerzo | B-1: medio día · B-2: **semanas** | 1–2 días de montaje + mantenimiento mensual |
+| Cuándo | **Ahora** | Cuando se pueda pagar el VPS |
 
-**Recomendación:** empezar por **B-1** (es barato, rápido y reversible), y pasar
-a la **Vía A** cuando haya presupuesto: los dos caminos comparten casi todo, y
-B-1 no cierra la puerta a A. **B-2 (MySQL) solo si ni A ni B-1 son aceptables**:
-es reescribir el producto, ver la sección B-2 antes de decidir.
+**Recomendación:** ejecutar **B-1** (es barato, rápido y reversible) y quedarse ahí
+hasta que haya presupuesto para un VPS: B-1 no cierra la puerta a la Vía A, y el
+paso de una a otra no toca el código. **B-2 (MySQL) solo si ni B-1 es aceptable**
+—es decir, si no se quiere depender de Supabase *en absoluto*—: es reescribir el
+producto; leer la sección B-2 antes de decidir.
+
+**Lo primero que hay que confirmar** (todo lo de la Vía B depende de ello): que el
+plan de hosting de Ivan **incluya Node.js** (en hPanel → Sitios web debe existir
+la opción *Web App*; solo la traen los planes Business y Cloud). Si no la trae, ver
+«Si el plan no trae Node.js» en B1.1.
 
 > ⚠️ **Este repositorio es público.** En este archivo no se escriben IPs de
 > servidores, correos de personas, contraseñas, llaves ni tokens. Todo eso va en
@@ -29,7 +39,7 @@ es reescribir el producto, ver la sección B-2 antes de decidir.
 - [3. Vía B — Hostinger Cloud](#3-vía-b--hostinger-cloud)
 - [4. Corte de dominio y vuelta atrás](#4-corte-de-dominio-y-vuelta-atrás)
 - [5. Qué hacer al llegar al computador de la casa](#5-qué-hacer-al-llegar-al-computador-de-la-casa)
-- [Anexo A — Variables de entorno (solo nombres)](#anexo-a--variables-de-entorno-solo-nombres)
+- [Anexo A — Variables de entorno](#anexo-a--variables-de-entorno)
 - [Anexo B — Lista de pruebas de punta a punta](#anexo-b--lista-de-pruebas-de-punta-a-punta)
 - [Anexo C — Fuentes](#anexo-c--fuentes)
 
@@ -45,16 +55,16 @@ Se revisó el panel de Hostinger (hPanel) en modo lectura, y el DNS público.
 | Dominio `seregenera.com` | Activo, **vence el 2027-07-23**, **autorrenovación apagada** (pedirle a Ivan que la active) |
 | DNS | Servidores de nombres de Hostinger (`*.dns-parking.com`). `@` apunta a dos IP del hosting compartido; `www` es un CNAME al CDN de Hostinger (`*.cdn.hstgr.net`); **`MX` apunta a `mx1/mx2.hostinger.com`** (el correo del dominio) |
 | Lo que sirve hoy `seregenera.com` | La **«Página por defecto»** de Hostinger (PHP 8.3). O sea: el sitio real todavía **no está** en Hostinger; sigue en Vercel |
-| Qué plan tiene Ivan | **Por confirmar.** Se dijo «Hostinger Cloud»; desde la cuenta de Jesús no se ve. Importa: Node.js solo existe en los planes **Business y Cloud** (no en Premium) |
-| Base de datos que trae ese plan | **Solo MySQL.** PostgreSQL en Hostinger **solo existe en VPS** |
+| Qué plan tiene Ivan | **Sin VPS** (confirmado por Jesús el 2026-10-16): hosting web (se dijo «Cloud») más los dominios. Desde la cuenta de Jesús no se ve el detalle. **Por confirmar:** que incluya Node.js, que solo traen los planes **Business y Cloud** (no Premium) |
+| Base de datos que trae ese plan | **Solo MySQL.** PostgreSQL en Hostinger **solo existe en VPS**, que no hay |
 | Token de API de Hostinger | Se creó uno de prueba («Claude Code PC Jesus») que **nadie copió** (Hostinger lo muestra una sola vez). **Hay que borrarlo** en hPanel → API → Tokens |
-| MCP de Hostinger | Configurado sin token en el PC del trabajo (`claude mcp add --scope user --transport http hostinger https://mcp.hostinger.com`). Falta autenticarlo una vez con `/mcp` |
+| MCP de Hostinger | Configurado y **autenticado** en el PC del trabajo (`claude mcp add --scope user --transport http hostinger https://mcp.hostinger.com`, luego `/mcp` → *Authenticate*). Se repite una vez por máquina. Solo ve lo que ve la cuenta de Jesús (los dominios) |
 
 **Por qué el dato de la base manda sobre todo lo demás.** El producto vive en
 Postgres: 22 migraciones (9.100 líneas), 79 políticas RLS en 25 tablas, 97
 funciones y 29 triggers, 131 usos de `jsonb`. Ver `docs/PORTABILIDAD.md`.
-Cambiar a MySQL significa reescribirlo; quedarse en Postgres significa un VPS (o
-dejar la base en un servicio de terceros).
+Cambiar a MySQL significa reescribirlo; quedarse en Postgres significa un VPS (que
+hoy no hay) o dejar la base en un servicio de terceros (Supabase), que es B-1.
 
 ### Lo que depende de Vercel y no se nota
 
@@ -114,7 +124,7 @@ fuera del repo:
 
 - [ ] **Vercel → Settings → Environment Variables**, entorno *Production*: copiar
       cada variable (nombre **y** valor) al gestor de contraseñas. Los nombres
-      están en el [Anexo A](#anexo-a--variables-de-entorno-solo-nombres).
+      están en el [Anexo A](#anexo-a--variables-de-entorno).
 - [ ] **Supabase → Authentication → URL Configuration**: *Site URL* y la lista de
       *Redirect URLs*.
 - [ ] **Supabase → Authentication → Sign In / Providers → Email**: confirmar
@@ -168,7 +178,7 @@ Hoy el SMTP sale de Google (Workspace o Gmail con contraseña de aplicación). S
 puede dejar igual en cualquier vía. Alternativa: el correo de Hostinger del
 dominio (`no-responder@seregenera.com`). Si se cambia, hay que configurar SPF y
 DKIM en el DNS para que no caiga en spam, y `SMTP_REMITENTE` tiene que ser la
-cuenta que autentica o un alias verificado (ver el Anexo A).
+cuenta que autentica o un alias verificado (ver `docs/VARIABLES.md`).
 
 ### Paso 6. Bajar el TTL del DNS
 
@@ -182,7 +192,7 @@ Un commit pequeño, por el flujo normal (`entrega-directa`):
 
 1. En `src/lib/payments.ts`, reemplazar `process.env.VERCEL_ENV !== "production"`
    por una variable propia (`process.env.APP_ENV !== "production"`), documentarla
-   en el Anexo A y ponerla en `production` en el servidor. Ajustar
+   en `docs/VARIABLES.md` y ponerla en `production` en el servidor. Ajustar
    `src/lib/payments.test.ts`, que hoy usa `vi.stubEnv("VERCEL_ENV", …)`.
 2. Actualizar `src/app/privacidad/page.tsx` con los nuevos encargados.
 3. Corregir los textos que dicen «en Vercel» (`admin/contactar/*`, `correo/*`).
@@ -192,14 +202,14 @@ producción**, sin excepción.
 
 ---
 
-## 2. Vía A — VPS con Supabase autoalojado
+## 2. Vía A — VPS con Supabase autoalojado *(futura: no se ejecuta hasta que haya VPS)*
 
 **Resultado:** `https://seregenera.com` sirve la app desde tu VPS;
 `https://api.seregenera.com` es el Supabase autoalojado; las cuentas, los pedidos
 y las fotos se copiaron de Supabase Cloud. **El código de la aplicación no
 cambia.**
 
-**Lo que se necesita:** que Ivan compre el VPS (o te dé acceso), el Anexo A con
+**Lo que se necesita:** que Ivan compre el VPS (o te dé acceso), `docs/VARIABLES.md` con
 sus valores, y la Fase 0 hecha. Tiempo: 1–2 días la primera vez.
 
 **Arquitectura final:**
@@ -658,7 +668,7 @@ git checkout v0.11.0          # el tag de la Fase 0 (o el que toque)
 El repositorio es público: se clona por HTTPS **sin llaves**.
 
 **Crear el `.env` de producción** (no existe en el repo; los nombres están en el
-[Anexo A](#anexo-a--variables-de-entorno-solo-nombres)):
+[`docs/VARIABLES.md`](docs/VARIABLES.md)):
 
 ```bash
 nano .env       # pegar los valores
@@ -830,7 +840,7 @@ sub-vías con consecuencias muy distintas.
 El plan web de Hostinger trae **solo MySQL**; PostgreSQL existe únicamente en VPS.
 Así que en Cloud la base o se queda fuera (B-1) o se reescribe a MySQL (B-2).
 
-### B-1. La app en Hostinger Cloud, la base en Supabase (puente) — recomendado ahora
+### B-1. La app en Hostinger Cloud, la base en Supabase (puente) — **la ruta activa**
 
 **Resultado:** `https://seregenera.com` lo sirve Hostinger (adiós Vercel Hobby, que
 no permite uso comercial); la base y el acceso siguen en Supabase. **Cero cambios
@@ -848,6 +858,14 @@ En la cuenta de Ivan: hPanel → **Sitios web** → debe existir la opción **We
 Apps** / **Crear sitio web → Web App**. Si el plan es *Premium* o *Single*, no
 hay Node.js: hay que subir a **Business o Cloud**. Hostinger soporta Node.js
 **18, 20, 22 y 24**; se usa **22** (el del CI).
+
+**Si el plan no trae Node.js** (por ejemplo, si lo que hay es solo el dominio con
+un hosting básico): la Vía B no es posible tal cual. Las salidas, de menor a
+mayor cambio, son (1) **seguir en Vercel + Supabase** mientras no haya
+presupuesto, y pagar lo que haga falta de esos dos (Vercel Pro y Supabase Pro,
+≈ US$45/mes: Hobby no permite uso comercial); (2) **subir el plan de Ivan a
+Business o Cloud** (se ve el precio en hPanel → *Upgrade*); (3) un VPS (Vía A).
+Ninguna cambia el código. Decidirlo con Ivan **antes** de empezar B1.2.
 
 #### B1.2. Conectar GitHub
 
@@ -870,7 +888,7 @@ repo) desde su sesión.
 #### B1.3. Variables de entorno — **antes** del primer despliegue
 
 En el panel de la aplicación → **Environment Variables**: cargar **todas** las de
-producción del Anexo A. Recordar que `NEXT_PUBLIC_*` se graban al compilar, así
+producción de [`docs/VARIABLES.md`](docs/VARIABLES.md). Recordar que `NEXT_PUBLIC_*` se graban al compilar, así
 que tienen que estar **antes** de pulsar *Deploy*. Con `NEXT_PUBLIC_SITE_URL`
 puesto al dominio provisional que asigne Hostinger mientras se prueba.
 **`BOLD_MODO_PRUEBAS` vacía.**
@@ -1059,15 +1077,13 @@ Este archivo está pensado para que **no haga falta recordar nada**. En orden:
    git fetch origin && git switch staging && git pull origin staging
    npm ci
    ```
-2. **Recrear el `.env`** de esa máquina (no viaja con Git). La lista de nombres está
-   en el [Anexo A](#anexo-a--variables-de-entorno-solo-nombres); los **valores**
-   vienen del gestor de contraseñas o de los paneles (Supabase, BOLD, Google,
-   Hostinger). El archivo viejo `.env.example` se quitó del repo, pero su texto
-   completo, con todos los comentarios, sigue en el historial:
-   ```bash
-   git show c24b496:.env.example > .env      # plantilla vacía con las explicaciones
-   ```
-3. **Conectar Claude Code con Hostinger** (una sola vez por máquina):
+2. **Recrear el `.env`** de esa máquina (no viaja con Git). La lista de nombres, con
+   para qué sirve cada una, está en [`docs/VARIABLES.md`](docs/VARIABLES.md); los
+   **valores** vienen del gestor de contraseñas o de los paneles (Supabase, BOLD,
+   Google). La sección «Recrear el `.env` en un PC nuevo» de ese archivo lo explica
+   paso a paso. (No hay `.env.example`: se quitó del repo.)
+3. **Conectar Claude Code con Hostinger** (una sola vez por máquina; en el PC del
+   trabajo ya está hecho y autenticado):
    ```bash
    claude mcp add --scope user --transport http hostinger https://mcp.hostinger.com
    ```
@@ -1076,57 +1092,35 @@ Este archivo está pensado para que **no haga falta recordar nada**. En orden:
    autenticación de la cuenta** (hoy, el teléfono de quien la activó).
 4. **Ver en qué punto quedó esto.** Abrir este archivo y revisar el
    [progreso](#progreso) de abajo; seguir por el primer paso sin marcar.
-5. **Antes de ejecutar nada en el VPS o en producción:** confirmar con Ivan cuál
-   vía se eligió y quién paga qué. No se compra ni se corta el DNS por
-   iniciativa propia.
+5. **Antes de tocar producción:** confirmar con Ivan que el plan incluye Node.js
+   (B1.1). No se compra, no se cambia de plan ni se corta el DNS por iniciativa
+   propia; y **la Vía A no se ejecuta** mientras no haya VPS.
 
 ### Progreso
 
 Marcar con `[x]` al terminar cada bloque (y hacer commit, para que el otro PC lo vea):
 
-- [ ] Decisión: Vía elegida → **_______** (A / B-1 / B-2). Quién paga el VPS → _______
-- [ ] Confirmado el plan real de Hostinger de Ivan (Business/Cloud/VPS): _______
+- [x] Decisión (2026-10-16): **sin VPS por ahora → ruta activa: Vía B-1.** Vía A queda escrita para más adelante
+- [ ] Confirmado que el plan de Ivan incluye Node.js (hPanel → Sitios web → *Web App*): _______
 - [ ] Ivan activó la renovación automática de `seregenera.com`
 - [ ] Borrado el token de API de prueba en hPanel
 - [ ] Fase 0: tag creado · paneles copiados · respaldo de la base · imágenes copiadas
 - [ ] Fase 0, paso 7: cambio de `VERCEL_ENV` y de la página de privacidad
-- [ ] Vía A: A1–A5 (servidor y Supabase) · A6 (DNS y Caddy) · A7–A10 (esquema, datos, imágenes, correos) · A11–A12 (app y pruebas) · A13 (corte) · A14 (respaldos)
+- [ ] *(Futura, solo con VPS)* Vía A: A1–A5 (servidor y Supabase) · A6 (DNS y Caddy) · A7–A10 (esquema, datos, imágenes, correos) · A11–A12 (app y pruebas) · A13 (corte) · A14 (respaldos)
 - [ ] Vía B-1: B1.1–B1.4 (app desplegada y probada) · B1.5 (dominio) · B1.6 (ajustes)
 - [ ] Documentación y hito escritos (`docs/DEPLOY.md`, `docs/ESTADO.md`, `registrar-hito`)
 
 ---
 
-## Anexo A — Variables de entorno (solo nombres)
+## Anexo A — Variables de entorno
 
-Los **valores** no van al repositorio. En local, van en `.env` (ignorado por Git);
-en producción, en el `.env` del VPS (Vía A) o en *Environment Variables* de la
-aplicación en Hostinger (Vía B). Si una variable falta, la aplicación degrada sola
-(ver `docs/DEPLOY.md`: con todo vacío, `npm run dev` levanta una app navegable).
+La lista completa, con para qué sirve cada variable y de dónde sale, vive en
+[`docs/VARIABLES.md`](docs/VARIABLES.md) (es la única fuente: el `.env.example`
+se quitó del repo). Lo que importa para esta migración:
 
-| Variable | ¿Obligatoria? | Para qué / de dónde sale |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Sí (para datos reales) | URL de la API de Supabase. Vía A: `https://api.seregenera.com`. Vía B: la del proyecto en la nube. **Se graba al compilar** |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Sí | Llave pública (anon/publishable). Es pública por diseño: la seguridad la dan las políticas RLS. **Se graba al compilar** |
-| `SUPABASE_SERVICE_ROLE_KEY` | Sí | Llave de servicio. **Nunca** al navegador, **nunca** con prefijo `NEXT_PUBLIC_` (el CI falla si aparece). Solo tareas de servidor que saltan RLS: importar catálogo, confirmar pagos, asignar roles |
-| `NEXT_PUBLIC_SITE_URL` | Sí | Dominio público (`https://seregenera.com`). Lo usan el sitemap, `robots`, el SEO, los correos y el webhook. **Se graba al compilar** |
-| `BOLD_LLAVE_IDENTIDAD` | Para pagar en línea | Panel de BOLD → Integraciones → Llaves → «Botón de pagos». Pública por diseño (va en el botón) |
-| `BOLD_LLAVE_SECRETA` | Para pagar en línea | Firma cada cobro y verifica el webhook. **Nunca** con prefijo público |
-| `BOLD_MODO_PRUEBAS` | **Vacía en producción** | `1` verifica el webhook con llave vacía (solo para pruebas). Fuera de Vercel **no** se ignora sola: ver «Lo que depende de Vercel» |
-| `APP_ENV` | Tras el cambio de la Fase 0, paso 7 | `production` en producción. Reemplaza a `VERCEL_ENV` en `payments.ts` |
-| `PAGO_LLAVE_BREB`, `PAGO_BANCO`, `PAGO_TIPO_CUENTA`, `PAGO_NUMERO_CUENTA`, `PAGO_TITULAR`, `PAGO_NIT`, `PAGO_CORREO_COMPROBANTES` | Para pagar por llave Bre-B / transferencia | Lo que ve quien compra para pagar sin pasarela. Van aquí y no en el código porque el repo es público |
-| `SMTP_HOST`, `SMTP_PORT` (por defecto 587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_REMITENTE` | Para los correos de la aplicación | El remitente tiene que ser la cuenta que autentica o un alias verificado suyo. Sin ellas, el correo se escribe en la consola del servidor y la acción sigue |
-| `SESION_SECRETO` | Opcional (recomendada) | Firma la cookie del reloj de inactividad (48 h). Generarlo: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Ponerlo o cambiarlo **cierra la sesión de todos una vez** |
-| `ALMACEN_URL` | Futuro | Reservada para un almacén de imágenes propio (`src/lib/almacenamiento.ts`) |
-| `MELI_CLIENT_ID`, `MELI_CLIENT_SECRET` | Opcional | Solo para `scripts/prospectar.mts`; la aplicación no las lee |
-| `SUPABASE_ACCESS_TOKEN` | Opcional | Token personal de Supabase Cloud, solo para administrar la base desde una máquina. **No** lo usa la aplicación. Es una llave de la cuenta entera |
-| `PRUEBAS_PG_URL` | Opcional | Solo para `npm run test:base` contra un Postgres propio |
-
-**Variables de infraestructura que NO van en el `.env` de la app:** las de
-Supabase autoalojado (`POSTGRES_PASSWORD`, `JWT_SECRET`, llaves, `DASHBOARD_*`…)
-viven en `~/supabase-project/.env` del VPS. **Credenciales de Hostinger
-(usuario/contraseña de hPanel): no pertenecen a ningún `.env` del proyecto** —la
-aplicación no las usa—; van solo en el gestor de contraseñas. Quien las tenga
-controla el dominio, el hosting y la facturación.
+- `NEXT_PUBLIC_*` **se graban al compilar**: cambiar una exige volver a desplegar.
+- **`BOLD_MODO_PRUEBAS` vacía en producción**: fuera de Vercel no se ignora sola.
+- Credenciales de Hostinger: solo en el gestor de contraseñas, nunca en un `.env`.
 
 ---
 
