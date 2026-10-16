@@ -161,8 +161,8 @@ Opcional. Sin credenciales el script salta el paso y avisa.
    MELI_CLIENT_SECRET=
    ```
 
-**El secreto no entra al repositorio.** `.env.example` documenta el nombre de la
-variable, nunca el valor — ver los límites duros de `CLAUDE.md`.
+**El secreto no entra al repositorio.** `docs/VARIABLES.md` documenta el nombre de
+la variable, nunca el valor — ver los límites duros de `CLAUDE.md`.
 
 Compruébalo así, sin exponer nada en el historial del shell:
 

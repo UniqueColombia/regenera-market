@@ -168,7 +168,7 @@ Ivan. Si llega, el bloque de correo está resuelto. **Si no llega, no se avanza 
 Bloque 2**, porque sin correo no hay registro.
 
 **4. Cargar las variables en Vercel.** Settings → Environment Variables, en el
-entorno **Preview**, con los nombres que ya documenta `.env.example`:
+entorno **Preview**, con los nombres que documenta `docs/VARIABLES.md`:
 
 | Variable | Origen | Entorno |
 |---|---|---|

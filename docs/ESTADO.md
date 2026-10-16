@@ -220,7 +220,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > escriben en la consola del servidor y ya — por eso solo llega el código de
 > acceso, que lo manda Supabase con su propio SMTP. Son las mismas credenciales
 > que Supabase tiene en Authentication → SMTP Settings; los nombres están en
-> `.env.example`. Un despliegue nuevo las toma; los existentes no.
+> `docs/VARIABLES.md`. Un despliegue nuevo las toma; los existentes no.
 >
 > **2. El impacto ambiental se va a repensar.** Lo que hay —lo que aporta y lo
 > que cuesta cada oferta, en texto, más la huella de CO₂— es un primer paso y
@@ -525,7 +525,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > con la que se cobró.
 >
 > **Lo único que quedó pendiente de esta tanda:** las cinco variables `SMTP_*` de
-> `.env.example` en Vercel. Sin ellas el alta funciona igual y el correo de
+> `docs/VARIABLES.md` en Vercel. Sin ellas el alta funciona igual y el correo de
 > respaldo de cada postulación solo se escribe en la consola del servidor — nadie
 > lo recibe, y no hay ningún error que lo delate.
 
