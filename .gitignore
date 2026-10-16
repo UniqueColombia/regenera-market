@@ -30,9 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# Ningún archivo .env se versiona, tampoco un .env.example: el .env de cada
+# máquina lleva claves reales (Supabase, BOLD, SMTP, Hostinger).
 .env*
-!.env.example
 
 # claude code local settings
 .claude/settings.local.json

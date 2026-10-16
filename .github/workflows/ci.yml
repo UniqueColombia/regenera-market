@@ -85,8 +85,8 @@ jobs:
 
       - name: Ningún .env versionado
         run: |
-          if git ls-files | grep -E '^\.env' | grep -v '^\.env\.example$'; then
-            echo "::error::Hay un archivo .env versionado. Solo .env.example puede estar en el repo."
+          if git ls-files | grep -E '(^|/)\.env'; then
+            echo "::error::Hay un archivo .env versionado. Ningún .env entra al repo."
             exit 1
           fi
 
