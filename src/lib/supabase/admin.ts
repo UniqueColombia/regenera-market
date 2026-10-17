@@ -23,13 +23,23 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *
  * No persiste sesión ni refresca token: no hay usuario detrás, hay una llave.
  */
-export function createAdminClient() {
+export function createAdminClient(): ClienteAdmin {
   if (typeof window !== "undefined") {
     throw new Error(
       "createAdminClient() se llamó desde el navegador. Este cliente se salta " +
         "RLS y jamás puede viajar al cliente: muévelo a una Server Action, un " +
         "Route Handler o un script.",
     );
+  }
+
+  // Modo MySQL (`src/lib/modo.ts`): la llave de servicio sobre MariaDB. Con
+  // `require` y la variable leída a mano, y no con un `import` arriba, porque
+  // `scripts/seed.mts` carga este archivo con `node` pelado, que no resuelve los
+  // imports sin extensión de `./mysql`. Así solo se carga cuando se usa.
+  if (process.env.BASE_DE_DATOS === "mysql") {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { clienteMysqlDeServicio } = require("./mysql") as typeof import("./mysql");
+    return clienteMysqlDeServicio() as unknown as ClienteAdmin;
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -49,7 +59,14 @@ export function createAdminClient() {
     );
   }
 
+  return clienteSupabase(url, serviceRoleKey);
+}
+
+/** El cliente de Supabase. Aparte para que su tipo (con el que se tipa el del modo MySQL) salga inferido. */
+function clienteSupabase(url: string, serviceRoleKey: string) {
   return createSupabaseClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
+
+type ClienteAdmin = ReturnType<typeof clienteSupabase>;

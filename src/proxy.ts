@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig } from "@/lib/supabase/config";
+import { modoMysql } from "@/lib/modo";
+import { proxyMysql } from "@/lib/mysql/proxy";
 import {
   COOKIE_ACTIVIDAD,
   INACTIVIDAD_SEGUNDOS,
@@ -58,6 +60,8 @@ function cookiesDeSesion(request: NextRequest): string[] {
 }
 
 export async function proxy(request: NextRequest) {
+  // Modo MySQL (`src/lib/modo.ts`): sin token que refrescar; la sesión la valida la base.
+  if (modoMysql()) return proxyMysql(request);
   const config = getSupabaseConfig();
   if (!config) return NextResponse.next();
 

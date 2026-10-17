@@ -57,3 +57,7 @@ referencie al anterior.
 | 2026-10-16 | [Producción pasa a Hostinger, se despliega por tag, y el correo sale de `info@seregenera.com`](2026-10-16-produccion-en-hostinger.md) | Jesús Seiler | — (infraestructura: vía B-1) |
 | 2026-10-17 | [Las plantillas de Supabase salen del repositorio, los legales dejan Vercel y el proveedor cobra después de la entrega](2026-10-17-legales-correos-y-modelo-de-pago.md) | Jesús Seiler | — |
 | 2026-10-17 | [Desplegar es un comando, y `v0.11.2` está en producción](2026-10-17-despliegue-con-un-comando-y-v0-11-2.md) | Jesús Seiler | — (infraestructura de despliegue) |
+| 2026-10-17 | [El MySQL de Hostinger sirve, y el catálogo sale igual leyéndolo de un espejo](2026-10-17-experimento-mysql-etapas-0-y-1.md) | Jesús Seiler | — (pruebas de la vía B-2) |
+| 2026-10-17 | [Las ofertas se escriben en MariaDB con los mismos permisos, y las fotos salen del disco](2026-10-17-experimento-mysql-etapas-2-y-3.md) | Jesús Seiler | — (pruebas de la vía B-2) |
+| 2026-10-17 | [Todo funciona dentro de Hostinger, y hay cuentas propias sin Supabase Auth](2026-10-17-experimento-mysql-etapa-4a-cuentas.md) | Jesús Seiler | — (pruebas de la vía B-2) |
+| 2026-10-17 | [La app entera corre sobre el MariaDB de Hostinger, detrás de un interruptor](2026-10-17-modo-mysql-completo.md) | Jesús Seiler | — (vía B-2: etapas 4b a 4f) |

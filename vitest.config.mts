@@ -31,6 +31,23 @@ export default defineConfig({
           hookTimeout: 120_000,
         },
       },
+      // - `mysql`: el experimento MySQL, contra la base de pruebas de Hostinger
+      //   (`npm run test:mysql`). Necesita las `MYSQL_*` del `.env`; sin ellas
+      //   (el CI) se salta. Cada consulta cruza internet: tarda segundos.
+      {
+        resolve: { alias },
+        test: {
+          name: "mysql",
+          include: ["mysql/pruebas/**/*.test.ts"],
+          environment: "node",
+          setupFiles: ["mysql/pruebas/entorno.ts"],
+          globalSetup: ["mysql/pruebas/preparar.ts"],
+          testTimeout: 60_000,
+          hookTimeout: 120_000,
+          // Una base compartida: un archivo a la vez.
+          fileParallelism: false,
+        },
+      },
     ],
   },
 });

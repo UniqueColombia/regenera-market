@@ -1,6 +1,8 @@
 import { createClient } from "./supabase/server";
 import { createAdminClient } from "./supabase/admin";
 import { isSupabaseConfigured } from "./supabase/config";
+import { AlmacenDisco, nombreDeArchivo } from "./almacen-disco";
+import { modoMysql } from "./modo";
 
 /**
  * Dónde se guardan las imágenes que sube la gente.
@@ -173,32 +175,22 @@ class AlmacenSupabase implements AlmacenDeImagenes {
 }
 
 /**
- * `image/webp` → `imagen.webp`. Un archivo por pieza y dueño: el anterior se
- * reemplaza, así que subir una foto nueva no deja la vieja ocupando sitio.
- *
- * **La extensión sale del tipo y no del archivo original**, porque el original
- * ya no existe: lo que llega aquí es lo que el navegador reconvirtió. Si el
- * tipo cambia entre una subida y la siguiente —de WebP a JPEG, que es lo que
- * pasa en un Safari viejo— quedan dos archivos y la URL guardada apunta al
- * último. El anterior queda huérfano, pesa kilobytes y nadie lo sirve.
- */
-function nombreDeArchivo(tipo: string, pieza: Pieza): string {
-  const extension = tipo === "image/png" ? "png" : tipo === "image/jpeg" ? "jpg" : "webp";
-  return `${pieza}.${extension}`;
-}
-
-/**
  * Quién guarda hoy.
  *
- * Un solo sitio decide. Cuando las imágenes se muden al VPS:
+ * Un solo sitio decide. En el modo MySQL (`src/lib/modo.ts`), el disco del
+ * servidor (`almacen-disco.ts`, con `ALMACEN_CARPETA`); si no, Supabase
+ * Storage. **`ALMACEN_CARPETA` sin el modo MySQL no hace nada**, a propósito: con
+ * los datos en Supabase, una foto guardada en el disco de un PC quedaría con su
+ * URL en la base de producción, rota para todos los demás.
  *
- *   if (process.env.ALMACEN_URL) return new AlmacenVps();
- *
- * y nada más. La app degrada sola si falta la credencial, y nunca lanza al
- * importarse por una variable ausente: eso tumbaría el build en un entorno
- * donde el almacén todavía no aplique.
+ * La app degrada sola si falta la credencial, y nunca lanza al importarse por
+ * una variable ausente: eso tumbaría el build en un entorno donde el almacén
+ * todavía no aplique.
  */
 export function getAlmacen(): AlmacenDeImagenes {
+  if (modoMysql()) {
+    return process.env.ALMACEN_CARPETA ? new AlmacenDisco(process.env.ALMACEN_CARPETA) : new SinAlmacen();
+  }
   if (isSupabaseConfigured()) return new AlmacenSupabase();
   return new SinAlmacen();
 }

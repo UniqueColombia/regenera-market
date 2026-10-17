@@ -79,6 +79,7 @@ agente del otro.
 | `docs/IMAGENES.md` | Qué imágenes faltan, con qué prompt se generan y dónde van | Humanos y agentes |
 | `docs/NIVELES.md` | Cómo se gana el nivel de proveedor, el gemelo SQL/TS y sus trampas | Humanos y agentes |
 | `docs/PORTABILIDAD.md` | Qué depende de Supabase, qué costaría salir a una VPS y qué reglas lo mantienen barato | Humanos y agentes |
+| `docs/MODO-MYSQL.md` | **El modo MySQL**: la app entera sobre el MariaDB de Hostinger, sin Supabase. Cómo está armado, cómo se prueba (`npm run dev:mysql`), cómo se enciende y se apaga, y qué hay que traducir cuando cambia una migración | Humanos y agentes |
 | `docs/VARIABLES.md` | **Las variables de entorno**: nombre, para qué sirve, de dónde sale y cómo recrear el `.env` en un PC nuevo. Sustituye al `.env.example`, que ya no existe | Humanos y agentes |
 | `ROADMAP-MIGRACION.md` | Paso a paso para salir de Vercel y Supabase hacia Hostinger. **Ruta activa: Vía B** (plan Cloud, sin VPS: B-1 con Supabase en la nube, B-2 con MySQL); la **Vía A** (VPS con Supabase autoalojado) queda escrita para cuando haya presupuesto. Trae el progreso marcado | Humanos y agentes |
 | `.claude/skills/` | Habilidades del proyecto. Una carpeta por skill | Agentes (carga automática) |
@@ -87,13 +88,14 @@ agente del otro.
 | `.claude/prospectos/` | CSV crudos del prospector. **No se versiona** (ver Límites duros) | Humanos |
 | `outputs/` | Entregables generados: el Excel de prospectos y, en `outputs/despliegue/`, el zip de la versión desplegada (solo el último). **No se versiona** | Humanos |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
-| `plantillas-correo/` | La fuente de los correos que manda Supabase. Se suben al panel con `scripts/plantillas-supabase.mts` | Humanos y agentes |
+| `plantillas-correo/` | La fuente de los correos que manda Supabase. Se suben al panel con `scripts/plantillas-supabase.mts`. En el modo MySQL, la app las lee de aquí y manda ella los códigos | Humanos y agentes |
 | `src/lib/legal.ts` · `src/lib/rutas.ts` | Datos de la sociedad y qué rutas son públicas. Los leen el pie, las páginas legales, `robots.txt` y el sitemap | Agentes |
 | `public/img/` | Imágenes del sitio ya optimizadas: marca, secciones, ofertas. `marca/` se regenera con `scripts/generar-marca.sh`, no se edita | — |
 | `tools/img-originales/` | Originales pesados de las imágenes. **No se versiona** | Humanos |
 | `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear, prospectar proveedores, optimizar imágenes, generar la marca | Humanos y hooks |
 | `src/` | Aplicación Next.js (App Router) | — |
 | `supabase/migrations/` | Esquema SQL con RLS | — |
+| `mysql/` · `src/lib/mysql/` | El modo MySQL: el esquema de MariaDB (`esquema.sql` generado, `logica.sql` a mano), la capa compatible con Supabase y sus pruebas (`mysql/pruebas/`, `npm run test:mysql`). Ver `docs/MODO-MYSQL.md` | Agentes |
 | `supabase/pruebas/` | Pruebas de la base contra un Postgres desechable, y `supabase-minimo.sql`: lo que las migraciones necesitan de Supabase | Agentes y CI |
 | `src/**/*.test.ts` | Pruebas de las reglas de `src/lib` (precios, formato de dinero…) | Agentes y CI |
 
