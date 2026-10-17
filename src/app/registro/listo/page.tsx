@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, MessagesSquare, PartyPopper, ShoppingBasket, Store } from "lucide-react";
 import { getSesion } from "@/lib/auth";
+import { rutaPropia } from "@/lib/ruta-propia";
 
 export const metadata: Metadata = {
   title: "Cuenta activada",
@@ -44,7 +45,7 @@ export default async function RegistroListoPage(
   const crudo = Array.isArray(sp.volver) ? sp.volver[0] : sp.volver;
   // Misma comprobación que en el resto del flujo: `volver` viene de la barra de
   // direcciones, y sin ella esto sería un redirector abierto.
-  const volver = crudo?.startsWith("/") && !crudo.startsWith("//") ? crudo : null;
+  const volver = rutaPropia(crudo);
 
   return (
     <div className="container-page max-w-xl py-16">

@@ -41,7 +41,15 @@ import { dentroDelRitmo, origenDeLaPeticion } from "@/lib/ritmo";
 // es justo el fallo que este endpoint existe para detectar.
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(peticion: Request) {
+  // TEMPORAL (2026-10-17): qué cabeceras de IP llegan detrás de la CDN de
+  // Hostinger, para que `origenDeLaPeticion()` (src/lib/ritmo.ts) deje de fiarse
+  // de la primera de `x-forwarded-for`, que escribe el cliente. Solo con
+  // `?cadena`, solo al registro del servidor. Se quita en cuanto se lea.
+  if (new URL(peticion.url).searchParams.has("cadena")) {
+    const vistas = [...peticion.headers].filter(([k]) => /forward|real-ip|client|connecting|hcdn|via/i.test(k));
+    console.info("[latido] cabeceras de origen:", JSON.stringify(vistas));
+  }
   if (!dentroDelRitmo(`latido:${await origenDeLaPeticion()}`, 20, 60)) {
     return NextResponse.json(
       { ok: false, motivo: "demasiadas-peticiones" },
@@ -69,22 +77,19 @@ export async function GET() {
 
     const ms = Date.now() - inicio;
 
+    // El mensaje de la base va al registro del servidor y no a la respuesta: es
+    // pública, y en el modo MySQL el error crudo de MariaDB trae el usuario de
+    // la base y la IP desde la que se creó la lógica (pasó el 2026-10-17).
     if (error) {
-      return NextResponse.json(
-        { ok: false, motivo: "consulta", detalle: error.message, ms },
-        { status: 503 },
-      );
+      console.error("[latido] la consulta falló:", error.message);
+      return NextResponse.json({ ok: false, motivo: "consulta", ms }, { status: 503 });
     }
 
     return NextResponse.json({ ok: true, ms, fecha: new Date().toISOString() });
   } catch (e) {
+    console.error("[latido] excepción:", e);
     return NextResponse.json(
-      {
-        ok: false,
-        motivo: "excepcion",
-        detalle: e instanceof Error ? e.message : String(e),
-        ms: Date.now() - inicio,
-      },
+      { ok: false, motivo: "excepcion", ms: Date.now() - inicio },
       { status: 503 },
     );
   }

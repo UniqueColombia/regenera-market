@@ -183,6 +183,43 @@ describe.skipIf(!HAY_MYSQL)("sesiones en el modo MySQL", () => {
     expect(cookie.valor).toBeTruthy();
   });
 
+  it("cambiar la contraseña cierra las demás sesiones y anula los códigos pendientes; la propia sigue", async () => {
+    const email = correo();
+    const cookie = frasco();
+    const db = clienteDeSesion(cookie);
+    await db.auth.signUp({ email, password: "la clave vieja larga" });
+    await idDe(email);
+    await db.auth.verifyOtp({ email, token: ultimoCodigo(email), type: "email" });
+    // Otra sesión de la misma cuenta: la de quien entró sin permiso.
+    const intruso = (await clienteEfimero().auth.signInWithPassword({ email, password: "la clave vieja larga" })).data.session!.access_token;
+    // Y un código pendiente que todavía no se usó.
+    await getMysql().updateTable("codigos").set({ creado_at: "2020-01-01 00:00:00.000000" }).where("email", "=", email).execute();
+    await db.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    const pendiente = ultimoCodigo(email);
+
+    expect((await db.auth.updateUser({ password: "la clave nueva larga" })).error).toBeNull();
+    expect((await db.auth.getUser()).data.user?.email).toBe(email);
+    expect((await clienteDeSesion(frasco()).auth.setSession({ access_token: intruso })).error).not.toBeNull();
+    expect((await clienteDeSesion(frasco()).auth.verifyOtp({ email, token: pendiente, type: "email" })).error).not.toBeNull();
+  });
+
+  it("registrarse otra vez con un correo sin confirmar no le cambia la clave ni el nombre", async () => {
+    const email = correo();
+    const db = clienteDeSesion(frasco());
+    await db.auth.signUp({ email, password: "la clave del dueño", options: { data: { full_name: "Dueña" } } });
+    await idDe(email);
+    // Otra persona, antes de que la dueña confirme. Pasado el minuto entre códigos.
+    await getMysql().updateTable("codigos").set({ creado_at: "2020-01-01 00:00:00.000000" }).where("email", "=", email).execute();
+    await clienteDeSesion(frasco()).auth.signUp({ email, password: "la clave del intruso", options: { data: { full_name: "Intruso" } } });
+
+    const cookie = frasco();
+    const duena = clienteDeSesion(cookie);
+    expect((await duena.auth.verifyOtp({ email, token: ultimoCodigo(email), type: "email" })).error).toBeNull();
+    expect((await duena.auth.getUser()).data.user?.user_metadata).toMatchObject({ full_name: "Dueña" });
+    expect((await clienteEfimero().auth.signInWithPassword({ email, password: "la clave del intruso" })).error).not.toBeNull();
+    expect((await clienteEfimero().auth.signInWithPassword({ email, password: "la clave del dueño" })).error).toBeNull();
+  });
+
   it("cambiar la contraseña y los metadatos; admin.getUserById y deleteUser", async () => {
     const email = correo();
     const cookie = frasco();

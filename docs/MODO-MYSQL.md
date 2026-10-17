@@ -121,6 +121,22 @@ Cuando lleve dos semanas estable: apagar el latido de Supabase
 (`.github/workflows/latido.yml`), dejar de subir las plantillas al panel de
 Supabase y decidir qué se hace con el proyecto de allá.
 
+## Trampas que ya costaron una caída
+
+- **El DEFINER de la lógica.** MariaDB guarda como dueño de cada vista,
+  función y trigger la cuenta con la que se crearon. `copiar-datos.mts` corrido
+  desde el PC los deja a nombre de `usuario@IP-del-PC`, la cuenta que existe
+  mientras dura el acceso remoto. **Cerrar ese acceso remoto borra la cuenta y
+  tumba el sitio** («The user specified as a definer … does not exist»): pasó el
+  2026-10-17 con producción. `mysql/logica.sql` se vuelve a crear **desde el
+  servidor**, contra 127.0.0.1, y solo después se cierra el acceso remoto. En la
+  base de pruebas el acceso del PC sigue abierto, así que allí no se nota.
+- **`BASE_DE_DATOS` vacía es Supabase**, sin error: ver `docs/VARIABLES.md`.
+- **La identidad va en variables de sesión** de la conexión. `enTransaccion`
+  la fija al empezar y la borra antes de devolver la conexión; quien use
+  `getMysql()` o el pool directamente no tiene esa garantía (comentario de
+  `src/lib/mysql/conexion.ts`).
+
 ## En qué se porta distinto de Supabase
 
 - **Las consultas sin `order by`** (`getListingsByProvider`,

@@ -250,6 +250,20 @@ export async function pedirCodigo(
 }
 
 /**
+ * Anula los códigos pendientes de ese correo (al cambiar la contraseña). Los
+ * marca como usados en vez de borrarlos: las filas son también la cuenta de
+ * cuántos se pidieron en la última hora, y borrarlas reiniciaría ese tope.
+ */
+export async function borrarCodigos(db: Kysely<BaseMysql>, correo: string): Promise<void> {
+  await db
+    .updateTable("codigos")
+    .set({ usado_at: sql`now(6)` })
+    .where("email", "=", normalizarCorreo(correo))
+    .where("usado_at", "is", null)
+    .execute();
+}
+
+/**
  * El enlace del correo (`/auth/callback?token_hash=…`) trae el id del código y el
  * código: `<id>.<código>`. Vale lo mismo que escribirlo, con las mismas reglas.
  */

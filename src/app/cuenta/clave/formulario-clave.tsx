@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { definirClave } from "../actions";
 import { CampoClave } from "@/components/campo-clave";
+import { rutaPropia } from "@/lib/ruta-propia";
 
 /**
  * Poner o cambiar la contraseña.
@@ -29,7 +30,7 @@ export function FormularioClave({
   const [listo, setListo] = useState(false);
   const [pendiente, iniciar] = useTransition();
 
-  const destino = volver && volver.startsWith("/") && !volver.startsWith("//") ? volver : "/";
+  const destino = rutaPropia(volver) ?? "/";
 
   function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

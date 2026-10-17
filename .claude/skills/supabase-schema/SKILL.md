@@ -5,7 +5,17 @@ description: Reglas para tocar supabase/migrations/ y src/lib/repo.ts en Seregen
 
 # Esquema y acceso a datos
 
-Estado actual: `supabase/migrations/0001_init.sql` (491 líneas) tiene el esquema
+> ⚠️ **Desde el 2026-10-17 producción no corre sobre Supabase sino sobre el
+> MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, `docs/MODO-MYSQL.md`).
+> Una migración en `supabase/migrations/` ya no llega a producción: el esquema
+> vivo es `mysql/esquema.sql` + `mysql/logica.sql` + `src/lib/mysql/modelo.ts`,
+> y las funciones que la app llama con `rpc()` están en
+> `src/lib/mysql/postgrest/rpc.ts`. Hasta que haya un flujo de migraciones para
+> MariaDB, un cambio de esquema es SQL a mano en la base de producción,
+> reflejado en esos archivos, con `npm run test:mysql`. Lo de abajo es el
+> flujo de Postgres, que sigue valiendo para la vuelta atrás.
+
+Estado al escribirse esta skill (histórico): `supabase/migrations/0001_init.sql` (491 líneas) tiene el esquema
 completo con RLS escrito, **pero nunca se ha ejecutado contra ninguna base**. La
 aplicación lee de `src/data/` en memoria. Esto es lo primero que cambia cuando se
 cree el proyecto de Supabase.

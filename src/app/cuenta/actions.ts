@@ -143,7 +143,9 @@ export async function olvidarDispositivo(id: string): Promise<ResultadoClave> {
     .eq("user_id", user.id)
     .select("id");
 
-  if (error) return { ok: false, errors: { form: error.message } };
+  // El mensaje crudo de la base no va a la pantalla: trae nombres de tablas y
+  // columnas. Va al registro con un código que la persona puede citar.
+  if (error) return { ok: false, errors: { form: mensajeDeFallo(registrarFallo("olvidar-dispositivo", error)) } };
   if (!data || data.length === 0) {
     return { ok: false, errors: { form: "Ese dispositivo ya no estaba en tu lista." } };
   }

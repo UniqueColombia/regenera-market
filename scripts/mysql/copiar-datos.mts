@@ -73,6 +73,10 @@ let fallidas = 0;
 async function aDisco(carpeta: string, url: string): Promise<string> {
   const m = STORAGE.exec(url);
   if (!m) return url;
+  // Solo del Supabase propio: el texto de una oferta lo escribe su empresa, y
+  // sin esto una URL con la misma forma en otro dominio se bajaría y pisaría la
+  // foto de otra empresa en el disco.
+  if (new URL(url).host !== new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).host) return url;
   const ya = copiadas.get(url);
   if (ya) return ya;
   const [, bucket, duenio, archivo, v] = m;
@@ -99,6 +103,14 @@ async function reescribirFotos(carpeta: string, v: unknown): Promise<unknown> {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<number> {
+  // Desde el 2026-10-17 la base de producción (`…_seregenera`) es la que manda:
+  // rehacerla borraría todo lo escrito desde el corte. Este script queda para la
+  // de pruebas. Y corrido desde un PC, deja como DEFINER de la lógica la cuenta
+  // remota de ese PC (hito 2026-10-17-produccion-sobre-mariadb.md).
+  if (/_seregenera$/.test(process.env.MYSQL_DATABASE ?? "")) {
+    console.error("MYSQL_DATABASE es la base de producción: este script la borraría. Se para.");
+    return 1;
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const servicio = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !servicio || !process.env.SUPABASE_ACCESS_TOKEN) {

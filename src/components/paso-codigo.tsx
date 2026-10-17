@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ArrowLeft, Loader2, MailCheck, RefreshCw } from "lucide-react";
 import { pedirCodigo, verificarCodigo } from "@/app/entrar/actions";
+import { rutaPropia } from "@/lib/ruta-propia";
 
 /**
  * Segundo paso de todo: escribir el código de seis dígitos que llegó al correo.
@@ -48,7 +49,7 @@ export function PasoCodigo({
   const [reenviado, setReenviado] = useState(false);
   const [pendiente, iniciar] = useTransition();
 
-  const destino = volver && volver.startsWith("/") && !volver.startsWith("//") ? volver : "/";
+  const destino = rutaPropia(volver) ?? "/";
 
   function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

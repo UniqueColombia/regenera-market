@@ -62,3 +62,4 @@ referencie al anterior.
 | 2026-10-17 | [Todo funciona dentro de Hostinger, y hay cuentas propias sin Supabase Auth](2026-10-17-experimento-mysql-etapa-4a-cuentas.md) | Jesús Seiler | — (pruebas de la vía B-2) |
 | 2026-10-17 | [La app entera corre sobre el MariaDB de Hostinger, detrás de un interruptor](2026-10-17-modo-mysql-completo.md) | Jesús Seiler | — (vía B-2: etapas 4b a 4f) |
 | 2026-10-17 | [Producción corre sobre el MariaDB de Hostinger, y Supabase queda de vuelta atrás](2026-10-17-produccion-sobre-mariadb.md) | Jesús Seiler | — (vía B-2: el corte) |
+| 2026-10-17 | [La auditoría del modo MySQL ya en producción: lo que se arregló y lo que falta](2026-10-17-auditoria-del-modo-mysql.md) | Jesús Seiler | — (vía B-2: después del corte) |
