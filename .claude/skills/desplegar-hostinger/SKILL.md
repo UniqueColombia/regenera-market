@@ -27,7 +27,39 @@ que no merece tag no se despliega solo: sale con el siguiente.**
 Versión `v0.MINOR.PATCH` (de `flujo-git`): sube `MINOR` cuando entra un bloque o
 una fase y `PATCH` para correcciones y seguridad. Ante la duda, decide Jesús.
 
-## Los pasos
+## Con un comando (desde el 2026-10-17)
+
+Con el tag ya empujado (pasos 1 y 2 de abajo), los pasos 3 a 7 los hace
+`scripts/desplegar.mts`: arma el zip, lo sube por SFTP, compila con la API,
+sigue el registro, comprueba producción (incluido que `/auth/callback` no mande
+a `0.0.0.0`) y borra los zips viejos del PC.
+
+```bash
+node --env-file=.env scripts/desplegar.mts vX.Y.Z
+node --env-file=.env scripts/desplegar.mts vX.Y.Z --sin-subir   # si el zip se subió a mano
+```
+
+### Subir sin hPanel: la llave SSH, una sola vez por PC
+
+La API compila pero no deja subir con el acceso compartido (paso 4), así que el
+script sube por SFTP con una llave propia, sin contraseña guardada en ningún
+lado. **Se descartó automatizar hPanel con Selenium**: captcha y segundo factor
+en el login, la contraseña de una cuenta que entra a todo el hosting de Ivan
+guardada en un script, y una pantalla que cambia sin avisar.
+
+1. La crea la persona (no el agente: es una credencial nueva en su PC):
+   `ssh-keygen -t ed25519 -f ~/.ssh/seregenera_hostinger -N "" -C "despliegue seregenera.com"`
+2. hPanel → `seregenera.com` → Avanzado → **Acceso SSH**: activarlo si está
+   apagado, anotar IP y puerto, y en «Claves SSH» agregar el contenido de
+   `~/.ssh/seregenera_hostinger.pub`. Si el acceso compartido no deja ver esa
+   pantalla, lo hace Ivan una vez desde su cuenta.
+3. En el `.env`: `HOSTINGER_SSH_HOST` y `HOSTINGER_SSH_PORT` (`docs/VARIABLES.md`).
+
+La llave privada no tiene frase de paso para que el script corra solo: quien
+tenga ese archivo puede escribir en el sitio. Si el PC se pierde o se comparte,
+se borra la clave en esa misma pantalla de hPanel.
+
+## Los pasos, a mano
 
 **1. `main` en verde.** Sobre `main` al día: `npm run build`, `npx tsc --noEmit`,
 `npx eslint .` y `npm test`, los cuatro limpios.
@@ -137,7 +169,7 @@ entorno). Los nombres y para qué sirve cada una, en `docs/VARIABLES.md`.
 | Síntoma | Causa | Qué hacer |
 |---|---|---|
 | `FATAL: An unexpected Turbopack error` en `src/app/globals.css`, «node process exited before we could connect to it» | Turbopack procesa el CSS en un proceso de Node aparte y el entorno de compilación de Hostinger no lo deja conectarse | Por eso `build` es `next build --webpack`. No quitar el `--webpack` |
-| `hosting_files_generate-upload-url` → 404 | El acceso compartido no deja subir archivos por API | Subir por el Administrador de archivos (paso 4) |
+| `hosting_files_generate-upload-url` → 404 | El acceso compartido no deja subir archivos por API | `scripts/desplegar.mts` (SFTP con llave) o el Administrador de archivos (paso 4) |
 | `dns_records_list` → 403 | El dominio es de la cuenta de Ivan | Mirar el DNS público con `nslookup` |
 | No se puede compilar con `source_type: git` | No hay GitHub conectado en la cuenta de Ivan (`hosting_git_list-installations` vacío) | Seguir con zip. Si Ivan conecta GitHub, se podrá compilar por rama |
 | `mail_orders_list` vacío | La API de correo tampoco ve la cuenta de Ivan | Los buzones se administran en hPanel → Correos electrónicos |
