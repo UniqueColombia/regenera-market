@@ -1011,6 +1011,15 @@ enseñarle ese panel.
 
 ### 4. Mudarse a servidor propio, y dejar de depender de Supabase
 
+> **2026-10-17 — hay una salida sin VPS, hecha y probada, sin encender.** El
+> **modo MySQL** (`docs/MODO-MYSQL.md`, rama `feat/js-espejo-mysql`) corre la app
+> entera sobre el MariaDB del plan de Hostinger: datos, cuentas propias (sin
+> Supabase Auth), las 58 políticas RLS y los 25 triggers traducidos, y las fotos
+> en disco. Las 79 páginas públicas salen iguales que con Supabase y pasan 73
+> pruebas contra la base. **Producción sigue con Supabase**: falta que Jesús lo
+> pruebe como usuario (`npm run dev:mysql`) y decidir el corte. Lo de abajo es
+> el análisis de la vía A (VPS), que sigue valiendo si se elige esa.
+
 **Decidido, sin fecha: arranca cuando Ivan compre el VPS de Hostinger.** El
 destino es que todo lo que hoy vive en Vercel y Supabase corra en una máquina
 nuestra, **con el mismo comportamiento y con código nuestro**.

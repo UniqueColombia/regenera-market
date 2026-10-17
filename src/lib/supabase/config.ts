@@ -27,9 +27,15 @@ export function getSupabaseConfig(): SupabaseConfig | null {
   return { url, anonKey };
 }
 
-/** ¿Hay base configurada? Úsalo para decidir, nunca para adivinar una clave. */
+/**
+ * ¿Hay base configurada? Úsalo para decidir, nunca para adivinar una clave.
+ *
+ * En el modo MySQL (`src/lib/modo.ts`) la hay aunque falten las de Supabase. Se
+ * lee la variable a mano y no con `modoMysql()`: este archivo también llega al
+ * navegador, donde la variable no existe y la respuesta tiene que ser la de hoy.
+ */
 export function isSupabaseConfigured(): boolean {
-  return getSupabaseConfig() !== null;
+  return process.env.BASE_DE_DATOS === "mysql" || getSupabaseConfig() !== null;
 }
 
 export function requireSupabaseConfig(): SupabaseConfig {

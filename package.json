@@ -4,18 +4,23 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:mysql": "node --env-file=.env scripts/mysql/dev.mts",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run --project unidad",
     "test:base": "vitest run --project base",
-    "test:todo": "vitest run"
+    "test:todo": "vitest run",
+    "test:mysql": "vitest run --project mysql"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "kysely": "^0.29.7",
     "lucide-react": "^1.31.0",
+    "mysql2": "^3.24.6",
     "next": "^16.3.8",
     "nodemailer": "^10.0.10",
     "react": "19.2.8",

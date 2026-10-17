@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { modoMysql } from "../modo";
 import { requireSupabaseConfig } from "./config";
+import { clienteMysqlDeSesion } from "./mysql";
 
 /**
  * Cliente de Supabase para Server Components, Route Handlers y Server Actions.
@@ -14,11 +16,19 @@ import { requireSupabaseConfig } from "./config";
  * usuario a otro.
  *
  * `cookies()` es asíncrono desde Next 15, de ahí que la función lo sea.
+ *
+ * En el modo MySQL (`src/lib/modo.ts`) devuelve el cliente equivalente sobre
+ * MariaDB (`./mysql.ts`), con la sesión de la cookie `sgr_sesion` y las mismas
+ * reglas.
  */
-export async function createClient() {
+export async function createClient(): Promise<ClienteServidor> {
+  if (modoMysql()) return (await clienteMysqlDeSesion()) as unknown as ClienteServidor;
   const { url, anonKey } = requireSupabaseConfig();
-  const cookieStore = await cookies();
+  return clienteSupabase(url, anonKey, await cookies());
+}
 
+/** El cliente de Supabase. Aparte para que su tipo (con el que se tipa el del modo MySQL) salga inferido. */
+function clienteSupabase(url: string, anonKey: string, cookieStore: Awaited<ReturnType<typeof cookies>>) {
   return createServerClient(url, anonKey, {
     cookies: {
       getAll: () => cookieStore.getAll(),
@@ -38,3 +48,5 @@ export async function createClient() {
     },
   });
 }
+
+type ClienteServidor = ReturnType<typeof clienteSupabase>;

@@ -1,5 +1,10 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { modoMysql } from "../modo";
 import { requireSupabaseConfig } from "./config";
+import { clienteMysqlDeToken, clienteMysqlEfimero } from "./mysql";
+
+/** El tipo del cliente de Supabase, inferido de una llamada concreta (no del genérico). */
+type Cliente = ReturnType<typeof clienteSupabase>;
 
 /**
  * Clientes de Supabase **que no escriben cookies**.
@@ -24,7 +29,13 @@ import { requireSupabaseConfig } from "./config";
  * `persistSession: false` es lo importante, y `autoRefreshToken: false` evita
  * que deje un temporizador colgando en el proceso del servidor.
  */
-export function createEphemeralClient() {
+export function createEphemeralClient(): Cliente {
+  // Modo MySQL: el mismo contrato (la sesión, si se abre, vive solo en este objeto).
+  if (modoMysql()) return clienteMysqlEfimero() as unknown as Cliente;
+  return clienteSupabase();
+}
+
+function clienteSupabase(cabeceras?: Record<string, string>) {
   const { url, anonKey } = requireSupabaseConfig();
   return createSupabaseClient(url, anonKey, {
     auth: {
@@ -32,6 +43,7 @@ export function createEphemeralClient() {
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
+    ...(cabeceras ? { global: { headers: cabeceras } } : {}),
   });
 }
 
@@ -48,14 +60,7 @@ export function createEphemeralClient() {
  * `setSession` en el cliente de servidor terminaría escribiendo la cookie, que
  * es justo lo que aquí no debe pasar todavía.
  */
-export function createTokenClient(accessToken: string) {
-  const { url, anonKey } = requireSupabaseConfig();
-  return createSupabaseClient(url, anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
+export function createTokenClient(accessToken: string): Cliente {
+  if (modoMysql()) return clienteMysqlDeToken(accessToken) as unknown as Cliente;
+  return clienteSupabase({ Authorization: `Bearer ${accessToken}` });
 }
