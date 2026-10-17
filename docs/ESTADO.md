@@ -8,7 +8,8 @@ qué hacer, empieza aquí y no en el ROADMAP.
   correo, y **el 2026-10-17** en correos, legales, envíos y pagos (los dos
   primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.11.1`) con la skill `desplegar-hostinger`.
+  desplegado **por tag** (hoy `v0.11.2`) con la skill `desplegar-hostinger`;
+  desde el 2026-10-17, con un comando: `scripts/desplegar.mts`.
   `https://regenera-market.vercel.app` sigue encendido como respaldo. La base es
   la misma (Supabase), con las migraciones hasta la `0020` **aplicadas** (Jesús,
   2026-10-14). La `0021` y la `0022` están escritas y probadas, **sin aplicar**
@@ -24,7 +25,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   solo dos tenían texto propio, viejo y sin logo; las otras cuatro estaban en
 >   inglés. Y el *Site URL* pasó de `https://www.seregenera.com/` a
 >   `https://seregenera.com`.
-> - **Arreglado en el código, falta desplegarlo:** el botón «Entrar sin escribir
+> - **Arreglado y desplegado en `v0.11.2`:** el botón «Entrar sin escribir
 >   el código» del correo mandaba a `https://0.0.0.0:3000/…` en Hostinger (la
 >   app tomaba el origen de la petición, que detrás del proxy es ese). Lo mismo
 >   le habría pasado a una sesión caducada. El código de seis dígitos siempre
@@ -43,8 +44,15 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   de Airbnb, en `docs/ENVIOS-Y-PAGOS.md`. Es una propuesta con decisiones para
 >   los dos; no hay nada programado todavía.
 >
-> **Antes del próximo tag, Ivan lee los términos** (puntos 3, 10 y 11 de la
-> tabla de abajo). Al empujar a `main` ya se ven en el respaldo de Vercel.
+> **Los términos nuevos ya rigen en producción** (`v0.11.2`, la desplegó Jesús
+> el mismo día). Ivan los lee igual: puntos 3, 10 y 11 de la tabla de abajo; si
+> cambia algo, sale en el siguiente tag con su propia vigencia.
+>
+> **Desplegar es un comando** desde el 2026-10-17: con el tag empujado,
+> `node --env-file=.env scripts/desplegar.mts vX.Y.Z` sube el zip por SFTP con
+> una llave SSH, compila con la API de Hostinger y comprueba producción. Cada PC
+> que despliegue necesita su llave agregada en hPanel una vez (skill
+> `desplegar-hostinger`).
 
 > ## 🟢 Nuevo del 2026-10-16: producción en Hostinger y correo propio
 >
