@@ -8,7 +8,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
   correo, y **el 2026-10-17** en correos, legales, envíos y pagos (los dos
   primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.11.2`) con la skill `desplegar-hostinger`;
+  desplegado **por tag** (hoy `v0.11.3`) con la skill `desplegar-hostinger`;
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`.
   `https://regenera-market.vercel.app` sigue encendido como respaldo. La base es
   la misma (Supabase), con las migraciones hasta la `0020` **aplicadas** (Jesús,
@@ -40,6 +40,10 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > - **El correo de contacto es `info@seregenera.com`** y la sociedad,
 >   Dimension Natural SAS, NIT 901812769-8 (Jesús). En `src/lib/legal.ts`.
 > - **Correos del pedido:** llevan el plazo de entrega y las formas de pago.
+> - **Comprobado por Jesús el mismo día: llegan todos los correos**, con las
+>   plantillas nuevas (paso A5 de `docs/CORREOS.md`).
+> - **`/entrar` y `/registro` a lo ancho en escritorio** (`v0.11.3`), con el
+>   bosque de «Tu cuenta» detrás: antes eran una columna estrecha en el centro.
 > - **Envíos por cantidad y pago al proveedor:** qué se copia de MercadoLibre y
 >   de Airbnb, en `docs/ENVIOS-Y-PAGOS.md`. Es una propuesta con decisiones para
 >   los dos; no hay nada programado todavía.

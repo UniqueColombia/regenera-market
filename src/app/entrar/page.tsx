@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { MessagesSquare, Package, Store, UserRound } from "lucide-react";
 import { FormularioAcceso } from "./formulario-acceso";
+import { MarcoAcceso } from "@/components/marco-acceso";
 import { getUser } from "@/lib/auth";
 import { INACTIVIDAD_HORAS } from "@/lib/inactividad";
 
@@ -38,15 +40,21 @@ export default async function EntrarPage(props: PageProps<"/entrar">) {
   const caducada = (Array.isArray(sp.caducada) ? sp.caducada[0] : sp.caducada) === "1";
 
   return (
-    <div className="container-page max-w-md py-16">
-      <h1 className="font-display text-3xl text-ink">Entrar</h1>
-      <p className="mt-2 text-muted">
-        Entra con tu correo y tu contraseña.
-      </p>
+    <MarcoAcceso
+      etiqueta="Tu cuenta"
+      icono={UserRound}
+      titulo="Entrar"
+      resumen="Entra con tu correo y tu contraseña."
+      puntos={[
+        { icono: Package, texto: "Sigue tus pedidos y la guía de cada envío." },
+        { icono: Store, texto: "Publica las ofertas de tu empresa y atiende sus pedidos." },
+        { icono: MessagesSquare, texto: "Cuenta en la Comunidad qué te funcionó." },
+      ]}
+    >
       {caducada && !error && (
         <p
           role="status"
-          className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 ring-1 ring-amber-100"
+          className="mb-6 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 ring-1 ring-amber-100"
         >
           Cerramos tu sesión porque pasaron {INACTIVIDAD_HORAS} horas sin usarse.
           Entra otra vez y sigues donde estabas.
@@ -55,12 +63,12 @@ export default async function EntrarPage(props: PageProps<"/entrar">) {
       {error && (
         <p
           role="alert"
-          className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-red-100"
+          className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-red-100"
         >
           {ERRORES[error] ?? ERRORES.desconocido}
         </p>
       )}
       <FormularioAcceso volver={volver} />
-    </div>
+    </MarcoAcceso>
   );
 }
