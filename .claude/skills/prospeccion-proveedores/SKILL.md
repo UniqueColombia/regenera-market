@@ -154,7 +154,7 @@ Opcional. Sin credenciales el script salta el paso y avisa.
 2. *Mis aplicaciones → Crear aplicación*. Nombre y descripción; como
    *redirect URI* sirve `https://seregenera.co/callback` — el flujo que usa el
    script es `client_credentials` y no redirige a ninguna parte.
-3. Copia `App ID` y `Secret Key` a `.env.local`:
+3. Copia `App ID` y `Secret Key` a `.env`:
 
    ```
    MELI_CLIENT_ID=

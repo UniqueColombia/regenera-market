@@ -5,9 +5,10 @@ description: Estrategia de ramas, commits, Pull Requests y releases de Seregener
 
 # Flujo de trabajo con Git
 
-> **Por defecto manda `entrega-directa`** (sin PR, sin tag, sin correos). Esta skill
-> es el flujo completo y solo se aplica cuando Jesús pide expresamente un tag, un
-> release con notificación o un PR.
+> **Por defecto manda `entrega-directa`** (sin PR y sin correos; los cambios
+> importantes llevan tag y se despliegan con `desplegar-hostinger`). Esta skill es
+> el flujo completo y solo se aplica cuando Jesús pide expresamente un release con
+> notificación o un PR.
 
 Dos personas (Ivan `UniqueColombia`, Jesús `seiler18`), cada una con su agente,
 sobre el mismo repositorio. La estrategia existe para que **nadie rompa

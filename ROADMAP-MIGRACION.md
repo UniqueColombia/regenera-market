@@ -1110,10 +1110,11 @@ Marcar con `[x]` al terminar cada bloque (y hacer commit, para que el otro PC lo
 - [x] Confirmado que el plan de Ivan incluye Node.js (hPanel → Sitios web → *Web App*): **Business** (2026-10-16)
 - [ ] Ivan activó la renovación automática de `seregenera.com`
 - [ ] Borrado el token de API de prueba en hPanel
-- [ ] Fase 0: tag creado (`v0.11.0`, hecho) · paneles copiados · respaldo de la base · imágenes copiadas
+- [ ] Fase 0: tag creado (`v0.11.0` y `v0.11.1`, hecho; desde ahora se despliega por tag, skill `desplegar-hostinger`) · paneles copiados · respaldo de la base · imágenes copiadas
 - [ ] Fase 0, paso 7: cambio de `VERCEL_ENV` y de la página de privacidad
 - [ ] *(Futura, solo con VPS)* Vía A: A1–A5 (servidor y Supabase) · A6 (DNS y Caddy) · A7–A10 (esquema, datos, imágenes, correos) · A11–A12 (app y pruebas) · A13 (corte) · A14 (respaldos)
-- [ ] Vía B-1: B1.1–B1.5 hechos el 2026-10-16 (`seregenera.com` sirve `v0.11.0` desde Hostinger; Vercel sigue de respaldo) · falta B1.6 (ajustes)
+- [x] Fase 0, paso 5: el correo de la aplicación es `info@seregenera.com` en Hostinger, también en Supabase (2026-10-16, `docs/CORREOS.md`)
+- [ ] Vía B-1: B1.1–B1.5 hechos el 2026-10-16 (`seregenera.com` sirve la app desde Hostinger, por tag: hoy `v0.11.1`; Vercel sigue de respaldo) · B1.6: hechos *Site URL* y *Redirect URLs* de Supabase; faltan el webhook de BOLD, `latido.yml`, la página de privacidad y apagar Vercel tras ≥ 2 semanas estables
 - [ ] Documentación y hito escritos (`docs/DEPLOY.md`, `docs/ESTADO.md`, `registrar-hito`)
 
 ---
