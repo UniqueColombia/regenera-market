@@ -131,6 +131,14 @@ Supabase y decidir qué se hace con el proyecto de allá.
   2026-10-17 con producción. `mysql/logica.sql` se vuelve a crear **desde el
   servidor**, contra 127.0.0.1, y solo después se cierra el acceso remoto. En la
   base de pruebas el acceso del PC sigue abierto, así que allí no se nota.
+  Así se hizo ese día: una carpeta temporal fuera de `domains/` con `mysql2`,
+  un script que lee las `MYSQL_*` de la app de
+  `~/domains/seregenera.com/hbuilds/config/.env` (donde Hostinger guarda las
+  variables; la clave no sale del servidor), corre `logica.sql` con los
+  `AJUSTES_DE_SESION` de `conexion.ts` y lista el DEFINER de rutinas, triggers y
+  vistas; después se borra la carpeta. **Todo cambio futuro de `logica.sql` en
+  producción va por ese camino**: aplicado desde el PC volvería a quedar a
+  nombre de la cuenta remota. Hoy la base de producción no tiene acceso remoto.
 - **`BASE_DE_DATOS` vacía es Supabase**, sin error: ver `docs/VARIABLES.md`.
 - **La identidad va en variables de sesión** de la conexión. `enTransaccion`
   la fija al empezar y la borra antes de devolver la conexión; quien use
