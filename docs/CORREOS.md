@@ -1,15 +1,19 @@
-# Correos: configurar el remitente y editar las plantillas
+# Correos: el remitente y cómo editar las plantillas
 
-Guía paso a paso para **Ivan**. Está escrita para seguirla a mano y también para
-que su Claude Code la use de mapa: si le pides «guíame con `docs/CORREOS.md`», debe
-llevarte parte por parte, esperar a que confirmes cada paso y no pasar a la
-siguiente sin que la anterior esté comprobada.
+Guía paso a paso. Está escrita para seguirla a mano y también para que un Claude
+Code la use de mapa: si le pides «guíame con `docs/CORREOS.md`», debe llevarte
+parte por parte, esperar a que confirmes cada paso y no pasar a la siguiente sin
+que la anterior esté comprobada.
 
-**Meta:** que todo correo de Seregenera salga desde una cuenta de
-`@uniquecolombia` y ninguno desde el Gmail personal de Jesús.
+**Estado (2026-10-16):** todo correo de Seregenera sale de
+**`info@seregenera.com`**, un buzón del correo de Hostinger, y ninguno del Gmail
+personal de Jesús. Decisión de Jesús: reemplaza el plan anterior de esta guía
+(un remitente de Google Workspace en `@uniquecolombia.com`), que queda en el
+historial de Git.
 
 > **Nunca se pega una contraseña en un chat, en el repositorio, en un hito ni en
-> un mensaje de PR.** Va solo en los dos paneles que se nombran abajo.
+> un mensaje de PR.** Va solo en los paneles que se nombran abajo y en el `.env`
+> de cada PC.
 
 ---
 
@@ -21,36 +25,29 @@ credenciales:
 | Quién lo manda | Qué correos | Dónde viven sus credenciales | Dónde vive su texto |
 |---|---|---|---|
 | **Supabase** | Código de acceso, confirmación de registro, invitación, cambio de correo, recuperar clave, confirmar operación | Supabase → Authentication → Emails → **SMTP Settings** | Supabase → Authentication → Emails → **Templates** (copias en `plantillas-correo/`) |
-| **La aplicación** | Bienvenida, pedido recibido, postulación recibida, ofertas en revisión y publicadas, cambios de estado del pedido y aviso al proveedor | Variables `SMTP_*` en **Vercel** | `src/lib/correo/plantillas.ts` |
+| **La aplicación** | Bienvenida, pedido recibido, postulación recibida, ofertas en revisión y publicadas, cambios de estado del pedido y aviso al proveedor | Variables `SMTP_*` de la Web App en **Hostinger** (y en el `.env` de cada PC) | `src/lib/correo/plantillas.ts` |
 
 La aplicación no puede leer lo que hay en el panel de Supabase, así que las
-mismas credenciales se escriben **en los dos sitios**. Mientras falten las
-`SMTP_*` en Vercel, los correos de la aplicación **no se envían**: se escriben en
-los registros del servidor y no da ningún error. Por eso el código de acceso llega
-y la bienvenida no.
+mismas credenciales se escriben **en los dos sitios**. Si faltan las `SMTP_*`,
+los correos de la aplicación **no se envían**: se escriben en los registros del
+servidor y no da ningún error. Por eso puede llegar el código de acceso y no la
+bienvenida.
 
 ---
 
-## Parte A — Pasar el remitente a Google Workspace
+## Parte A — El remitente: `info@seregenera.com` en Hostinger
 
-### A1. En Google Workspace
+Hecho el 2026-10-16. Estos pasos sirven para rehacerlo (otro buzón, otra
+contraseña) o para comprobar que sigue bien.
 
-1. **Elige la cuenta que envía.** Mejor una dedicada, como
-   `no-responder@uniquecolombia.com`, que la de una persona. Se crea en
-   `admin.google.com` → Directorio → Usuarios. Es una cuenta real, con su buzón y
-   su licencia.
-2. **Activa la verificación en dos pasos** en esa cuenta. Sin ella Google no deja
-   crear contraseñas de aplicación. Si el administrador la tiene bloqueada, se
-   habilita en `admin.google.com` → Seguridad → Autenticación.
-3. **Genera una contraseña de aplicación.** Con esa cuenta, en
-   `myaccount.google.com/apppasswords`: nombre «Seregenera», copiar los 16
-   caracteres. **Se muestran una sola vez.**
-4. **Guárdala en un gestor de contraseñas** antes de seguir.
+### A1. El buzón
 
-Si la opción de contraseñas de aplicación no aparece, el administrador de
-Workspace la restringe: hay que permitirla, o usar un servicio transaccional
-(Resend, Brevo) en vez de Gmail. En ese caso los valores de abajo cambian por los
-que dé el servicio.
+hPanel (con el acceso de administrador a la cuenta de Ivan) → **Correos
+electrónicos** → `seregenera.com` → crear la cuenta `info@seregenera.com`. La
+contraseña la elige quien la crea y va **directo al gestor de contraseñas**.
+
+Por la API no se puede: el MCP de Hostinger no ve el correo de la cuenta de Ivan
+(`mail_orders_list` sale vacío).
 
 ### A2. En Supabase
 
@@ -58,69 +55,82 @@ que dé el servicio.
 
 | Campo | Valor |
 |---|---|
-| Host | `smtp.gmail.com` |
-| Port number | `587` |
-| Username | `no-responder@uniquecolombia.com` |
-| Password | la contraseña de aplicación de A1 |
-| Sender email | `no-responder@uniquecolombia.com` |
+| Host | `smtp.hostinger.com` |
+| Port number | `465` |
+| Username | `info@seregenera.com` |
+| Password | la del buzón |
+| Sender email | `info@seregenera.com` |
 | Sender name | `Seregenera` |
 
-El **remitente tiene que ser la misma cuenta que autentica** (o un alias verificado
-suyo): Gmail reescribe o rechaza cualquier otro `From`. Guarda. Las plantillas no
-se tocan; son configuración aparte y sobreviven al cambio.
+El **remitente tiene que ser el mismo buzón que autentica**: los servidores de
+correo reescriben o rechazan otro `From`. Las plantillas no se tocan; son
+configuración aparte y sobreviven al cambio.
 
-El aviso amarillo de Supabase («pensado para correo personal») seguirá saliendo con
-Gmail. Con Workspace el techo es de unos 2.000 correos al día, que sobra para la
-beta.
+En el mismo Supabase, `Authentication` → **URL Configuration**: *Site URL*
+`https://seregenera.com`, y `https://seregenera.com/**` en *Redirect URLs*. Sin
+eso, los enlaces de los correos llevan a otro dominio.
 
-### A3. En Vercel
+### A3. En Hostinger (la aplicación)
 
-`Settings` → `Environment Variables`, **desde el panel y no con el CLI** (el CLI
-guarda las comillas literalmente y rompe el valor):
-
-`https://vercel.com/uniquecolombias-projects/regenera-market/settings/environment-variables`
+hPanel → `seregenera.com` → **Variables de entorno**:
 
 | Variable | Valor |
 |---|---|
-| `SMTP_HOST` | `smtp.gmail.com` |
-| `SMTP_PORT` | `587` |
-| `SMTP_USER` | `no-responder@uniquecolombia.com` |
-| `SMTP_PASSWORD` | la misma contraseña de aplicación |
-| `SMTP_REMITENTE` | `Seregenera <no-responder@uniquecolombia.com>` |
+| `SMTP_HOST` | `smtp.hostinger.com` |
+| `SMTP_PORT` | `465` |
+| `SMTP_USER` | `info@seregenera.com` |
+| `SMTP_PASSWORD` | la del buzón |
+| `SMTP_REMITENTE` | `Seregenera <info@seregenera.com>` |
 
-Marca **Production y Preview** en cada una. Luego `Deployments` → el último →
-**Redeploy**: un despliegue ya hecho no toma variables nuevas.
+Se cambian **en el panel**, no con el MCP: la operación del MCP reemplaza todas
+las variables de una vez, y el agente no conoce `SMTP_PASSWORD`. No hace falta
+recompilar: estas variables se leen al arrancar, y el propio cambio reinicia la
+aplicación.
 
-### A4. Que no caigan en spam: SPF y DKIM del dominio
+En el `.env` de cada PC van los mismos valores, salvo en el de Jesús: allí Avast
+(Web/Mail Shield) intercepta el SMTP con un certificado propio, y en el 465 falla
+con «unable to verify the first certificate». Para que la app envíe desde ese PC:
+`SMTP_PORT=587` y arrancar con `NODE_OPTIONS=--use-system-ca`, que hace que Node
+confíe en la raíz de Avast instalada en Windows (ver A5).
 
-Sin esto, un correo que sale de `@uniquecolombia.com` puede llegar a la carpeta
-de spam aunque todo lo anterior esté bien. Se hace una sola vez y lo hace quien
-administre el DNS del dominio.
+### A4. Que no caigan en spam
 
-1. **DKIM.** `admin.google.com` → Aplicaciones → Google Workspace → Gmail →
-   **Autenticar correo electrónico**. Elige el dominio, *Generar nuevo registro*
-   (clave de 2048 bits) y copia el registro TXT que te da.
-2. **Publica ese TXT en el DNS** del dominio (donde esté registrado: GoDaddy,
-   Cloudflare, etc.) con el nombre que Google indica (`google._domainkey`). Espera
-   a que propague (puede tardar hasta unas horas) y vuelve a Google a pulsar
-   **Iniciar autenticación**. Tiene que decir «Autenticando correo».
-3. **SPF.** El dominio debe tener **un solo** registro TXT que empiece por
-   `v=spf1` y que incluya `include:_spf.google.com`. Si ya existe uno, se le
-   **añade** el `include`; dos registros SPF se anulan entre sí.
-4. **Comprueba:** manda un correo desde la cuenta a un Gmail personal, abre
-   «Mostrar original» y busca `SPF: PASS` y `DKIM: PASS`.
+El DNS de `seregenera.com` ya trae lo necesario para el correo de Hostinger, y se
+comprobó el 2026-10-16: `MX` a `mx1`/`mx2.hostinger.com`, un SPF
+(`v=spf1 include:_spf.mail.hostinger.com ~all`), DKIM (`hostingermail-a._domainkey`)
+y DMARC (`_dmarc`). **Debe haber un solo registro SPF**: si algún día se agrega
+otro servicio de envío, se le **añade** un `include` al que existe; dos registros
+SPF se anulan entre sí.
+
+```bash
+nslookup -type=MX seregenera.com 8.8.8.8
+nslookup -type=TXT seregenera.com 8.8.8.8
+nslookup -type=TXT _dmarc.seregenera.com 8.8.8.8
+```
 
 ### A5. Comprobar que quedó
 
-1. Regístrate en `/registro` con un correo real que no hayas usado.
+1. Regístrate en `https://seregenera.com/registro` con un correo real que no
+   hayas usado.
 2. Tiene que llegar el **código de 6 dígitos** (lo manda Supabase) **y** la
    **bienvenida** (la manda la aplicación). Si llega el código y no la bienvenida,
-   falta A3 o falta el redespliegue.
-3. En cada correo, «Mostrar original»: el remitente debe ser
-   `Seregenera <no-responder@uniquecolombia.com>` y no debe aparecer
-   `ichbinseiler@gmail.com` en ninguna parte.
-4. Si algo no llega, los registros de Vercel (Logs) dicen por qué: busca
-   `[checkout]`, `[postular-correo]` o un correo impreso en la consola.
+   falta A3.
+3. En cada correo, «Mostrar original»: remitente `Seregenera <info@seregenera.com>`,
+   `SPF: PASS` y `DKIM: PASS`, y `ichbinseiler@gmail.com` no aparece en ninguna
+   parte.
+
+Para probar solo las credenciales desde un PC, sin mandar nada (lee el `.env` y
+no imprime la contraseña):
+
+```bash
+node --use-system-ca -e '
+const fs=require("fs"),e={};for(const l of fs.readFileSync(".env","utf8").split(/\r?\n/)){const m=l.match(/^([A-Z_]+)=(.*)$/);if(m)e[m[1]]=m[2].replace(/^["\x27]|["\x27]$/g,"")}
+require("nodemailer").createTransport({host:e.SMTP_HOST,port:587,secure:false,requireTLS:true,auth:{user:e.SMTP_USER,pass:e.SMTP_PASSWORD}})
+.verify().then(()=>console.log("login OK"),x=>console.log("FALLA:",x.message))'
+```
+
+Se comprobó así el 2026-10-16, y llegaron a la bandeja de entrada (no a spam) un
+código de acceso de Supabase y un correo de prueba de la aplicación.
 
 ---
 
@@ -256,9 +266,10 @@ da error.
 
 | Síntoma | Causa casi segura |
 |---|---|
-| Llega el código pero no la bienvenida ni el pedido | Faltan las `SMTP_*` en Vercel, o no se redesplegó |
-| No llega ningún correo | Contraseña de aplicación mal copiada, o la verificación en dos pasos no está activa |
-| El remitente sigue siendo el Gmail de Jesús | Falta A2 (Supabase) o A3 (Vercel): son dos sitios distintos |
-| El logo sale como cuadro roto | `Site URL` en Supabase o `NEXT_PUBLIC_SITE_URL` en Vercel apuntan a `localhost` |
-| El correo llega a spam | Normal con Gmail; con Workspace mejora. Si persiste, configurar SPF/DKIM del dominio |
+| Llega el código pero no la bienvenida ni el pedido | Faltan las `SMTP_*` en Hostinger (A3) |
+| No llega ningún correo | Contraseña del buzón mal copiada en Supabase (A2), o el buzón se borró o cambió de clave en hPanel |
+| El remitente sigue siendo el Gmail de Jesús | Falta A2 (Supabase) o A3 (Hostinger): son dos sitios distintos |
+| El logo sale como cuadro roto | `Site URL` en Supabase o `NEXT_PUBLIC_SITE_URL` en Hostinger apuntan a `localhost` |
+| El correo llega a spam | Revisar A4: que siga habiendo un solo SPF y que DKIM dé `PASS` en «Mostrar original» |
+| En el PC de Jesús: «unable to verify the first certificate» | Avast intercepta el SMTP. Puerto `587` y `NODE_OPTIONS=--use-system-ca` (A3). Producción no pasa por Avast |
 | Cambié la plantilla y llega la vieja | Era un correo de la aplicación (se despliega) o se editó la pestaña equivocada |

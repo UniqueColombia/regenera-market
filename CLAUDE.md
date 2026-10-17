@@ -73,7 +73,7 @@ agente del otro.
 | `docs/ESTADO.md` | **Dónde estamos hoy**: qué falta, quién puede hacerlo, cómo se comprueba. Caduca — se actualiza al cerrar un bloque | Todo el que llega sin contexto |
 | `docs/ROADMAP.md` | Camino del producto por fases, con criterio de salida | Humanos y agentes |
 | `docs/BETA.md` | Cómo se ejecutan las Fases 1 y 2, bloque por bloque | Humanos y agentes |
-| `docs/DEPLOY.md` | Stack de despliegue, por qué se eligió y qué se descartó | Humanos y agentes |
+| `docs/DEPLOY.md` | Stack de despliegue (desde el 2026-10-16, Hostinger), por qué se eligió y qué se descartó | Humanos y agentes |
 | `docs/CORREOS.md` | Paso a paso para pasar el remitente a Google Workspace y editar cada plantilla de correo, la de Supabase o la de la app | Humanos y agentes |
 | `docs/IMAGENES.md` | Qué imágenes faltan, con qué prompt se generan y dónde van | Humanos y agentes |
 | `docs/NIVELES.md` | Cómo se gana el nivel de proveedor, el gemelo SQL/TS y sus trampas | Humanos y agentes |
@@ -84,7 +84,7 @@ agente del otro.
 | `.claude/agents/` | Subagentes con encargo propio. Un archivo por agente | Claude Code |
 | `.claude/hitos/` | Trazabilidad: un archivo por hito, quién y qué | Humanos y agentes |
 | `.claude/prospectos/` | CSV crudos del prospector. **No se versiona** (ver Límites duros) | Humanos |
-| `outputs/` | Entregables generados (el Excel de prospectos). **No se versiona** | Humanos |
+| `outputs/` | Entregables generados: el Excel de prospectos y, en `outputs/despliegue/`, el zip de la versión desplegada (solo el último). **No se versiona** | Humanos |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
 | `plantillas-correo/` | Copia de referencia de los correos que manda Supabase. Su HTML vive en el panel, no en el repo | Humanos |
 | `src/lib/legal.ts` · `src/lib/rutas.ts` | Datos de la sociedad y qué rutas son públicas. Los leen el pie, las páginas legales, `robots.txt` y el sitemap | Agentes |
@@ -106,7 +106,8 @@ pueden pedir a mano con `/<nombre>`.
 |---|---|
 | `acceso-y-registro` | Tocas `/entrar`, `/registro`, `paso-codigo.tsx` o `lib/auth.ts`, o cambias a dónde va alguien tras verificar un código |
 | `redaccion-producto` | Escribes o cambias cualquier texto que lee un usuario: un título, una tarjeta, un mensaje de confirmación, una etiqueta o un correo |
-| `entrega-directa` | **Siempre que vayas a commitear o empujar.** Es el flujo por defecto: llega a `staging` y `main` sin PR, sin tag y sin correos. Gana sobre `flujo-git` salvo que Jesús pida un tag o un PR |
+| `entrega-directa` | **Siempre que vayas a commitear o empujar.** Es el flujo por defecto: llega a `staging` y `main` sin PR y sin correos. Gana sobre `flujo-git` salvo que Jesús pida un PR |
+| `desplegar-hostinger` | Vas a publicar en `seregenera.com`, a crear un tag (los cambios importantes lo llevan), a tocar las variables de producción, o falla un build de Hostinger |
 | `flujo-git` | Vas a crear una rama, abrir un PR, hacer un release o resolver un conflicto. **Antes del primer commit de cualquier tarea.** |
 | `registrar-hito` | Terminaste algo que otro debería poder reconstruir sin preguntarte |
 | `dominio-regenera` | Tocas precios, comisiones, órdenes, roles o puntaje de sostenibilidad |

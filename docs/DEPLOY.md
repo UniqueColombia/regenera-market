@@ -3,7 +3,41 @@
 Decisión tomada y por qué. Si vas a cambiar de proveedor, lee primero
 "Lo que se descartó": los tres candidatos obvios ya se evaluaron.
 
-## El stack
+## El stack hoy (desde el 2026-10-16)
+
+```
+GitHub     →  código + CI (.github/workflows/ci.yml) + tags de versión
+Hostinger  →  hosting: Node.js Web App en el plan Business de Ivan, dominio,
+              SSL, CDN y el correo info@seregenera.com
+Supabase   →  Postgres + Auth + Storage (sigue en la nube: vía B-1)
+Vercel     →  respaldo, regenera-market.vercel.app; ya no es producción
+```
+
+**Producción es `https://seregenera.com`** y se despliega **por tag**: cada
+versión importante se etiqueta en `main`, se empaqueta con `git archive` y se
+sube y compila en Hostinger. El paso a paso, con sus trampas, es la skill
+`desplegar-hostinger`; el porqué y lo que falta, `ROADMAP-MIGRACION.md` y el hito
+`2026-10-16-produccion-en-hostinger.md`.
+
+Por qué salimos de Vercel: el plan Hobby no permite uso comercial, y el plan de
+Hostinger de Ivan ya existía (tiene el dominio y aloja sus otros sitios). El plan **no trae VPS**, así que la base
+se queda en Supabase (B-1) hasta que haya presupuesto para uno (vía A).
+
+Lo que cambió respecto a Vercel y hay que tener presente:
+
+- **No hay previews por rama.** Solo existe producción; `staging` se prueba en
+  local o en el respaldo de Vercel.
+- **No hay despliegue automático.** Nada llega a `seregenera.com` sin un zip
+  subido y un build lanzado.
+- **El build es `next build --webpack`**: Turbopack no compila en el entorno de
+  Hostinger (ver la skill).
+- **`VERCEL_ENV` no existe** fuera de Vercel: `BOLD_MODO_PRUEBAS` tiene que ir
+  vacía en producción (ver `docs/VARIABLES.md`).
+
+Lo que sigue en este documento es la decisión de 2026-08, **con Vercel**. Queda
+como historia: explica por qué el repositorio es público y por qué Supabase.
+
+## El stack hasta el 2026-10-16
 
 ```
 GitHub    →  código + CI (.github/workflows/ci.yml)

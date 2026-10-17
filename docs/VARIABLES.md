@@ -14,8 +14,8 @@ valores**: el repositorio es público.
 | Dónde | Qué va ahí |
 |---|---|
 | `.env` en la raíz del repo (cada PC) | Lo que necesita esa máquina. Next.js lo lee solo; Git lo ignora. **No viaja con `git pull`**: en un PC nuevo se recrea a mano con esta lista |
-| *Environment Variables* de la aplicación en Hostinger | Lo mismo, para producción (ver `ROADMAP-MIGRACION.md`, Vía B) |
-| *Environment Variables* de Vercel | Lo mismo, mientras el sitio siga allí |
+| *Variables de entorno* de la Web App en Hostinger (hPanel → `seregenera.com`) | **Producción** desde el 2026-10-16. Se cambian en el panel: la operación del MCP reemplaza el juego entero (ver la skill `desplegar-hostinger`) |
+| *Environment Variables* de Vercel | El respaldo (`regenera-market.vercel.app`), mientras siga encendido |
 | Gestor de contraseñas | La copia de seguridad de todos los valores. Sin ella, perder un PC es perder las llaves |
 
 Si una variable falta, la aplicación **degrada sola**: con todo vacío,
@@ -44,13 +44,14 @@ CI falla si aparece una con `SERVICE_ROLE`, `PRIVATE` o `SECRET`).
 | `PAGO_BANCO`, `PAGO_TIPO_CUENTA`, `PAGO_NUMERO_CUENTA`, `PAGO_NIT` | Para pagar por transferencia | Datos de la cuenta bancaria. Mismo motivo |
 | `PAGO_TITULAR` | Opcional | Si se deja vacío, la razón social de `src/lib/legal.ts` |
 | `PAGO_CORREO_COMPROBANTES` | Opcional | Si se deja vacío, el correo de contacto |
-| `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` | Para los correos de la aplicación | Los que manda la **app** (respaldo de una postulación, avisos de orden). Los correos de **acceso** no salen de aquí: los manda Supabase con su propio SMTP (Authentication → SMTP Settings). Son las mismas credenciales. Sin ellas, el correo se escribe en la consola del servidor y la acción sigue |
-| `SMTP_PORT` | Opcional | Por defecto `587` |
-| `SMTP_REMITENTE` | Opcional | Tiene que ser la cuenta que autentica o un alias verificado suyo: Gmail reescribe o rechaza cualquier otro `From`. Sin él se usa `SMTP_USER` |
+| `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` | Para los correos de la aplicación | Desde el 2026-10-16, el buzón **`info@seregenera.com`** del correo de Hostinger: `SMTP_HOST=smtp.hostinger.com`, `SMTP_USER=info@seregenera.com` y la contraseña del buzón (hPanel → Correos electrónicos; solo en el gestor y en los paneles). Son los correos que manda la **app** (bienvenida, pedidos, postulaciones, ofertas). Los de **acceso** los manda Supabase con su propio SMTP (Authentication → SMTP Settings), con las mismas credenciales. Sin ellas, el correo se escribe en la consola del servidor y la acción sigue. Ver `docs/CORREOS.md` |
+| `SMTP_PORT` | Opcional | Por defecto `587`. En producción, `465` (TLS desde el saludo, el que recomienda Hostinger). En el PC de Jesús el 465 no funciona porque Avast intercepta el SMTP: allí, `587` y arrancar con `NODE_OPTIONS=--use-system-ca` |
+| `SMTP_REMITENTE` | Opcional | `Seregenera <info@seregenera.com>`. Tiene que ser el buzón que autentica: los servidores de correo reescriben o rechazan cualquier otro `From`. Sin él se usa `SMTP_USER` |
+| `IS_WEBPACK_TEST` | **Sobra; borrarla** | Se puso en Hostinger el 2026-10-16 para forzar webpack antes de que `npm run build` llevara `--webpack`. Es un flag interno de Next, pensado para sus pruebas. Desde `v0.11.1` no hace falta, y tenerla junto al `--webpack` no da conflicto |
 | `SESION_SECRETO` | Opcional (recomendada) | Firma la cookie del reloj de inactividad (`src/lib/inactividad.ts`). Generarlo: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Sin él, la sesión sigue caducando a las 48 h pero la cookie va sin firmar y se puede falsificar. Ponerlo o cambiarlo **cierra la sesión de todos una vez** |
 | `ALMACEN_URL` | Futuro | Reservada para un almacén de imágenes propio (`src/lib/almacenamiento.ts`) |
 | `MELI_CLIENT_ID`, `MELI_CLIENT_SECRET` | Opcional | Solo para `scripts/prospectar.mts`; nada en `src/` las lee. Se registra una app gratis en developers.mercadolibre.com.co (flujo `client_credentials`). Ver la skill `prospeccion-proveedores`. Vacías, el prospector salta la señal comercial y avisa |
-| `SUPABASE_ACCESS_TOKEN` | Opcional | Token personal de Supabase (supabase.com/dashboard/account/tokens), solo para administrar la base desde una máquina (migraciones, consultas, `npx supabase`). **No** lo usa la aplicación. Es una llave de la cuenta entera, no de este proyecto |
+| `SUPABASE_ACCESS_TOKEN` | Opcional | Token personal de Supabase (supabase.com/dashboard/account/tokens), solo para administrar la base desde una máquina (migraciones, consultas, `npx supabase`, la API de administración). **No** lo usa la aplicación y **no va en Hostinger**. Es una llave de la cuenta entera, no de este proyecto. Caduca o se revoca: el 2026-10-16 el del PC de Jesús respondía 401 |
 | `PRUEBAS_PG_URL` | Opcional | Solo para `npm run test:base` contra un Postgres propio (`docs/PORTABILIDAD.md`) |
 
 ## Lo que NO va en el `.env` del proyecto
@@ -67,7 +68,7 @@ CI falla si aparece una con `SERVICE_ROLE`, `PRIVATE` o `SECRET`).
 1. Copiar a un archivo `.env` en la raíz las variables de la tabla que se vayan a
    usar (los nombres, con `=` y sin valor).
 2. Pegar los valores desde el gestor de contraseñas o desde cada panel (Supabase,
-   BOLD, Google).
+   BOLD, el correo de Hostinger).
 3. Comprobar que Git no lo ve: `git status` no debe listarlo (`.env*` está en el
    `.gitignore`).
 
