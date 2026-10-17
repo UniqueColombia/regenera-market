@@ -1116,6 +1116,7 @@ Marcar con `[x]` al terminar cada bloque (y hacer commit, para que el otro PC lo
 - [x] Fase 0, paso 5: el correo de la aplicación es `info@seregenera.com` en Hostinger, también en Supabase (2026-10-16, `docs/CORREOS.md`)
 - [ ] Vía B-1: B1.1–B1.5 hechos el 2026-10-16 (`seregenera.com` sirve la app desde Hostinger, por tag: hoy `v0.11.1`; Vercel sigue de respaldo) · B1.6: hechos *Site URL* y *Redirect URLs* de Supabase; faltan el webhook de BOLD, `latido.yml`, la página de privacidad y apagar Vercel tras ≥ 2 semanas estables
 - [ ] Documentación y hito escritos (`docs/DEPLOY.md`, `docs/ESTADO.md`, `registrar-hito`)
+- [ ] *(Pruebas, sin decisión)* Vía B-2 por etapas, con Supabase como fuente de verdad: etapa 0 (sondeo del MariaDB 11.8 de Hostinger) y etapa 1 (catálogo en espejo, solo lectura) hechas el 2026-10-17 en la rama `feat/js-espejo-mysql` · etapa 2 (escrituras sin dinero) · etapa 3 (imágenes) · etapa 4 (cuentas, órdenes, pagos y permisos). Ver el hito `2026-10-17-experimento-mysql-etapas-0-y-1.md`
 
 ---
 

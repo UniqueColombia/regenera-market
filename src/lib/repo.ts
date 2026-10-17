@@ -429,6 +429,26 @@ async function consultarOfertas(
   filters: ListingFilters,
   desdeHasta?: [number, number],
 ): Promise<{ listings: Listing[]; total: number }> {
+  // Experimento MySQL (hito 2026-10-17): la misma consulta contra el espejo
+  // del catálogo en Hostinger. Sin la variable no se ejecuta nada de esto, y el
+  // catálogo lee de Supabase como siempre.
+  if (process.env.FUENTE_CATALOGO === "mysql") {
+    const listing = (await columnas()).listing;
+    const [{ getMysql }, { consultarOfertasMysql }] = await Promise.all([
+      import("./mysql/conexion"),
+      import("./mysql/catalogo"),
+    ]);
+    const { filas, total } = await consultarOfertasMysql(getMysql(), {
+      columnas: listing,
+      filters,
+      patron: filters.q ? patron(filters.q) : undefined,
+      niveles: filters.tier ? nivelesDesde(filters.tier) : undefined,
+      conSubcategoria: Boolean(sondeo0012?.aplicada),
+      desdeHasta,
+    });
+    return { listings: (filas as unknown as FilaListing[]).map(aListing), total };
+  }
+
   const db = await createClient();
   let q = db
     .from("listings_publicos")

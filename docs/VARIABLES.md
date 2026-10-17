@@ -55,6 +55,8 @@ CI falla si aparece una con `SERVICE_ROLE`, `PRIVATE` o `SECRET`).
 | `HOSTINGER_API_KEY` | Opcional | Llave de la API de Hostinger (hPanel → perfil → API), la misma que usa el MCP. La lee `scripts/desplegar.mts` para compilar y comprobar. Da acceso a la cuenta de hosting: solo en el `.env`, **nunca** en las variables de la Web App |
 | `HOSTINGER_SSH_HOST`, `HOSTINGER_SSH_PORT` | Opcional | Solo para `scripts/desplegar.mts`, que sube el zip por SFTP. Salen de hPanel → `seregenera.com` → Avanzado → Acceso SSH (el puerto suele ser 65002). No son secretos, pero no van al repositorio: el usuario de SSH es el de hosting, y el repo es público. **No** van en Hostinger. Junto con la llave `~/.ssh/seregenera_hostinger` (o la ruta en `HOSTINGER_SSH_KEY`); cómo se crea, en la skill `desplegar-hostinger` |
 | `PRUEBAS_PG_URL` | Opcional | Solo para `npm run test:base` contra un Postgres propio (`docs/PORTABILIDAD.md`) |
+| `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` | Solo para el experimento MySQL | La base de pruebas `…_sgpruebas` de la cuenta de hosting (hPanel → Bases de datos). Desde el PC, `MYSQL_HOST` es el host remoto que muestra hPanel y la IP del PC tiene que estar autorizada en «MySQL remoto». Desde la app en Hostinger, `127.0.0.1`. La clave se generó al crear la base y solo está en el `.env`. Ver el hito `2026-10-17-experimento-mysql-etapas-0-y-1.md` |
+| `FUENTE_CATALOGO` | Experimento; **vacía en producción** | `mysql` hace que `/catalogo` lea del espejo en MySQL (`src/lib/mysql/`) en vez de Supabase. Vacía o con cualquier otro valor, el catálogo lee de Supabase como siempre |
 
 ## Lo que NO va en el `.env` del proyecto
 
