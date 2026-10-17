@@ -36,12 +36,22 @@ La guía paso a paso para cambiar el remitente y editar cada plantilla está en
 
 ---
 
-## Dónde se pegan
+## Cómo llegan al panel
 
-**Authentication → Emails → Templates**, una pestaña por plantilla.
+**Con el script, no a mano** (desde el 2026-10-17):
 
-Cada archivo trae el asunto y el cuerpo. El asunto va en *Subject heading* y el
-cuerpo en *Message body*, en el editor de HTML (no en el de texto plano).
+```bash
+node --env-file=.env scripts/plantillas-supabase.mts            # compara panel y archivos
+node --env-file=.env scripts/plantillas-supabase.mts --aplicar  # sube las distintas
+```
+
+Lee el bloque «Asunto» y el bloque «Cuerpo» de cada archivo, comprueba las
+cuatro reglas de abajo y los sube por la API de administración de Supabase.
+Necesita `SUPABASE_ACCESS_TOKEN` en el `.env` (`docs/VARIABLES.md`).
+
+Sin token, a mano: **Authentication → Emails → Templates**, una pestaña por
+plantilla. El asunto va en *Subject heading* y el cuerpo en *Message body*, en el
+editor de HTML (no en el de texto plano).
 
 ---
 

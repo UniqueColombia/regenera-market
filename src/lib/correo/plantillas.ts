@@ -1,3 +1,4 @@
+import { plazoDeEntrega } from "../envios";
 import { CONTACTO, redesActivas } from "../legal";
 import type { Mensaje } from "./tipos";
 
@@ -381,7 +382,8 @@ export function correoPedidoRecibido(d: {
   correo: string;
   referencia: string;
   totalCop: number;
-  lineas: { titulo: string; qty: number }[];
+  /** `diasMin`/`diasMax`: el plazo que declaró el vendedor, si lo declaró. */
+  lineas: { titulo: string; qty: number; diasMin?: number; diasMax?: number }[];
 }): Mensaje {
   const url = sitio();
   const pesos = new Intl.NumberFormat("es-CO", {
@@ -390,9 +392,18 @@ export function correoPedidoRecibido(d: {
     maximumFractionDigits: 0,
   }).format(d.totalCop);
 
-  const lista = d.lineas
-    .map((l) => `${l.qty} × ${escapar(l.titulo)}`)
+  // El mismo plazo que la cesta y la página del pedido (`plazoDeEntrega()`):
+  // si el correo dijera otro, el que vale para reclamar es el que se prometió
+  // en pantalla y la persona no tendría cómo saber cuál.
+  const conPlazo = d.lineas.map((l) => ({ ...l, plazo: plazoDeEntrega(l.diasMin, l.diasMax) }));
+  const lista = conPlazo
+    .map(
+      (l) =>
+        `${l.qty} × ${escapar(l.titulo)}` +
+        (l.plazo ? ` <span style="color:${APAGADO};">· llega ${escapar(l.plazo)}</span>` : ""),
+    )
     .join("<br>");
+  const hayPlazos = conPlazo.some((l) => l.plazo);
 
   const cuerpo =
     seccion(
@@ -400,13 +411,14 @@ export function correoPedidoRecibido(d: {
         p(
           `Gracias, ${escapar(d.nombre.split(" ")[0] || d.nombre)}. Tu pedido quedó registrado con la referencia <strong style="color:${TINTA};">${escapar(d.referencia)}</strong> por <strong style="color:${TINTA};">${pesos}</strong>.`,
         ) +
-        p(lista),
+        p(lista) +
+        (hayPlazos ? p("Los días hábiles se cuentan desde que confirmamos tu pago.") : ""),
     ) +
     boton(`${url}/orden/${encodeURIComponent(d.referencia)}`, "Ver mi pedido y cómo pagar") +
     separador() +
     seccion(
       p(
-        "El pago se coordina por transferencia. Usa la referencia en la descripción y te confirmamos el mismo día hábil.",
+        "En tu pedido están las formas de pagar. Si pagas con llave Bre-B o por transferencia, escribe la referencia en la descripción y te confirmamos el pago el mismo día hábil.",
       ),
     );
 
@@ -424,9 +436,11 @@ export function correoPedidoRecibido(d: {
       `Referencia: ${d.referencia}`,
       `Total: ${pesos}`,
       "",
-      ...d.lineas.map((l) => `${l.qty} × ${l.titulo}`),
+      ...conPlazo.map((l) => `${l.qty} × ${l.titulo}${l.plazo ? ` · llega ${l.plazo}` : ""}`),
+      ...(hayPlazos ? ["Los días hábiles se cuentan desde que confirmamos tu pago."] : []),
       "",
       `Ver el pedido y cómo pagar: ${url}/orden/${d.referencia}`,
+      "Si pagas con llave Bre-B o por transferencia, escribe la referencia en la descripción.",
       "",
       "— Seregenera",
     ].join("\n"),
@@ -831,6 +845,9 @@ export function correoPedidoDespachado(d: {
   titulo: string;
   transportadora?: string;
   guia?: string;
+  /** El plazo congelado en el ítem al comprar (`entrega_dias_min/max`). */
+  diasMin?: number;
+  diasMax?: number;
 }): Mensaje {
   const url = sitio();
   const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
@@ -838,6 +855,10 @@ export function correoPedidoDespachado(d: {
   const seguimiento = d.guia
     ? `Va por <strong style="color:${TINTA};">${escapar(d.transportadora ?? "transportadora")}</strong> con la guía <strong style="color:${TINTA};">${escapar(d.guia)}</strong>.`
     : "Lo lleva el propio vendedor; te contactará para coordinar la entrega.";
+  const plazo = plazoDeEntrega(d.diasMin, d.diasMax);
+  const promesa = plazo
+    ? `El vendedor se comprometió a entregarlo ${plazo} desde que se confirmó tu pago.`
+    : undefined;
 
   const cuerpo =
     seccion(
@@ -846,6 +867,7 @@ export function correoPedidoDespachado(d: {
           `${nombre}, <strong style="color:${TINTA};">${escapar(d.titulo)}</strong> de tu pedido <strong style="color:${TINTA};">${escapar(d.referencia)}</strong> ya salió.`,
         ) +
         p(seguimiento) +
+        (promesa ? p(escapar(promesa)) : "") +
         p("Cuando te llegue, márcalo como recibido desde tu pedido y cuéntanos qué tal te pareció."),
     ) + boton(enlace, "Ver mi pedido");
 
@@ -860,6 +882,7 @@ export function correoPedidoDespachado(d: {
       d.guia
         ? `Transportadora: ${d.transportadora ?? "—"} · Guía: ${d.guia}`
         : "Lo lleva el propio vendedor; te contactará para coordinar la entrega.",
+      ...(promesa ? [promesa] : []),
       "",
       `Ver mi pedido: ${enlace}`,
       "",
