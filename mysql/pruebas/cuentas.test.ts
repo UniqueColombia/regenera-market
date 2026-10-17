@@ -263,7 +263,8 @@ describe.skipIf(!HAY_MYSQL)("cuentas propias en MariaDB", () => {
       const yo = await cuenta();
       const token = await abrirSesion(db, yo.id);
       await pedirCodigo(db, yo.email, "acceso");
-      await db.insertInto("user_roles").values({ user_id: yo.id, role: "buyer" }).execute();
+      // El de comprador lo puso la base al crear la cuenta (handle_new_user); este, a mano.
+      await db.insertInto("user_roles").values({ user_id: yo.id, role: "provider" }).execute();
       await borrarCuenta(db, yo.id);
       expect(await leerSesion(db, token)).toBeNull();
       expect(await db.selectFrom("codigos").select("id").where("email", "=", yo.email).execute()).toHaveLength(0);

@@ -2,6 +2,7 @@ import { createClient } from "./supabase/server";
 import { createAdminClient } from "./supabase/admin";
 import { isSupabaseConfigured } from "./supabase/config";
 import { AlmacenDisco, nombreDeArchivo } from "./almacen-disco";
+import { modoMysql } from "./modo";
 
 /**
  * Dónde se guardan las imágenes que sube la gente.
@@ -176,14 +177,20 @@ class AlmacenSupabase implements AlmacenDeImagenes {
 /**
  * Quién guarda hoy.
  *
- * Un solo sitio decide. Con `ALMACEN_CARPETA`, el disco del servidor
- * (experimento MySQL, `almacen-disco.ts`); si no, Supabase Storage. La app
- * degrada sola si falta la credencial, y nunca lanza al importarse por una
- * variable ausente: eso tumbaría el build en un entorno donde el almacén
+ * Un solo sitio decide. En el modo MySQL (`src/lib/modo.ts`), el disco del
+ * servidor (`almacen-disco.ts`, con `ALMACEN_CARPETA`); si no, Supabase
+ * Storage. **`ALMACEN_CARPETA` sin el modo MySQL no hace nada**, a propósito: con
+ * los datos en Supabase, una foto guardada en el disco de un PC quedaría con su
+ * URL en la base de producción, rota para todos los demás.
+ *
+ * La app degrada sola si falta la credencial, y nunca lanza al importarse por
+ * una variable ausente: eso tumbaría el build en un entorno donde el almacén
  * todavía no aplique.
  */
 export function getAlmacen(): AlmacenDeImagenes {
-  if (process.env.ALMACEN_CARPETA) return new AlmacenDisco(process.env.ALMACEN_CARPETA);
+  if (modoMysql()) {
+    return process.env.ALMACEN_CARPETA ? new AlmacenDisco(process.env.ALMACEN_CARPETA) : new SinAlmacen();
+  }
   if (isSupabaseConfigured()) return new AlmacenSupabase();
   return new SinAlmacen();
 }

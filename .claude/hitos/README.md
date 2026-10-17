@@ -60,3 +60,4 @@ referencie al anterior.
 | 2026-10-17 | [El MySQL de Hostinger sirve, y el catálogo sale igual leyéndolo de un espejo](2026-10-17-experimento-mysql-etapas-0-y-1.md) | Jesús Seiler | — (pruebas de la vía B-2) |
 | 2026-10-17 | [Las ofertas se escriben en MariaDB con los mismos permisos, y las fotos salen del disco](2026-10-17-experimento-mysql-etapas-2-y-3.md) | Jesús Seiler | — (pruebas de la vía B-2) |
 | 2026-10-17 | [Todo funciona dentro de Hostinger, y hay cuentas propias sin Supabase Auth](2026-10-17-experimento-mysql-etapa-4a-cuentas.md) | Jesús Seiler | — (pruebas de la vía B-2) |
+| 2026-10-17 | [La app entera corre sobre el MariaDB de Hostinger, detrás de un interruptor](2026-10-17-modo-mysql-completo.md) | Jesús Seiler | — (vía B-2: etapas 4b a 4f) |

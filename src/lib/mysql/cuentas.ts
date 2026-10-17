@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from "node:crypto";
+import { compare as compararBcrypt } from "bcryptjs";
 import { sql, type Kysely } from "kysely";
 import { INACTIVIDAD_HORAS, REFRESCO_ACTIVIDAD_SEGUNDOS, VIDA_MAXIMA_DIAS } from "../inactividad";
 import type { BaseMysql } from "./esquema";
@@ -20,7 +21,7 @@ import type { BaseMysql } from "./esquema";
  *   parámetros, para poder subirlos mañana sin invalidar las de hoy.
  * - **Un token de sesión nunca se guarda**: se guarda su sha256. Quien lea la
  *   tabla `sesiones` no puede usar ninguna.
- * - **Un código vale una vez, 15 minutos, 5 intentos**, y solo el último que se
+ * - **Un código vale una vez, una hora, 5 intentos**, y solo el último que se
  *   pidió para ese correo. Pedirlos tiene ritmo, contado en la base (no en la
  *   memoria del proceso, como `src/lib/ritmo.ts`): es exacto aunque haya
  *   varios procesos o un reinicio.
@@ -30,8 +31,12 @@ import type { BaseMysql } from "./esquema";
  *   `ritmo.ts` en la acción, como hoy.
  */
 
-/** Cuánto vive un código. Supabase usa una hora por defecto; con seis dígitos, menos es mejor. */
-export const CODIGO_MINUTOS = 15;
+/**
+ * Cuánto vive un código. Una hora, como en Supabase, porque **los correos lo dicen**
+ * («vence en una hora», `plantillas-correo/01` y `02`): si se acorta, se cambian
+ * las plantillas en el mismo commit.
+ */
+export const CODIGO_MINUTOS = 60;
 /** Cuántas veces se puede probar un código antes de que deje de servir. */
 export const INTENTOS_POR_CODIGO = 5;
 /** Cuántos códigos se le mandan a un correo en una hora. */
@@ -65,7 +70,14 @@ export async function cifrarClave(clave: string): Promise<string> {
   return `scrypt$${N}$${r}$${p}$${sal.toString("base64url")}$${hash.toString("base64url")}`;
 }
 
+/**
+ * ¿Es esta la contraseña? Acepta los dos formatos que puede haber en `usuarios`:
+ * el scrypt propio y el **bcrypt de Supabase** (`$2a$…`), que es como llegan las
+ * cuentas copiadas de allá (`scripts/mysql/copiar-datos.mts`). `comprobarClave()`
+ * cambia el bcrypt por scrypt la primera vez que la contraseña entra bien.
+ */
 export async function verificarClave(clave: string, guardada: string): Promise<boolean> {
+  if (/^\$2[aby]\$/.test(guardada)) return compararBcrypt(clave, guardada);
   const [algoritmo, N, r, p, sal, hash] = guardada.split("$");
   if (algoritmo !== "scrypt" || !hash) return false;
   const esperado = Buffer.from(hash, "base64url");
@@ -143,6 +155,7 @@ export async function comprobarClave(
   relleno ??= cifrarClave(randomBytes(16).toString("hex"));
   const valida = await verificarClave(clave, cuenta?.clave ?? (await relleno));
   if (!cuenta?.clave || !valida) return { ok: false };
+  if (!cuenta.clave.startsWith("scrypt$")) await cambiarClave(db, cuenta.id, clave);
   return { ok: true, usuarioId: cuenta.id, confirmada: Boolean(cuenta.correo_confirmado_at) };
 }
 
@@ -196,7 +209,7 @@ export async function pedirCodigo(
   correo: string,
   proposito: Proposito,
 ): Promise<
-  | { ok: true; codigo: string }
+  | { ok: true; codigo: string; id: string }
   | { ok: false; motivo: "sin-cuenta" | "ya-confirmada" }
   | { ok: false; motivo: "espera"; segundos: number }
   | { ok: false; motivo: "demasiados" }
@@ -233,7 +246,23 @@ export async function pedirCodigo(
       vence_at: sql<string>`now(6) + interval ${CODIGO_MINUTOS} minute`,
     })
     .execute();
-  return { ok: true, codigo };
+  return { ok: true, codigo, id };
+}
+
+/**
+ * El enlace del correo (`/auth/callback?token_hash=…`) trae el id del código y el
+ * código: `<id>.<código>`. Vale lo mismo que escribirlo, con las mismas reglas.
+ */
+export async function verificarEnlace(
+  db: Kysely<BaseMysql>,
+  tokenHash: string,
+): ReturnType<typeof verificarCodigo> {
+  const [id, codigo] = tokenHash.split(".");
+  const fila = id && codigo
+    ? await db.selectFrom("codigos").select("email").where("id", "=", id).executeTakeFirst()
+    : undefined;
+  if (!fila) return { ok: false, motivo: "invalido" };
+  return verificarCodigo(db, fila.email, codigo);
 }
 
 /**
@@ -296,6 +325,40 @@ export interface Cuenta {
   tieneClave: boolean;
   confirmada: boolean;
   metadatos: Record<string, unknown>;
+  creadaAt: string;
+  confirmadaAt: string | null;
+  ultimoAccesoAt: string | null;
+}
+
+/** La cuenta con ese id, sin sesión de por medio (para `auth.admin.getUserById`). */
+export async function leerCuenta(db: Kysely<BaseMysql>, usuarioId: string): Promise<Cuenta | null> {
+  const fila = await db
+    .selectFrom("usuarios")
+    .select(["id", "email", "clave", "correo_confirmado_at", "metadatos", "creado_at", "ultimo_acceso_at"])
+    .where("id", "=", usuarioId)
+    .executeTakeFirst();
+  return fila ? aCuenta(fila) : null;
+}
+
+function aCuenta(f: {
+  id: string;
+  email: string;
+  clave: string | null;
+  correo_confirmado_at: string | null;
+  metadatos: Record<string, unknown>;
+  creado_at: string;
+  ultimo_acceso_at: string | null;
+}): Cuenta {
+  return {
+    id: f.id,
+    email: f.email,
+    tieneClave: f.clave !== null,
+    confirmada: f.correo_confirmado_at !== null,
+    metadatos: f.metadatos,
+    creadaAt: f.creado_at,
+    confirmadaAt: f.correo_confirmado_at,
+    ultimoAccesoAt: f.ultimo_acceso_at,
+  };
 }
 
 /** Abre una sesión y devuelve el token para la cookie. Es la única vez que el token existe en claro. */
@@ -330,6 +393,8 @@ export async function leerSesion(db: Kysely<BaseMysql>, token: string | undefine
       "usuarios.clave",
       "usuarios.correo_confirmado_at",
       "usuarios.metadatos",
+      "usuarios.creado_at",
+      "usuarios.ultimo_acceso_at",
       sql<number>`sesiones.vista_at > now(6) - interval ${INACTIVIDAD_HORAS} hour
               and sesiones.creada_at > now(6) - interval ${VIDA_MAXIMA_DIAS} day`.as("viva"),
       sql<number>`timestampdiff(second, sesiones.vista_at, now(6))`.as("quieta"),
@@ -344,13 +409,7 @@ export async function leerSesion(db: Kysely<BaseMysql>, token: string | undefine
   if (Number(fila.quieta) >= REFRESCO_ACTIVIDAD_SEGUNDOS) {
     await db.updateTable("sesiones").set({ vista_at: sql`now(6)` }).where("token_hash", "=", hash).execute();
   }
-  return {
-    id: fila.id,
-    email: fila.email,
-    tieneClave: fila.clave !== null,
-    confirmada: fila.correo_confirmado_at !== null,
-    metadatos: fila.metadatos,
-  };
+  return aCuenta(fila);
 }
 
 /** Cierra esta sesión y ninguna otra: el `signOut({ scope: "local" })` de hoy. */
