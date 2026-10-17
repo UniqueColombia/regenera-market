@@ -4,10 +4,31 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-10-14
-- **Producción:** `main` → **https://regenera-market.vercel.app**, con las
-  migraciones hasta la `0020` **aplicadas** (Jesús, 2026-10-14). La `0021` y la
-  `0022` están escritas y probadas, **sin aplicar** (ver abajo).
+- **Corte:** 2026-10-14 · **actualizado el 2026-10-16** solo en lo de
+  producción y correo (ver el recuadro de abajo)
+- **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
+  desplegado **por tag** (hoy `v0.11.1`) con la skill `desplegar-hostinger`.
+  `https://regenera-market.vercel.app` sigue encendido como respaldo. La base es
+  la misma (Supabase), con las migraciones hasta la `0020` **aplicadas** (Jesús,
+  2026-10-14). La `0021` y la `0022` están escritas y probadas, **sin aplicar**
+  (ver abajo).
+
+> ## 🟢 Nuevo del 2026-10-16: producción en Hostinger y correo propio
+>
+> - `seregenera.com` sirve la app desde la Web App de Node.js del plan Business
+>   de Ivan. Se despliega por tag: `v0.11.0` (primera) y `v0.11.1` (build con
+>   webpack, Next 16.3.8 y las 14 vulnerabilidades que marcaba Hostinger
+>   corregidas). Cómo, en `desplegar-hostinger`; por qué, en
+>   [el hito](../.claude/hitos/2026-10-16-produccion-en-hostinger.md).
+> - **Todo correo sale de `info@seregenera.com`** (correo de Hostinger), tanto
+>   los de Supabase como los de la app. Comprobado: llegan a la bandeja de
+>   entrada. Ver `docs/CORREOS.md`.
+> - **Falta**, en este orden: la página de privacidad (nombra a Vercel como
+>   encargado, y es una obligación legal), `APP_ENV` en lugar de `VERCEL_ENV` en
+>   `src/lib/payments.ts` **antes** de encender BOLD en Hostinger, las variables
+>   de pago (BOLD y `PAGO_*`, puntos 2 y 4 de la tabla de abajo) y el webhook de
+>   BOLD a `https://seregenera.com/api/webhooks/bold`. Lista completa en
+>   `ROADMAP-MIGRACION.md`, B1.6.
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
   empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.
@@ -27,10 +48,10 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > | # | Qué | Qué necesitamos | Dónde se pone | Mientras tanto |
 > |---|---|---|---|---|
 > | 1 | **Redes de Seregenera** en el pie, en los correos y en los datos de la portada | La URL de cada perfil que exista (Instagram, Facebook, LinkedIn, TikTok, YouTube, WhatsApp `https://wa.me/57…`) | `REDES` en `src/lib/legal.ts` — no es secreto, va en el código | Desde el 2026-10-15 los íconos se ven igual (pie, «Síguenos» del encabezado, menú del teléfono), marcados «pronto» y sin enlace; el `sameAs` y los correos siguen sin redes |
-> | 2 | **Pago en línea con BOLD** (tarjeta, PSE, Nequi, Botón Bancolombia) | Cuenta de comercio en BOLD y sus dos llaves del **Botón de pagos** (identidad y secreta); las de pruebas para Preview. Revisar en su panel los montos máximos por medio de pago | Vercel: `BOLD_LLAVE_IDENTIDAD` y `BOLD_LLAVE_SECRETA` (Production; en Preview las de pruebas y `BOLD_MODO_PRUEBAS=1`). En el panel de BOLD, el webhook `https://regenera-market.vercel.app/api/webhooks/bold` | El pedido ofrece solo llave Bre-B y transferencia |
+> | 2 | **Pago en línea con BOLD** (tarjeta, PSE, Nequi, Botón Bancolombia) | Cuenta de comercio en BOLD y sus dos llaves del **Botón de pagos** (identidad y secreta); las de pruebas para Preview. Revisar en su panel los montos máximos por medio de pago | Variables de la Web App en Hostinger: `BOLD_LLAVE_IDENTIDAD` y `BOLD_LLAVE_SECRETA` (las de producción; `BOLD_MODO_PRUEBAS` **vacía**: fuera de Vercel no se protege sola). En el panel de BOLD, el webhook `https://seregenera.com/api/webhooks/bold` | El pedido ofrece solo llave Bre-B y transferencia |
 > | 3 | **Al encender BOLD**, los términos | Revisar el texto | «Pedidos, pago y entrega» en `src/app/terminos/page.tsx` y `VIGENCIA_TERMINOS` en `src/lib/legal.ts` | Dicen que el pago se coordina por transferencia, que hoy es cierto |
-> | 4 | **Llave Bre-B y cuenta bancaria** para pagar sin pasarela | La llave de la cuenta de la sociedad; banco, tipo y número de cuenta, titular y NIT | Vercel: `PAGO_LLAVE_BREB`, `PAGO_BANCO`, `PAGO_TIPO_CUENTA`, `PAGO_NUMERO_CUENTA`, `PAGO_TITULAR`, `PAGO_NIT` (y `PAGO_CORREO_COMPROBANTES` si no es el de contacto). **No en el código**: el repo es público | El pedido dice «escríbenos y te mandamos los datos» |
-> | 5 | **Las `SMTP_*`** (ya pendiente, ver «Para Ivan» más abajo) | — | Vercel | Además de lo de siempre, **no sale ningún correo de «Contactar proveedores»**: la pantalla lo avisa y deja invitar por WhatsApp |
+> | 4 | **Llave Bre-B y cuenta bancaria** para pagar sin pasarela | La llave de la cuenta de la sociedad; banco, tipo y número de cuenta, titular y NIT | Variables de la Web App en Hostinger: `PAGO_LLAVE_BREB`, `PAGO_BANCO`, `PAGO_TIPO_CUENTA`, `PAGO_NUMERO_CUENTA`, `PAGO_TITULAR`, `PAGO_NIT` (y `PAGO_CORREO_COMPROBANTES` si no es el de contacto). **No en el código**: el repo es público | El pedido dice «escríbenos y te mandamos los datos» |
+> | 5 | ~~**Las `SMTP_*`**~~ ✅ **Hecho el 2026-10-16**: `info@seregenera.com` en Hostinger y en Supabase (`docs/CORREOS.md`) | — | Hostinger y Supabase | En Vercel (el respaldo) siguen sin `SMTP_*` |
 > | 6 | **A qué buzón llegan las respuestas** a las invitaciones | Confirmar que es `CONTACTO.correo` (hoy el Gmail de la sociedad) o dar otro | `CONTACTO` en `src/lib/legal.ts` | Llegan a ese Gmail |
 > | 7 | **El texto de la invitación** | Leerlo y ajustarlo | `TEXTOS` en `src/lib/prospectos.ts` (también se edita antes de cada envío) | Sale el que está |
 > | 8 | **Convenio con Aveonline** (o la transportadora que sea) | Si su API cotiza por peso, medidas y destino | Una implementación detrás de `envioDeLinea()` (skill `nueva-integracion`) | Cada proveedor declara su tarifa local, nacional y por unidad |
@@ -190,16 +211,12 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > **[`docs/CORREOS.md`](CORREOS.md)**. Pídele a tu Claude: «guíame con
 > `docs/CORREOS.md`». En orden:
 >
-> 1. **Remitente de Google Workspace** (parte A1): cuenta `@uniquecolombia`,
->    verificación en dos pasos y contraseña de aplicación.
-> 2. **Ponerlo en Supabase** (A2) y **en Vercel** (A3, las cinco `SMTP_*`, en
->    Production y Preview) y **redesplegar**. Sin las `SMTP_*` no sale ningún correo
->    de la aplicación: ni bienvenida, ni pedido, ni los avisos de ofertas.
-> 3. **SPF y DKIM del dominio** (A4), para que no caigan en spam.
-> 4. **Probar** (A5): registrarse con un correo real y mirar el remitente.
-> 5. **Pasar por las seis pestañas de plantillas** de Supabase (lista al
+> 1. ~~Remitente, Supabase, variables, SPF/DKIM y prueba (parte A)~~ ✅ **Hecho
+>    por Jesús el 2026-10-16** con `info@seregenera.com` en Hostinger, en lugar
+>    de Google Workspace. Ya no hace falta la cuenta `@uniquecolombia`.
+> 2. **Pasar por las seis pestañas de plantillas** de Supabase (lista al
 >    principio de la parte B) y pegar la que siga en su texto de fábrica.
-> 6. **Probar los cuatro correos nuevos** de ofertas y pedidos con cuentas reales
+> 3. **Probar los cuatro correos nuevos** de ofertas y pedidos con cuentas reales
 >    (parte C): oferta a revisión, oferta publicada, cambio de estado del pedido y
 >    aviso al proveedor al confirmar el pago.
 >
@@ -820,8 +837,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 misma pasada. Los correos no se escriben aquí: el repositorio es público.
 
 ```bash
-node --env-file=.env.local scripts/crear-admin.mts --listar
-node --env-file=.env.local scripts/crear-admin.mts correo@ejemplo.com --nombre "Nombre Apellido" --avisar
+node --env-file=.env scripts/crear-admin.mts --listar
+node --env-file=.env scripts/crear-admin.mts correo@ejemplo.com --nombre "Nombre Apellido" --avisar
 ```
 
 **El arranque en frío era real y ahora está roto por diseño, no por accidente.**
