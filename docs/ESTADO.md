@@ -5,15 +5,35 @@ medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
 - **Corte:** 2026-10-14 · **actualizado el 2026-10-16** en producción y
-  correo, y **el 2026-10-17** en correos, legales, envíos y pagos (los dos
-  primeros recuadros de abajo)
+  correo, y **el 2026-10-17** en correos, legales, envíos, pagos y la base de
+  datos (los tres primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.11.3`) con la skill `desplegar-hostinger`;
-  desde el 2026-10-17, con un comando: `scripts/desplegar.mts`.
-  `https://regenera-market.vercel.app` sigue encendido como respaldo. La base es
-  la misma (Supabase), con las migraciones hasta la `0020` **aplicadas** (Jesús,
-  2026-10-14). La `0021` y la `0022` están escritas y probadas, **sin aplicar**
-  (ver abajo).
+  desplegado **por tag** (hoy `v0.12.0`) con la skill `desplegar-hostinger`;
+  desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
+  2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
+  el primer recuadro). Supabase quedó congelado con los datos de ese día, con
+  todas las migraciones aplicadas (también la `0021` y la `0022`, comprobado
+  el 2026-10-17), y es la vuelta atrás. `https://regenera-market.vercel.app`
+  sigue encendido, pero contra Supabase: ya no es un respaldo de producción.
+
+> ## 🟢 Nuevo del 2026-10-17 (noche): producción sobre el MariaDB de Hostinger
+>
+> Pedido de Jesús, tras probar el login en local. El detalle, en
+> [el hito](../.claude/hitos/2026-10-17-produccion-sobre-mariadb.md); cómo
+> funciona, en `docs/MODO-MYSQL.md`.
+>
+> - `seregenera.com` lee y escribe en una base propia de producción
+>   (`…_seregenera`): datos, cuentas, sesiones y fotos (en
+>   `~/seregenera-archivos`). Copia de Supabase del 2026-10-17, fila por fila.
+> - **Volver atrás:** borrar `BASE_DE_DATOS` en hPanel. Lo escrito en MySQL
+>   desde el corte no vuelve.
+> - **Falta, Jesús:** recorrer en producción la lista «Qué probar» de
+>   `docs/MODO-MYSQL.md` (con sesión iniciada y correos, que no se probaron).
+>   Todos vuelven a entrar una vez; las contraseñas siguen sirviendo.
+> - **Falta, los dos:** decidir cómo se cambia el esquema ahora que
+>   `supabase/migrations/` no es la fuente, y apagar el Vercel de respaldo.
+> - **Nunca** correr `copiar-datos.mts` contra la base de producción: rehace el
+>   esquema y borra lo escrito desde el corte.
 
 > ## 🟢 Nuevo del 2026-10-17: plantillas subidas, legales al día y el modelo de pago al proveedor
 >
@@ -113,7 +133,10 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > | 12 | **Envíos por cantidad y liquidación al proveedor** | Las decisiones de `docs/ENVIOS-Y-PAGOS.md` | — | Nada programado |
 > | 13 | **La foto del remitente** (BIMI) | Dos registros DNS en hPanel: el dominio está en su cuenta y el MCP no lo ve. Y decidir si se paga el certificado para Gmail | `docs/CORREOS.md`, parte D2 | Sale la inicial; Jesús puede hacer la D1 (cuenta de Google) sin Ivan |
 
-> ## 🔴 Nuevo del 2026-10-14 (noche): aplicar la `0021` y la `0022`, en ese orden
+> ## ✅ Del 2026-10-14 (noche): aplicar la `0021` y la `0022`, en ese orden
+>
+> **Hecho:** las dos están en Supabase (comprobado el 2026-10-17 en
+> `information_schema`) y, traducidas, en el MariaDB de producción.
 >
 > **Juntas y en orden**: la `0022` usa la columna de la `0021` y redefine su
 > función de cierre.
@@ -1011,14 +1034,13 @@ enseñarle ese panel.
 
 ### 4. Mudarse a servidor propio, y dejar de depender de Supabase
 
-> **2026-10-17 — hay una salida sin VPS, hecha y probada, sin encender.** El
-> **modo MySQL** (`docs/MODO-MYSQL.md`, rama `feat/js-espejo-mysql`) corre la app
-> entera sobre el MariaDB del plan de Hostinger: datos, cuentas propias (sin
-> Supabase Auth), las 58 políticas RLS y los 25 triggers traducidos, y las fotos
-> en disco. Las 79 páginas públicas salen iguales que con Supabase y pasan 73
-> pruebas contra la base. **Producción sigue con Supabase**: falta que Jesús lo
-> pruebe como usuario (`npm run dev:mysql`) y decidir el corte. Lo de abajo es
-> el análisis de la vía A (VPS), que sigue valiendo si se elige esa.
+> **2026-10-17 — hecho por la salida sin VPS, y encendido.** El **modo MySQL**
+> (`docs/MODO-MYSQL.md`) corre la app entera sobre el MariaDB del plan de
+> Hostinger: datos, cuentas propias (sin Supabase Auth), las 58 políticas RLS y
+> los 25 triggers traducidos, y las fotos en disco. **Producción lo usa desde el
+> 2026-10-17** (`v0.12.0`, hito `2026-10-17-produccion-sobre-mariadb.md`). Lo de
+> abajo es el análisis de la vía A (VPS), que sigue valiendo si algún día se
+> elige esa.
 
 **Decidido, sin fecha: arranca cuando Ivan compre el VPS de Hostinger.** El
 destino es que todo lo que hoy vive en Vercel y Supabase corra en una máquina
