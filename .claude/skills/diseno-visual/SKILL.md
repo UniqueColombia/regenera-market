@@ -147,6 +147,7 @@ compite con el producto. Lo que ya existe, y dónde:
 | Un desplegable, un aviso, un pulso | `animate-desplegar`, `animate-aviso`, `animate-latido` (tema en `globals.css`) |
 | Los bloques de una pantalla de la cuenta o de un formulario | `<Tarjeta i={n}>` (`src/components/tarjeta.tsx`): brotan en orden al cargar y se iluminan mientras se escribe dentro |
 | Que una pantalla de la cuenta o un formulario tenga el tema del sitio | `<FondoBotanico>`: velo verde, bosque que se mece y pocas hojas, solo en la cabecera. La página se envuelve en `relative isolate` |
+| La pantalla de entrar o de crear cuenta | `<MarcoAcceso>` (`src/components/marco-acceso.tsx`): a lo ancho en escritorio, el texto a la izquierda y el formulario en su `Tarjeta` a la derecha, delante del bosque. En el teléfono, una columna |
 
 Reglas, cada una con su porqué en el hito
 [heros vivos](../../hitos/2026-10-03-heros-vivos-y-movimiento-tematico.md):
