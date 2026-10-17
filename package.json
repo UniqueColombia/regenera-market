@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run --project unidad",
     "test:base": "vitest run --project base",
-    "test:todo": "vitest run"
+    "test:todo": "vitest run",
+    "test:mysql": "vitest run --project mysql"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

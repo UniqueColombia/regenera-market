@@ -30,7 +30,11 @@ export interface ConsultaCatalogo {
   desdeHasta?: [number, number];
 }
 
-/** Las columnas que en Postgres eran arreglos y aquí son `json`. MariaDB las entrega como texto. */
+/**
+ * Las columnas que en Postgres eran arreglos y aquí son `json`. mysql2 ya las
+ * entrega como arreglo; si un servidor o un driver distinto las mandara como
+ * texto, se parsean aquí y `aListing()` no se entera.
+ */
 const COLUMNAS_JSON = new Set(["verticals", "images", "certifications", "includes", "scope"]);
 
 /**

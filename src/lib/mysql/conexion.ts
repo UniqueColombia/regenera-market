@@ -24,6 +24,9 @@ import type { BaseMysql } from "./esquema";
 export const AJUSTES_DE_SESION =
   "set session sql_mode = 'STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION', time_zone = '+00:00'";
 
+/** Cada conexión que entrega el pool empieza sin identidad: para la base, un visitante. */
+export const SIN_IDENTIDAD = "set @app_usuario = null, @app_rol = null";
+
 export function opcionesMysql(): PoolOptions {
   const faltan = ["MYSQL_HOST", "MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD"].filter(
     (v) => !process.env[v],
@@ -68,6 +71,14 @@ export function nuevaBaseMysql(): Kysely<BaseMysql> {
       pool: createPool(opcionesMysql()),
       onCreateConnection: async (conexion) => {
         await conexion.executeQuery(CompiledQuery.raw(AJUSTES_DE_SESION));
+      },
+      // Quién escribe lo dicen variables de sesión (`comoUsuario()` de
+      // `ofertas.ts`), y una variable de sesión sobrevive a la devolución de
+      // la conexión al pool. Sin este borrado, la siguiente petición que
+      // tomara esa conexión heredaría la identidad de la anterior, admin
+      // incluido.
+      onReserveConnection: async (conexion) => {
+        await conexion.executeQuery(CompiledQuery.raw(SIN_IDENTIDAD));
       },
     }),
   });

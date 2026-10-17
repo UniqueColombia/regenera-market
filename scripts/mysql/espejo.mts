@@ -8,7 +8,7 @@
  * **Una sola dirección.** Lee Supabase con la llave *anónima* —lo mismo que ve
  * cualquier visitante de seregenera.com, a través de RLS— y escribe en MySQL.
  * Nunca escribe en Supabase, y al espejo no llega nada que no sea ya público.
- * Cada corrida borra el espejo y lo rehace con `mysql/espejo-catalogo.sql`.
+ * Cada corrida borra el espejo y lo rehace con los archivos de `ESQUEMA`.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -25,9 +25,15 @@ import {
 
 const raiz = join(import.meta.dirname, "..", "..");
 
+/**
+ * En este orden: `espejo-catalogo.sql` borra `listings`, y con ella los
+ * triggers que pone `permisos-de-ofertas.sql`.
+ */
+const ESQUEMA = ["espejo-catalogo.sql", "permisos-de-ofertas.sql"];
+
 /** Lo que se copia de cada tabla: lo que tiene `espejo-catalogo.sql`, menos las columnas generadas. */
 const TABLAS = {
-  providers: ["id", "slug", "name", "status", "sustainability_score", "tier"],
+  providers: ["id", "slug", "name", "status", "sustainability_score", "tier", "sustainability_verified_at"],
   listings: [
     "id", "slug", "provider_id", "kind", "title", "summary", "description", "category",
     "verticals", "images", "price_cop", "wholesale_price_cop", "wholesale_min_qty", "unit",
@@ -137,7 +143,9 @@ async function main(): Promise<number> {
   const con = await mysql.createConnection({ ...opcionesMysql(), multipleStatements: true });
   try {
     await con.query(AJUSTES_DE_SESION);
-    await con.query(readFileSync(join(raiz, "mysql", "espejo-catalogo.sql"), "utf8"));
+    // El `postgres` de los scripts: los triggers de permisos no lo frenan.
+    await con.query("set @app_rol = 'servicio', @app_usuario = null");
+    for (const archivo of ESQUEMA) await con.query(readFileSync(join(raiz, "mysql", archivo), "utf8"));
     for (const [tabla, columnas] of Object.entries(TABLAS)) {
       const filas = datos[tabla as keyof typeof TABLAS];
       for (let i = 0; i < filas.length; i += 200) {

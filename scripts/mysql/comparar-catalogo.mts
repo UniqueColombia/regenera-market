@@ -104,7 +104,40 @@ async function main(): Promise<number> {
   console.log(
     `\nTiempo de /catalogo (mediana de ${CASOS.length}): Supabase ${mediana(tiempos.supabase)} ms · MySQL ${mediana(tiempos.mysql)} ms`,
   );
-  console.log(fallos ? `${fallos} de ${CASOS.length} casos distintos.` : `Los ${CASOS.length} casos, idénticos.`);
+
+  // Etapa 3: si el servidor de MySQL corre con `ALMACEN_CARPETA` y ya pasó
+  // `imagenes.mts`, sus fotos salen de `/archivos/…`, del propio dominio.
+  const html = await (await fetch(`${mysql}/catalogo`)).text();
+  // Una por foto: el srcset trae la misma en varios anchos.
+  const porFoto = new Map<string, string>();
+  for (const m of html.matchAll(/\/_next\/image\?url=(%2Farchivos%2F[^&"]+)&amp;w=\d+&amp;q=\d+/g)) {
+    if (!porFoto.has(m[1])) porFoto.set(m[1], m[0].replaceAll("&amp;", "&"));
+  }
+  const optimizadas = [...porFoto.values()];
+  let fallosImagen = 0;
+  if (optimizadas.length) {
+    console.log(`\n▸ Imágenes desde el disco (${optimizadas.length} en la página)`);
+    for (const ruta of optimizadas) {
+      const original = decodeURIComponent(/url=([^&]+)/.exec(ruta)![1]);
+      const [directa, optimizada] = await Promise.all([fetch(`${mysql}${original}`), fetch(`${mysql}${ruta}`)]);
+      const ok = directa.status === 200 && optimizada.status === 200 && /^image\//.test(optimizada.headers.get("content-type") ?? "");
+      if (!ok) fallosImagen++;
+      console.log(
+        `  ${ok ? "✓" : "✗"} ${original.split("/").at(-1)}: directa ${directa.status} ${directa.headers.get("content-type")} · optimizada ${optimizada.status} ${optimizada.headers.get("content-type")}`,
+      );
+    }
+    for (const mala of ["/archivos/logos/..%2F..%2Fpackage.json", "/archivos/logos/x/v1/imagen.webp", "/archivos/..%2F.env"]) {
+      const r = await fetch(`${mysql}${mala}`);
+      if (r.status !== 404) fallosImagen++;
+      console.log(`  ${r.status === 404 ? "✓" : "✗"} ${mala} → ${r.status}`);
+    }
+    const sinAlmacen = await fetch(`${supabase}${decodeURIComponent(/url=([^&]+)/.exec(optimizadas[0])![1])}`);
+    if (sinAlmacen.status !== 404) fallosImagen++;
+    console.log(`  ${sinAlmacen.status === 404 ? "✓" : "✗"} sin ALMACEN_CARPETA, /archivos no existe → ${sinAlmacen.status}`);
+    console.log(fallosImagen ? `  ${fallosImagen} comprobaciones de imagen fallaron.` : "  Las imágenes, bien.");
+    if (fallosImagen) fallos++;
+  }
+  console.log(fallos ? `\nHubo diferencias: las líneas con ✗.` : `\nLos ${CASOS.length} casos, idénticos.`);
   return fallos ? 1 : 0;
 }
 

@@ -1,6 +1,7 @@
 import { createClient } from "./supabase/server";
 import { createAdminClient } from "./supabase/admin";
 import { isSupabaseConfigured } from "./supabase/config";
+import { AlmacenDisco, nombreDeArchivo } from "./almacen-disco";
 
 /**
  * Dónde se guardan las imágenes que sube la gente.
@@ -173,32 +174,16 @@ class AlmacenSupabase implements AlmacenDeImagenes {
 }
 
 /**
- * `image/webp` → `imagen.webp`. Un archivo por pieza y dueño: el anterior se
- * reemplaza, así que subir una foto nueva no deja la vieja ocupando sitio.
- *
- * **La extensión sale del tipo y no del archivo original**, porque el original
- * ya no existe: lo que llega aquí es lo que el navegador reconvirtió. Si el
- * tipo cambia entre una subida y la siguiente —de WebP a JPEG, que es lo que
- * pasa en un Safari viejo— quedan dos archivos y la URL guardada apunta al
- * último. El anterior queda huérfano, pesa kilobytes y nadie lo sirve.
- */
-function nombreDeArchivo(tipo: string, pieza: Pieza): string {
-  const extension = tipo === "image/png" ? "png" : tipo === "image/jpeg" ? "jpg" : "webp";
-  return `${pieza}.${extension}`;
-}
-
-/**
  * Quién guarda hoy.
  *
- * Un solo sitio decide. Cuando las imágenes se muden al VPS:
- *
- *   if (process.env.ALMACEN_URL) return new AlmacenVps();
- *
- * y nada más. La app degrada sola si falta la credencial, y nunca lanza al
- * importarse por una variable ausente: eso tumbaría el build en un entorno
- * donde el almacén todavía no aplique.
+ * Un solo sitio decide. Con `ALMACEN_CARPETA`, el disco del servidor
+ * (experimento MySQL, `almacen-disco.ts`); si no, Supabase Storage. La app
+ * degrada sola si falta la credencial, y nunca lanza al importarse por una
+ * variable ausente: eso tumbaría el build en un entorno donde el almacén
+ * todavía no aplique.
  */
 export function getAlmacen(): AlmacenDeImagenes {
+  if (process.env.ALMACEN_CARPETA) return new AlmacenDisco(process.env.ALMACEN_CARPETA);
   if (isSupabaseConfigured()) return new AlmacenSupabase();
   return new SinAlmacen();
 }

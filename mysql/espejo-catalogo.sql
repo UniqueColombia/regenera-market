@@ -26,10 +26,14 @@
 --   La vista congela su `l.*` igual que en Postgres (ver la 0020): una columna
 --   nueva en `listings` obliga a recrearla.
 
+-- Sin revisar llaves foráneas mientras se borra: `permisos-de-ofertas.sql`
+-- cuelga tablas de `providers`, y se rehacen justo después.
+set foreign_key_checks = 0;
 drop view if exists listings_publicos;
 drop table if exists listing_availability;
 drop table if exists listings;
 drop table if exists providers;
+set foreign_key_checks = 1;
 
 create table providers (
   id                   char(36) character set ascii collate ascii_bin not null primary key,
@@ -38,6 +42,9 @@ create table providers (
   status               enum('draft','pending_review','approved','rejected','suspended') not null default 'draft',
   sustainability_score int not null default 0,
   tier                 enum('unverified','semilla','raiz','bosque') not null default 'unverified',
+  -- El sello de la evaluación verificada: público (sale en el perfil) y lo
+  -- exige la consultoría (`permisos-de-ofertas.sql`).
+  sustainability_verified_at datetime(6),
   busqueda             text generated always as (coalesce(name, '')) stored
 ) engine = innodb default charset = utf8mb4 collate = utf8mb4_uca1400_ai_ci;
 

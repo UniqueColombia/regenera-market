@@ -1,12 +1,18 @@
 /**
- * Las tablas del espejo del catálogo en MariaDB (`mysql/espejo-catalogo.sql`),
- * con los tipos **tal como los entrega mysql2** con las opciones de
- * `conexion.ts`: enteros como `number`, `tinyint(1)` como `boolean`, decimales
- * y fechas como cadena, y `json` como cadena (MariaDB lo guarda como
- * `longtext` y el driver no sabe que es json; `catalogo.ts` lo parsea).
+ * Las tablas de MariaDB (`mysql/espejo-catalogo.sql` y
+ * `mysql/permisos-de-ofertas.sql`), con los tipos **tal como los entrega
+ * mysql2** con las opciones de `conexion.ts`: enteros como `number`,
+ * `tinyint(1)` como `boolean`, decimales y fechas como cadena, y `json` ya
+ * convertido en arreglo. Para **escribir** un `json` hay que mandarlo como
+ * texto (`JSON.stringify`): un arreglo suelto, mysql2 lo expande en una lista.
  *
- * Si se agrega una columna a `espejo-catalogo.sql`, va aquí también.
+ * Si se agrega una columna a esos archivos, va aquí también.
  */
+
+import type { ColumnType } from "kysely";
+
+/** Se lee como arreglo, se escribe como texto json. */
+type Json<T> = ColumnType<T, string, string>;
 
 type Estado = "draft" | "pending_review" | "approved" | "rejected" | "suspended";
 type Nivel = "unverified" | "semilla" | "raiz" | "bosque";
@@ -20,8 +26,8 @@ export interface OfertaPublicaMysql {
   summary: string;
   description: string;
   category: string;
-  verticals: string;
-  images: string;
+  verticals: Json<string[]>;
+  images: Json<string[]>;
   price_cop: number;
   wholesale_price_cop: number | null;
   wholesale_min_qty: number | null;
@@ -31,7 +37,7 @@ export interface OfertaPublicaMysql {
   co2_kg_saved: string | null;
   water_liters_saved: string | null;
   waste_kg_reduced: string | null;
-  certifications: string;
+  certifications: Json<string[]>;
   department: string | null;
   city: string | null;
   status: Estado;
@@ -40,9 +46,9 @@ export interface OfertaPublicaMysql {
   min_people: number | null;
   max_people: number | null;
   meeting_point: string | null;
-  includes: string | null;
+  includes: Json<string[] | null>;
   delivery_time: string | null;
-  scope: string | null;
+  scope: Json<string[] | null>;
   created_at: string;
   subcategory: string | null;
   aporte_ambiental: string | null;
@@ -77,7 +83,39 @@ export interface DisponibilidadMysql {
   slots_taken: number;
 }
 
+/** `listings`: la vista sin las columnas del proveedor. */
+export type OfertaMysql = Omit<
+  OfertaPublicaMysql,
+  "provider_slug" | "provider_name" | "provider_score" | "provider_tier" | "provider_busqueda"
+>;
+
+export interface ProveedorMysql {
+  id: string;
+  slug: string;
+  name: string;
+  status: Estado;
+  sustainability_score: number;
+  tier: Nivel;
+  sustainability_verified_at: string | null;
+  busqueda: string;
+}
+
+/** `mysql/permisos-de-ofertas.sql`. */
+export interface MiembroMysql {
+  provider_id: string;
+  user_id: string;
+}
+
+export interface RolMysql {
+  user_id: string;
+  role: "buyer" | "provider" | "admin";
+}
+
 export interface BaseMysql {
   listings_publicos: OfertaPublicaMysql;
   listing_availability: DisponibilidadMysql;
+  listings: OfertaMysql;
+  providers: ProveedorMysql;
+  provider_members: MiembroMysql;
+  user_roles: RolMysql;
 }
