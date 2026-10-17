@@ -7,16 +7,23 @@
  * de la política de privacidad — que es el único que alguien usa cuando tiene un
  * problema.
  *
- * **Pendiente y anotado a propósito:** falta el NIT y la dirección física de la
- * sociedad. Los dos son obligatorios en una factura y convenientes en la
- * política de privacidad; el correo, además, va a cambiar por uno del dominio
- * propio cuando el sitio se mude al VPS. Ninguno se inventa aquí: un dato legal
- * falso es peor que un dato legal ausente.
+ * **Pendiente y anotado a propósito:** falta la dirección física de la
+ * sociedad, obligatoria en una factura y conveniente en la política de
+ * privacidad. No se inventa aquí: un dato legal falso es peor que un dato legal
+ * ausente.
+ *
+ * El NIT y el correo los dio Jesús el 2026-10-17. Desde ese día el correo de
+ * Seregenera es uno solo, `info@seregenera.com` (el buzón de Hostinger): es al
+ * que se escribe para reclamar o ejercer un derecho, desde el que salen todos
+ * los correos y al que llegan las respuestas a las invitaciones. Antes era el
+ * Gmail de la sociedad.
  */
 export const CONTACTO = {
+  /** La sociedad que opera Seregenera y responde por ella. */
   razonSocial: "Dimension Natural SAS",
+  nit: "901812769-8",
   pais: "Colombia",
-  correo: "dimensionnaturalsas@gmail.com",
+  correo: "info@seregenera.com",
   /** Como se lee. */
   telefono: "+57 312 684 4848",
   /** Como se marca: sin espacios, con indicativo. Para `tel:` y para schema.org. */
@@ -35,10 +42,26 @@ export const CONTACTO = {
  * 2026-09-24, cuando la medición de uso cambió la política y no los términos:
  * mover la fecha de un documento que no cambió es decir que cambió. La
  * política volvió a moverse el 2026-10-14: los datos de contacto de empresas
- * que invitamos a vender («Contactar proveedores») y la pasarela de pago.
+ * que invitamos a vender («Contactar proveedores») y la pasarela de pago. Las
+ * dos se movieron el 2026-10-17: el sitio y el correo pasaron a Hostinger, la
+ * política nombra la dirección de entrega y las reseñas, y los términos
+ * describen el envío, el pago y cuándo se le paga al proveedor.
  */
-export const VIGENCIA_TERMINOS = "2026-09-19";
-export const VIGENCIA_PRIVACIDAD = "2026-10-14";
+export const VIGENCIA_TERMINOS = "2026-10-17";
+export const VIGENCIA_PRIVACIDAD = "2026-10-17";
+
+/**
+ * Cuántos días hábiles tiene quien compró, desde que el pedido queda
+ * entregado, para avisar de un problema antes de que se le pague al proveedor.
+ *
+ * Es la pieza del modelo que se decidió copiar el 2026-10-17 (Airbnb y
+ * MercadoLibre retienen la plata del vendedor hasta después de la entrega):
+ * el comprador paga, Seregenera retiene su comisión y el proveedor cobra cuando
+ * lo vendido llegó. **El número es una propuesta y espera el visto bueno de
+ * Ivan**: es negocio, no código. Lo citan los términos; la liquidación al
+ * proveedor, cuando se programe, tiene que leer este mismo valor.
+ */
+export const DIAS_PARA_RECLAMAR = 5;
 
 /**
  * Las redes de Seregenera.
