@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { headers } from "next/headers";
 import { getUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { enviarCorreo } from "@/lib/correo";
@@ -436,9 +435,8 @@ async function postular(form: unknown): Promise<ResultadoPostulacion> {
   // del servidor. No se guarda en la base: una IP es un dato personal y la
   // postulación no la necesita para nada.
   if (!usuario) {
-    const h = await headers();
-    const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-    if (ip) console.info(`[postular] anónima desde ${ip.slice(0, 7)}…`);
+    const ip = await origenDeLaPeticion();
+    if (ip !== "local") console.info(`[postular] anónima desde ${ip.slice(0, 7)}…`);
   }
 
   return {
