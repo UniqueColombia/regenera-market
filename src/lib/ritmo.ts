@@ -115,21 +115,28 @@ export function dentroDelRitmo(
 /**
  * De dónde viene la petición.
  *
- * `x-forwarded-for` es una cabecera que **cualquiera puede escribir**, así que
- * fiarse de ella solo vale detrás de un proxy que la reescriba — que es
- * exactamente el caso aquí: en Vercel, la primera dirección de la lista la pone
- * la plataforma y el cliente no la controla. Si esto se muda al VPS propio
- * (`docs/ESTADO.md`, punto 4), hay que comprobar que Nginx o Caddy la estén
- * poniendo; si no, este archivo pasa a contar lo que el atacante quiera.
+ * `x-forwarded-for` es una cabecera que **cualquiera puede escribir**: cada
+ * proxy le agrega al final lo que vio, y lo que estaba antes lo mandó el
+ * cliente. En Hostinger (detrás de su CDN) llega así, comprobado el 2026-10-17:
+ *
+ *   x-forwarded-for: <lo que inventó el cliente>, <IP real>, …, <IP real>
+ *   x-real-ip:       <IP real>      (la reescribe el proxy: no se puede falsificar)
+ *
+ * Tomar la **primera** —como se hacía, que en Vercel sí era fiable— dejaba saltar
+ * cualquier tope por IP mandando otra inventada en cada petición. Por eso va
+ * primero `x-real-ip` (Hostinger y Vercel la ponen) y, si no está, la **última**
+ * de `x-forwarded-for`, que es la que agregó el último proxy. Si esto se muda a
+ * otro servidor, hay que volver a mirar qué cabeceras pone su proxy.
  *
  * Cuando no hay ninguna —desarrollo local— se devuelve `"local"`, que agrupa
  * todo en un mismo cubo. En una sola máquina es lo correcto.
  */
 export async function origenDeLaPeticion(): Promise<string> {
   const h = await headers();
-  const reenviada = h.get("x-forwarded-for");
-  if (reenviada) return reenviada.split(",")[0].trim().slice(0, 45);
-  return h.get("x-real-ip")?.slice(0, 45) ?? "local";
+  const real = h.get("x-real-ip")?.trim();
+  if (real) return real.slice(0, 45);
+  const ultima = h.get("x-forwarded-for")?.split(",").at(-1)?.trim();
+  return ultima ? ultima.slice(0, 45) : "local";
 }
 
 /** Un correo normalizado, para contar por buzón y no por cómo se escribió. */

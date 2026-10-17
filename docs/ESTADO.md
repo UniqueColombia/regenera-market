@@ -40,8 +40,11 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   redirección abierta, `with check`, identidad entre peticiones, vencimiento de
 >   pedidos sin cron). **Falta lo urgente:** rehacer `logica.sql` desde el
 >   servidor antes de cerrar el acceso remoto de la base (si se cierra antes, el
->   sitio cae: pasó una vez), y que los topes por IP dejen de fiarse de
->   `x-forwarded-for`. Lo demás, en el hito.
+>   sitio cae: pasó una vez). Lo demás, en el hito. **Resuelto después, en
+>   `v0.12.2`:** los topes por IP ya no se fían de la primera de
+>   `x-forwarded-for` (la escribe el cliente): usan `x-real-ip`, que el proxy de
+>   Hostinger reescribe (comprobado con una inventada), en `ritmo.ts`,
+>   `/api/medicion` y `/vender`.
 
 > ## 🟢 Nuevo del 2026-10-17: plantillas subidas, legales al día y el modelo de pago al proveedor
 >

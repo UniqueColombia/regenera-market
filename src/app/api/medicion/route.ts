@@ -8,7 +8,7 @@ import {
 } from "@/lib/consentimiento";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { dentroDelRitmo } from "@/lib/ritmo";
+import { dentroDelRitmo, origenDeLaPeticion } from "@/lib/ritmo";
 
 /**
  * Una página vista, si quien la vio dio permiso.
@@ -95,10 +95,9 @@ export async function POST(request: NextRequest) {
   //
   // Se cuenta por IP y no por la cookie del visitante a propósito: la cookie la
   // pone esta misma ruta, así que quien no la mande tendría barra libre.
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    request.headers.get("x-real-ip") ??
-    "local";
+  // La IP de `origenDeLaPeticion()`: la primera de `x-forwarded-for` la escribe
+  // el cliente, y con ella el tope se saltaba inventando una por llamada.
+  const ip = await origenDeLaPeticion();
   if (!dentroDelRitmo(`medicion:${ip}`, 60, 600)) return sinContenido();
 
   // `sendBeacon` manda texto plano; se lee como texto y con tope, para que un
