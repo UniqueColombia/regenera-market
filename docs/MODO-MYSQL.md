@@ -11,10 +11,10 @@ Sin la variable, la app es exactamente la de siempre. Las tres cosas cambian
 **juntas**: con las cuentas en un lado y los datos en el otro, las políticas de
 Supabase no sabrían quién pide.
 
-Estado al 2026-10-17: hecho y probado en la rama `feat/js-espejo-mysql`.
-**Producción sigue con Supabase.** Falta que Jesús lo pruebe como usuario y, si
-sale bien, encenderlo en Hostinger (más abajo). Las razones de cada decisión
-están en los hitos `2026-10-17-experimento-mysql-*` y `2026-10-17-modo-mysql-completo.md`.
+**Encendido en producción el 2026-10-17** (`v0.12.0`): `seregenera.com` corre
+sobre la base `…_seregenera`, y Supabase quedó congelado como vuelta atrás. Las
+razones de cada decisión están en los hitos `2026-10-17-experimento-mysql-*`,
+`2026-10-17-modo-mysql-completo.md` y `2026-10-17-produccion-sobre-mariadb.md`.
 
 ## Cómo está armado
 
@@ -80,8 +80,15 @@ arreglarlo.
 
 ## Encenderlo en producción
 
-No está hecho: se hace cuando Jesús lo apruebe después de probar. **Supabase
-no se toca en ningún paso**, y es la vuelta atrás.
+**Hecho el 2026-10-17** con estos pasos (hito
+`2026-10-17-produccion-sobre-mariadb.md`). Quedan escritos para rehacerlo en otra
+cuenta o volver a encenderlo después de una vuelta atrás. **Supabase no se toca
+en ningún paso**, y es la vuelta atrás. **Las variables del paso 4 van siempre
+después de la copia del paso 3**: puestas antes, el sitio apunta a una base
+vacía y da 500 (pasó el 2026-10-17, unos minutos).
+
+> ⚠️ **Después del corte, `copiar-datos.mts` no se corre contra la base de
+> producción**: rehace el esquema y borra todo lo escrito desde entonces.
 
 1. **Una base para producción**, aparte de la de pruebas, creada como
    `…_sgpruebas` (`scripts/mysql/` no la crea: hPanel → Bases de datos, o la API).
@@ -133,7 +140,13 @@ Supabase y decidir qué se hace con el proyecto de allá.
 
 ## Mientras convivan los dos
 
-**Postgres sigue mandando**: una migración nueva va a `supabase/migrations/`,
+> **Desde el 2026-10-17 esto ya no aplica: manda MySQL.** Lo que sigue es como
+> se trabajaba antes del corte. Falta decidir cómo se cambia el esquema ahora
+> (pendiente en el hito `2026-10-17-produccion-sobre-mariadb.md`): mientras
+> tanto, SQL a mano en la base de producción, reflejado en `mysql/*.sql` y en
+> `src/lib/mysql/modelo.ts`.
+
+**Postgres seguía mandando**: una migración nueva va a `supabase/migrations/`,
 se aplica en Supabase y después:
 
 1. `node --env-file=.env scripts/mysql/generar-esquema.mts` → regenera
