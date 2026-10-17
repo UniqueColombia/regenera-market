@@ -195,7 +195,10 @@ function cerrarPorInactividad(
     !ruta.startsWith("/api/") &&
     !ruta.startsWith("/auth/");
 
-  const destino = new URL("/entrar", request.url);
+  // El dominio público y no `request.url`: en Hostinger la petición llega como
+  // `0.0.0.0:3000` desde su proxy, y una sesión caducada iría a parar ahí. Mismo
+  // motivo que `origenPublico()` en `src/app/auth/callback/route.ts`.
+  const destino = new URL("/entrar", process.env.NEXT_PUBLIC_SITE_URL ?? request.url);
   destino.searchParams.set("caducada", "1");
   // Volver a donde estaba. `/` no se anota: es el destino por defecto. `ruta`
   // sale de `nextUrl.pathname`, así que siempre empieza por `/` — y de todas

@@ -312,7 +312,12 @@ async function cerrarCompra(lines: CartLine[], form: unknown): Promise<CheckoutR
           correo: usuario.email,
           referencia: reference,
           totalCop: creada.ok && creada.totalCop !== undefined ? creada.totalCop : totals.totalCop,
-          lineas: totals.purchasable.map((l) => ({ titulo: l.listing.title, qty: l.line.qty })),
+          lineas: totals.purchasable.map((l) => ({
+            titulo: l.listing.title,
+            qty: l.line.qty,
+            diasMin: l.listing.envio?.diasMin,
+            diasMax: l.listing.envio?.diasMax,
+          })),
         }),
       );
       if (!envio.ok) console.error(`[checkout] respaldo no enviado (${envio.via}): ${envio.error}`);

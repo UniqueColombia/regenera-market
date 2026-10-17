@@ -191,6 +191,14 @@ const PostulacionSchema = z.object({
   consent: z.literal("on", "Tienes que autorizar el tratamiento de tus datos"),
 
   /**
+   * Los términos para vender, aparte del dato personal: la autorización de la
+   * Ley 1581 tiene que ser expresa y no puede ir atada a aceptar un contrato.
+   * Cuándo se aceptaron lo dice `consent_at`, que se escribe con este mismo
+   * envío; qué versión, `VIGENCIA_TERMINOS` en esa fecha (el historial de Git).
+   */
+  terminos: z.literal("on", "Tienes que aceptar los términos para vender en Seregenera"),
+
+  /**
    * Campo trampa. Está oculto por CSS y ninguna persona lo ve, así que si llega
    * con algo escrito es un robot rellenando todo lo que encuentra.
    */

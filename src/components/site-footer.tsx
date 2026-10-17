@@ -138,7 +138,8 @@ export function SiteFooter() {
       <div className="border-t border-brand-800">
         <div className="container-page flex flex-col items-center gap-3 py-5 text-xs text-brand-300 lg:flex-row lg:justify-between">
           <p className="text-center lg:text-left">
-            © {new Date().getFullYear()} Seregenera — {CONTACTO.razonSocial}.
+            © {new Date().getFullYear()} Seregenera — {CONTACTO.razonSocial},
+            NIT {CONTACTO.nit}.
             Turismo que regenera vidas y paisajes.
           </p>
           <nav aria-label="Legal">

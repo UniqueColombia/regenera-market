@@ -5,11 +5,14 @@ Code la use de mapa: si le pides «guíame con `docs/CORREOS.md`», debe llevart
 parte por parte, esperar a que confirmes cada paso y no pasar a la siguiente sin
 que la anterior esté comprobada.
 
-**Estado (2026-10-16):** todo correo de Seregenera sale de
+**Estado (2026-10-17):** todo correo de Seregenera sale de
 **`info@seregenera.com`**, un buzón del correo de Hostinger, y ninguno del Gmail
 personal de Jesús. Decisión de Jesús: reemplaza el plan anterior de esta guía
 (un remitente de Google Workspace en `@uniquecolombia.com`), que queda en el
-historial de Git.
+historial de Git. Desde el 2026-10-17 es también el correo de contacto de la
+sociedad (`CONTACTO.correo`), y **las seis plantillas de Supabase están subidas
+desde el repositorio** con `scripts/plantillas-supabase.mts` (parte B). Falta la
+foto del remitente: parte D.
 
 > **Nunca se pega una contraseña en un chat, en el repositorio, en un hito ni en
 > un mensaje de PR.** Va solo en los paneles que se nombran abajo y en el `.env`
@@ -67,8 +70,13 @@ correo reescriben o rechazan otro `From`. Las plantillas no se tocan; son
 configuración aparte y sobreviven al cambio.
 
 En el mismo Supabase, `Authentication` → **URL Configuration**: *Site URL*
-`https://seregenera.com`, y `https://seregenera.com/**` en *Redirect URLs*. Sin
-eso, los enlaces de los correos llevan a otro dominio.
+`https://seregenera.com` —**sin `www` y sin barra final**—, y
+`https://seregenera.com/**` en *Redirect URLs*. Sin eso, los enlaces de los
+correos llevan a otro dominio. El 2026-10-17 estaba en
+`https://www.seregenera.com/`: con la barra, las plantillas pedían
+`//img/…`; con `www`, la sesión del botón del correo quedaba en otro dominio
+que el del sitio. Lo corrigió el script de la parte B (`--site-url`), que además
+avisa si vuelve a pasar.
 
 ### A3. En Hostinger (la aplicación)
 
@@ -136,19 +144,11 @@ código de acceso de Supabase y un correo de prueba de la aplicación.
 
 ## Parte B — Editar el texto de un correo
 
-> **Antes de editar nada, una pasada por las seis pestañas.** Nadie dejó anotado
-> cuáles están pegadas hoy en el panel. En `Authentication` → `Emails` →
-> `Templates`, abre cada una y márcala aquí:
->
-> - [ ] Confirm sign up: trae el logo, los seis dígitos y el botón
-> - [ ] Magic link or OTP: igual
-> - [ ] Invite user: no dice «Follow this link» en inglés
-> - [ ] Change email address: igual
-> - [ ] Reset password: igual
-> - [ ] Reauthentication: **es la que casi seguro sigue con el texto de fábrica**
->
-> Si una está en inglés o sin logo, es que es la de fábrica: pega la de su archivo
-> (tabla de abajo).
+> **La pasada por las seis pestañas ya se hizo, y por la API** (2026-10-17).
+> Solo *Confirm sign up* y *Magic link* tenían el texto del repositorio, en una
+> versión vieja y sin logo; las otras cuatro seguían en inglés, de fábrica. Las
+> seis se subieron con el script de abajo, que confirmó después que el panel
+> coincide con estos archivos.
 
 Primero averigua **quién lo manda**, porque se edita en sitios distintos.
 
@@ -168,12 +168,27 @@ en *Subject heading* y el cuerpo en *Message body*, **en el editor de HTML**.
 
 Para cambiar uno:
 
-1. **Edita el archivo del repositorio primero** (es la copia de referencia: si
-   alguien recrea el proyecto de Supabase, es lo único que queda).
-2. Copia el bloque ` ```html ` completo al *Message body* de la pestaña y el asunto
-   a *Subject heading*. Guarda.
+1. **Edita el archivo del repositorio** (`plantillas-correo/0X-….md`: el asunto
+   en su bloque de «Asunto», el HTML en el de «Cuerpo»). El repositorio es la
+   fuente; el panel, la copia.
+2. Compara y sube con el script. Sin `--aplicar` no escribe nada:
+
+   ```bash
+   node --env-file=.env scripts/plantillas-supabase.mts            # qué cambió
+   node --env-file=.env scripts/plantillas-supabase.mts --aplicar  # subirlo
+   ```
+
+   Necesita `SUPABASE_ACCESS_TOKEN` en el `.env`: un token **personal** de
+   supabase.com/dashboard/account/tokens (de una cuenta con acceso al
+   proyecto). Caduca; si el script responde 401, se genera otro. Nunca va a las
+   variables de Hostinger: la app no lo usa.
 3. Pruébalo con el paso A5.
 4. Commitea el archivo, para que el repositorio y el panel digan lo mismo.
+
+Antes de subir, el script comprueba las reglas de la lista de abajo y no sube
+nada si una falla. Si el token no está a mano, el camino de antes sigue valiendo:
+copiar el bloque ` ```html ` al *Message body* de la pestaña y el asunto a
+*Subject heading*.
 
 **Lo que se rompe si no se respeta** (el detalle está en `plantillas-correo/README.md`):
 
@@ -254,8 +269,9 @@ Supabase.
 | Cuenta eliminada (`correoCuentaEliminada`) | Aplicación | ✅ conectado, pero **necesita la `0021`**, todavía sin aplicar |
 | Empresa cerrada (`correoEmpresaCerrada`) | Aplicación | ✅ conectado, pero **necesita la `0021`**, todavía sin aplicar |
 | Oferta no aprobada | Aplicación | ❌ falta un campo de motivo en la base: una migración y una decisión de los dos |
-| **Empresa creada con éxito** | Aplicación | ❌ **pendiente** (2026-10-16). El alta en `/vender` manda `correoPostulacionRecibida`, escrito para cuando el equipo revisaba cada alta. Desde que la empresa entra sola, falta un correo de «tu empresa ya está en Seregenera» con el siguiente paso (publicar la primera oferta) |
-| **Plazo de entrega en los correos del pedido** | Aplicación | ❌ **pendiente** (2026-10-16). `plazoDeEntrega()` (`src/lib/envios.ts`) ya sale en la ficha, la cesta y la página del pedido, pero no en `correoPedidoRecibido` ni en `correoPedidoDespachado` |
+| Empresa creada con éxito | Aplicación | ✅ ya existía: con sesión, `correoPostulacionRecibida` manda la versión «activada» (asunto «<empresa> ya está en Seregenera», con los siguientes pasos y el botón a su ficha). La de «recibimos tu postulación» es solo para quien postula sin cuenta. Comprobado leyendo el código el 2026-10-17 |
+| Plazo de entrega en los correos del pedido | Aplicación | ✅ desde el 2026-10-17: «llega entre 2 y 5 días hábiles» por línea en `correoPedidoRecibido`, y lo que prometió el vendedor en `correoPedidoDespachado`. Mismo `plazoDeEntrega()` que la cesta |
+| Liquidación al proveedor («te pagamos tu venta») | Aplicación | ❌ no existe: hace falta la liquidación misma (ver `docs/ENVIOS-Y-PAGOS.md`). Los términos del 2026-10-17 ya prometen cuándo se paga |
 
 ### Pendiente: repasar el formato de todos los correos (2026-10-16)
 
@@ -284,6 +300,94 @@ da error.
 
 ---
 
+## Parte D — La foto del remitente
+
+La foto (o el círculo con la inicial) que sale **junto al remitente** en la
+bandeja de entrada **no la pone el correo**. Ni Supabase ni las plantillas
+pueden cambiarla: cada buzón la busca por su cuenta, fuera del mensaje. Hay tres
+caminos, de más barato a más completo, y se pueden sumar.
+
+**El logo *dentro* del correo es otra cosa y ya está**: la cabecera de todas
+las plantillas (las seis de Supabase y las de la app) lleva
+`img/marca/redes/firma-correo.png`, servido desde el propio sitio.
+
+### D1. Gmail: una cuenta de Google con `info@seregenera.com` (gratis, 10 minutos)
+
+Gmail enseña la foto de perfil de la cuenta de Google del remitente. Una cuenta
+de Google se puede crear **con un correo que no es de Gmail**:
+
+1. accounts.google.com → Crear cuenta → «Para mi uso personal» → **«Usar mi
+   dirección de correo electrónico actual»** → `info@seregenera.com`.
+2. Google manda un código a ese buzón: se lee en el correo web de Hostinger.
+3. En la cuenta: Información personal → Foto →
+   `public/img/marca/redes/avatar-400.png`, con visibilidad **«Cualquier
+   persona»**.
+
+Lo hace quien tenga la contraseña del buzón (Jesús o Ivan); el agente no. Google
+no lo promete como garantía, pero es lo que Gmail usa en la práctica, y los
+mensajes tienen que pasar SPF y DKIM, que ya pasan (A4).
+
+### D2. BIMI: el estándar, para Yahoo y AOL sin pagar, y para Gmail y Apple con certificado
+
+BIMI es un registro DNS que le dice al buzón dónde está el logo oficial del
+dominio. El logo ya está publicado en el formato que exige (SVG Tiny PS):
+**`https://seregenera.com/bimi.svg`** (`public/bimi.svg`, lo genera
+`scripts/generar-marca.sh`). Faltan dos registros, y los tiene que poner
+**Ivan en hPanel**: el dominio está en su cuenta y el MCP de Hostinger no ve su
+DNS (respondió `Customer does not own seregenera.com domain` el 2026-10-17).
+
+1. **Primero, el DMARC con reportes**, para ver durante unos días que todo lo que
+   sale del dominio pasa SPF y DKIM. Cambia el `TXT` de `_dmarc` de
+   `v=DMARC1; p=none` a:
+
+   ```
+   v=DMARC1; p=none; rua=mailto:info@seregenera.com
+   ```
+
+   Llegan reportes diarios (XML) de Google y otros. Si en una semana no aparece
+   ningún remitente legítimo fallando, el paso 2.
+
+2. **Endurecer el DMARC**, que es lo que BIMI exige:
+
+   ```
+   v=DMARC1; p=quarantine; pct=100; rua=mailto:info@seregenera.com
+   ```
+
+   **Ojo**: desde aquí, un correo que diga venir de `@seregenera.com` y no salga
+   por Hostinger va a spam. Hoy todo sale por Hostinger (Supabase y la app usan
+   su SMTP), pero si algún día se agrega otro servicio de envío, primero se le
+   da su `include` en el SPF y su DKIM.
+
+3. **El registro BIMI**, un `TXT` con nombre `default._bimi`:
+
+   ```
+   v=BIMI1; l=https://seregenera.com/bimi.svg;
+   ```
+
+Con eso, **Yahoo y AOL** muestran el logo. **Gmail y Apple Mail** además piden un
+certificado de marca: un VMC (exige la marca registrada) o un CMC (exige haber
+usado el logo en público al menos un año), de una entidad como DigiCert o
+Entrust, con costo anual. Es una decisión de gasto de los dos; si se compra, se
+agrega `a=https://…/certificado.pem` al registro del paso 3.
+
+Comprobar: `nslookup -type=TXT default._bimi.seregenera.com 8.8.8.8` y el
+validador de bimigroup.org.
+
+### D3. Gravatar (gratis, opcional)
+
+Algunas aplicaciones de correo y muchos sitios buscan la foto en Gravatar por la
+dirección. gravatar.com → entrar con `info@seregenera.com` → subir el mismo
+`avatar-400.png`. No le hace nada a Gmail; cuesta cinco minutos.
+
+### Si cambia el logo
+
+Si la marca cambia (Ivan está revisando un logo nuevo), se cambia el SVG de
+`public/img/marca/`, se corre `scripts/generar-marca.sh` —que regenera
+`firma-correo.png`, los avatares y `bimi.svg`— y se vuelve a subir la foto de D1
+y D3. El registro DNS de D2 no cambia: apunta a la misma ruta.
+
+---
+
 ## Si algo sale mal
 
 | Síntoma | Causa casi segura |
@@ -292,6 +396,9 @@ da error.
 | No llega ningún correo | Contraseña del buzón mal copiada en Supabase (A2), o el buzón se borró o cambió de clave en hPanel |
 | El remitente sigue siendo el Gmail de Jesús | Falta A2 (Supabase) o A3 (Hostinger): son dos sitios distintos |
 | El logo sale como cuadro roto | `Site URL` en Supabase o `NEXT_PUBLIC_SITE_URL` en Hostinger apuntan a `localhost` |
+| El correo del código llega en inglés o sin logo | El panel de Supabase volvió a la plantilla de fábrica: `node --env-file=.env scripts/plantillas-supabase.mts` dice cuál y `--aplicar` la repone |
+| El botón «Entrar sin escribir el código» deja a la persona fuera | `Site URL` con `www` o con barra final (A2). Antes del 2026-10-17, además, la app redirigía a `https://0.0.0.0:3000` (arreglado en `src/app/auth/callback/route.ts`) |
+| Junto al remitente sale una inicial y no el logo | Es la parte D: el correo no lo controla |
 | El correo llega a spam | Revisar A4: que siga habiendo un solo SPF y que DKIM dé `PASS` en «Mostrar original» |
 | En el PC de Jesús: «unable to verify the first certificate» | Avast intercepta el SMTP. Puerto `587` y `NODE_OPTIONS=--use-system-ca` (A3). Producción no pasa por Avast |
 | Cambié la plantilla y llega la vieja | Era un correo de la aplicación (se despliega) o se editó la pestaña equivocada |
