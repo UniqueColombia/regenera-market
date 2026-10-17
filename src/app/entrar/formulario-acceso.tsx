@@ -7,6 +7,7 @@ import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { entrarConClave, pedirCodigo } from "./actions";
 import { CampoClave } from "@/components/campo-clave";
 import { PasoCodigo } from "@/components/paso-codigo";
+import { rutaPropia } from "@/lib/ruta-propia";
 
 /**
  * Acceso: correo y contraseña, con el código como segundo factor.
@@ -34,7 +35,7 @@ export function FormularioAcceso({ volver }: { volver?: string }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pendiente, iniciar] = useTransition();
 
-  const destino = volver && volver.startsWith("/") && !volver.startsWith("//") ? volver : "/";
+  const destino = rutaPropia(volver) ?? "/";
 
   function entrar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

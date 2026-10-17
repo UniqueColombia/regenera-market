@@ -237,7 +237,11 @@ export const config = {
     /*
      * Todo salvo lo que no tiene sesión que refrescar. Sin excluirlos se paga
      * una llamada a Supabase por cada icono, fuente y chunk de JavaScript.
+     *
+     * El punto va como `\\.`: con `\.` el string de JS lo deja en `.` a secas y
+     * la regla excluía toda ruta que *terminara* en esas letras, como la ficha
+     * `/oferta/coco-pacifico` («…ico»), que se quedaba sin proxy.
      */
-    "/((?!_next/static|_next/image|favicon.ico|img/|.*\.(?:svg|png|jpg|jpeg|webp|gif|ico|woff2?)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|img/|.*\\.(?:svg|png|jpg|jpeg|webp|gif|ico|woff2?)$).*)",
   ],
 };

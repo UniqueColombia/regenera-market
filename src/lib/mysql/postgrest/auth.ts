@@ -4,6 +4,7 @@ import { getMysql } from "../conexion";
 import {
   abrirSesion,
   actualizarMetadatos,
+  borrarCodigos,
   borrarCuenta,
   cambiarClave,
   cerrarOtrasSesiones,
@@ -166,11 +167,13 @@ export class AuthMysql {
       const cuenta = (await leerCuenta(db, c.id))!;
       return { data: { user: aUsuario(cuenta, { sinIdentidades: true }), session: null }, error: null };
     } else {
-      // Se registró y nunca confirmó: vale la contraseña nueva, como volver a empezar.
+      // Se registró y nunca confirmó: se manda otro código y **la cuenta no se
+      // toca**, como GoTrue. Cambiarle aquí la contraseña o el nombre dejaba a
+      // cualquiera reescribir la cuenta de otro antes de que confirmara: el
+      // dueño entraba con el código y se quedaba con la clave del intruso. Quien
+      // olvidó la primera entra con el código y la cambia después.
       const c = (await db.selectFrom("usuarios").select("id").where("email", "=", datos.email.trim().toLowerCase()).executeTakeFirst())!;
       usuarioId = c.id;
-      await cambiarClave(db, usuarioId, datos.password);
-      if (datos.options?.data) await actualizarMetadatos(db, usuarioId, datos.options.data);
     }
     const codigo = await pedirCodigo(db, datos.email, "registro");
     if (!codigo.ok) {
@@ -241,7 +244,14 @@ export class AuthMysql {
     if (datos.email && datos.email.trim().toLowerCase() !== c.email) {
       return { data: { user: null }, error: error(422, "email_change_not_supported", "El cambio de correo no está disponible en el modo MySQL") };
     }
-    if (datos.password) await cambiarClave(db, c.id, datos.password);
+    if (datos.password) {
+      // Como GoTrue: cambiar la contraseña cierra las demás sesiones y anula los
+      // códigos pendientes. Es lo que hace la gente para echar a quien entró con
+      // su cuenta; sin esto, esa sesión seguía viva hasta 30 días.
+      await cambiarClave(db, c.id, datos.password);
+      await cerrarOtrasSesiones(db, c.id, this.tokenActual());
+      await borrarCodigos(db, c.email);
+    }
     if (datos.data) await actualizarMetadatos(db, c.id, datos.data);
     return { data: { user: aUsuario((await leerCuenta(db, c.id))!) }, error: null };
   }

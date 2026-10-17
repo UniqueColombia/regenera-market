@@ -233,4 +233,28 @@ describe.skipIf(!HAY_MYSQL)("permisos en el modo MySQL", () => {
       expect(faltan).toEqual([]);
     });
   });
+
+  describe("with check", () => {
+    it("cambiar la llave de una fila propia no se salta la política: se rechaza", async () => {
+      const yo = await crearPersona();
+      const victima = await crearPersona();
+      const { data, error } = await yo.db
+        .from("trusted_devices")
+        .insert({ user_id: yo.id, device_hash: `h-${crypto.randomUUID()}` })
+        .select("id")
+        .single();
+      expect(error).toBeNull();
+      const mio = (data as { id: string }).id;
+      try {
+        // La fila es suya (el `using` pasa), pero con otro id ya no se encuentra
+        // por su llave para comprobar el `with check`. Antes entraba sin comprobar
+        // y el aparato pasaba a ser de otra persona.
+        const r = await yo.db.from("trusted_devices").update({ id: crypto.randomUUID(), user_id: victima.id }).eq("id", mio);
+        expect(r.error?.code).toBe("42501");
+        expect((await servicio().from("trusted_devices").select("user_id").eq("id", mio).single()).data).toEqual({ user_id: yo.id });
+      } finally {
+        await servicio().from("trusted_devices").delete().in("user_id", [yo.id, victima.id]);
+      }
+    });
+  });
 });

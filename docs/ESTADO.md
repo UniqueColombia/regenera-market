@@ -33,7 +33,15 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > - **Falta, los dos:** decidir cómo se cambia el esquema ahora que
 >   `supabase/migrations/` no es la fuente, y apagar el Vercel de respaldo.
 > - **Nunca** correr `copiar-datos.mts` contra la base de producción: rehace el
->   esquema y borra lo escrito desde el corte.
+>   esquema y borra lo escrito desde el corte (desde `v0.12.1` se niega).
+> - **Auditoría del mismo día** (`v0.12.1`,
+>   [hito](../.claude/hitos/2026-10-17-auditoria-del-modo-mysql.md)): nada
+>   crítico; un alto y varios medios arreglados (sesiones al cambiar la clave,
+>   redirección abierta, `with check`, identidad entre peticiones, vencimiento de
+>   pedidos sin cron). **Falta lo urgente:** rehacer `logica.sql` desde el
+>   servidor antes de cerrar el acceso remoto de la base (si se cierra antes, el
+>   sitio cae: pasó una vez), y que los topes por IP dejen de fiarse de
+>   `x-forwarded-for`. Lo demás, en el hito.
 
 > ## 🟢 Nuevo del 2026-10-17: plantillas subidas, legales al día y el modelo de pago al proveedor
 >

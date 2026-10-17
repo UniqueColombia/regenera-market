@@ -8,6 +8,7 @@ import { registrarse } from "../entrar/actions";
 import { CampoClave } from "@/components/campo-clave";
 import { CampoTelefono } from "@/components/campo-telefono";
 import { PasoCodigo } from "@/components/paso-codigo";
+import { rutaPropia } from "@/lib/ruta-propia";
 
 /**
  * Crear cuenta: nombre, apellido, teléfono, correo y contraseña; después, el
@@ -31,7 +32,7 @@ export function FormularioRegistro({ volver }: { volver?: string }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pendiente, iniciar] = useTransition();
 
-  const destino = volver && volver.startsWith("/") && !volver.startsWith("//") ? volver : "/";
+  const destino = rutaPropia(volver) ?? "/";
 
   function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

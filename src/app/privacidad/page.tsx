@@ -220,20 +220,23 @@ export default function PrivacidadPage() {
       </p>
       <ul>
         <li>
-          <strong>Supabase</strong> — base de datos, cuentas y almacenamiento de
-          las imágenes que subes.
-        </li>
-        <li>
-          <strong>Hostinger</strong> — servidores donde corre el sitio, y el
+          <strong>Hostinger</strong> — servidores donde corre el sitio, la base
+          de datos con tu cuenta y tus pedidos, las imágenes que subes, y el
           buzón <a href={`mailto:${CONTACTO.correo}`}>{CONTACTO.correo}</a>{" "}
           desde el que te mandamos los códigos de acceso y los avisos de tus
           pedidos.
         </li>
         <li>
+          <strong>Supabase</strong> — guardó la base de datos, las cuentas y las
+          imágenes hasta el 17 de octubre de 2026, y conserva una copia de ese
+          día mientras la mantengamos como respaldo. Lo que hagas desde
+          entonces ya no llega ahí.
+        </li>
+        <li>
           <strong>Vercel</strong> — solo mientras mantengamos la copia de
           respaldo del sitio en <code>regenera-market.vercel.app</code>, que
-          usa la misma base de datos. Si entras por ahí, tus datos pasan por sus
-          servidores.
+          trabaja con esa copia de Supabase y no con el sitio principal. Si
+          entras por ahí, tus datos pasan por sus servidores.
         </li>
         <li>
           <strong>La transportadora</strong> que elija el proveedor para
@@ -345,13 +348,13 @@ export default function PrivacidadPage() {
         <tbody>
           <tr>
             <td>
-              Cookies de sesión (<code>sb-…</code>)
+              <code>sgr_sesion</code>
             </td>
             <td>
               Mantener tu sesión abierta al pasar de una página a otra. Sin
-              ellas, tendrías que volver a entrar en cada clic
+              ella, tendrías que volver a entrar en cada clic
             </td>
-            <td>Hasta que cierras sesión</td>
+            <td>Hasta que cierras sesión, 48 horas sin usarla o 30 días como máximo</td>
           </tr>
           <tr>
             <td>

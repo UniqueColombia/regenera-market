@@ -47,14 +47,26 @@ interface Relacion {
 type Operacion = "select" | "insert" | "update" | "upsert" | "delete";
 type Fila = Record<string, unknown>;
 
+// `hasOwn` y no `TABLAS[nombre]` a secas: `toString` o `constructor` existen en
+// cualquier objeto y pasarían por una tabla o una columna.
 function tabla(nombre: string): Tabla {
-  const t = TABLAS[nombre];
+  const t = Object.hasOwn(TABLAS, nombre) ? TABLAS[nombre] : undefined;
   if (!t) throw new ErrorPg(`Could not find the table 'public.${nombre}' in the schema cache`, { code: "PGRST205" });
   return t;
 }
 
+/**
+ * `limit` y `offset` van pegados al SQL (MariaDB no los acepta como parámetro
+ * en todas las formas), así que solo entra un entero no negativo. Hoy todos los
+ * que llaman pasan números propios; esto es para el día que alguno no.
+ */
+function entero(n: number, que: string): number {
+  if (!Number.isSafeInteger(n) || n < 0) throw new ErrorPg(`invalid ${que}: ${String(n)}`, { code: "22023" });
+  return n;
+}
+
 function exigirColumna(nombre: string, columna: string): void {
-  if (!tabla(nombre).columnas[columna]) {
+  if (!Object.hasOwn(tabla(nombre).columnas, columna)) {
     throw new ErrorPg(`column ${nombre}.${columna} does not exist`, { code: "42703" });
   }
 }
@@ -225,13 +237,14 @@ export class Consulta<T = unknown> implements PromiseLike<Respuesta<T>> {
   }
   limit(n: number, opciones?: { referencedTable?: string; foreignTable?: string }): this {
     const relacion = opciones?.referencedTable ?? opciones?.foreignTable;
-    if (relacion) this.limitesDeRelacion.set(relacion, n);
-    else this.limite = n;
+    if (relacion) this.limitesDeRelacion.set(relacion, entero(n, "limit"));
+    else this.limite = entero(n, "limit");
     return this;
   }
   range(desde: number, hasta: number): this {
-    this.desde = desde;
-    this.hasta = hasta;
+    this.desde = entero(desde, "offset");
+    // `range(0, -1)` es «ninguna fila» en PostgREST: el tope sí puede ser -1.
+    this.hasta = entero(hasta + 1, "range") - 1;
     return this;
   }
   single(): this {
@@ -530,6 +543,13 @@ export class Consulta<T = unknown> implements PromiseLike<Respuesta<T>> {
       propuestas = await filas(con, `select * from \`${this.nombre}\` where ${this.porLlaves(llaves, params)}`, params);
     }
     await con.query("rollback to savepoint rls");
+    // Si alguna fila escrita no se vuelve a encontrar por su llave (un update que
+    // cambia la llave primaria, un id que no era el que se generó), la política
+    // no se puede evaluar: se rechaza, como haría Postgres al no poder probarla.
+    // Antes se saltaba la comprobación y la escritura entraba sin `with check`.
+    if (propuestas.length !== llaves.length) {
+      throw Object.assign(new Error("42501"), { postgrest: errorDePolitica(this.nombre) });
+    }
     if (propuestas.length) {
       const t = tabla(this.nombre);
       const columnas = Object.keys(t.columnas);
@@ -550,7 +570,8 @@ export class Consulta<T = unknown> implements PromiseLike<Respuesta<T>> {
       ? `insert into \`${this.nombre}\` (${columnas.map(columnaSql).join(", ")}) values (${columnas.map(() => "?").join(", ")})`
       : `insert into \`${this.nombre}\` () values ()`;
     const { id } = await escribir(con, sql, params);
-    return this.pkDe().map((c) => (fila[c] !== undefined ? fila[c] : id));
+    // `null` en una llave autoincremental también genera un id: el que vale es el de la base.
+    return this.pkDe().map((c) => (fila[c] !== undefined && fila[c] !== null ? fila[c] : id));
   }
 
   private async actualizarPorLlaves(con: PoolConnection, cambios: Fila, llaves: unknown[][]): Promise<void> {
