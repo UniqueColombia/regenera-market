@@ -56,3 +56,4 @@ referencie al anterior.
 | 2026-10-15 | [Los íconos de las redes se ven ya, como «pronto»](2026-10-15-redes-visibles-como-pronto.md) | Jesús Seiler | — |
 | 2026-10-16 | [Producción pasa a Hostinger, se despliega por tag, y el correo sale de `info@seregenera.com`](2026-10-16-produccion-en-hostinger.md) | Jesús Seiler | — (infraestructura: vía B-1) |
 | 2026-10-17 | [Las plantillas de Supabase salen del repositorio, los legales dejan Vercel y el proveedor cobra después de la entrega](2026-10-17-legales-correos-y-modelo-de-pago.md) | Jesús Seiler | — |
+| 2026-10-17 | [Desplegar es un comando, y `v0.11.2` está en producción](2026-10-17-despliegue-con-un-comando-y-v0-11-2.md) | Jesús Seiler | — (infraestructura de despliegue) |
