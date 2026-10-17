@@ -38,9 +38,10 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   [hito](../.claude/hitos/2026-10-17-auditoria-del-modo-mysql.md)): nada
 >   crítico; un alto y varios medios arreglados (sesiones al cambiar la clave,
 >   redirección abierta, `with check`, identidad entre peticiones, vencimiento de
->   pedidos sin cron). **Falta lo urgente:** rehacer `logica.sql` desde el
->   servidor antes de cerrar el acceso remoto de la base (si se cierra antes, el
->   sitio cae: pasó una vez). Lo demás, en el hito. **Resuelto después, en
+>   pedidos sin cron). **Resuelto el mismo día:** `logica.sql` se rehízo desde
+>   el servidor (las 27 rutinas, 30 triggers y 3 vistas quedaron a nombre de la
+>   cuenta local, `…@127.0.0.1`) y el acceso remoto de la base de producción se
+>   cerró con el sitio arriba. Lo demás, en el hito. **Resuelto después, en
 >   `v0.12.2`:** los topes por IP ya no se fían de la primera de
 >   `x-forwarded-for` (la escribe el cliente): usan `x-real-ip`, que el proxy de
 >   Hostinger reescribe (comprobado con una inventada), en `ritmo.ts`,
