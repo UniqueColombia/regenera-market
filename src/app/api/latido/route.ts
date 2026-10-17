@@ -41,15 +41,7 @@ import { dentroDelRitmo, origenDeLaPeticion } from "@/lib/ritmo";
 // es justo el fallo que este endpoint existe para detectar.
 export const dynamic = "force-dynamic";
 
-export async function GET(peticion: Request) {
-  // TEMPORAL (2026-10-17): qué cabeceras de IP llegan detrás de la CDN de
-  // Hostinger, para que `origenDeLaPeticion()` (src/lib/ritmo.ts) deje de fiarse
-  // de la primera de `x-forwarded-for`, que escribe el cliente. Solo con
-  // `?cadena`, solo al registro del servidor. Se quita en cuanto se lea.
-  if (new URL(peticion.url).searchParams.has("cadena")) {
-    const vistas = [...peticion.headers].filter(([k]) => /forward|real-ip|client|connecting|hcdn|via/i.test(k));
-    console.info("[latido] cabeceras de origen:", JSON.stringify(vistas));
-  }
+export async function GET() {
   if (!dentroDelRitmo(`latido:${await origenDeLaPeticion()}`, 20, 60)) {
     return NextResponse.json(
       { ok: false, motivo: "demasiadas-peticiones" },
