@@ -111,6 +111,36 @@ export interface RolMysql {
   role: "buyer" | "provider" | "admin";
 }
 
+/** `mysql/cuentas.sql`. */
+export interface UsuarioMysql {
+  id: string;
+  email: string;
+  clave: string | null;
+  correo_confirmado_at: string | null;
+  metadatos: Json<Record<string, unknown>>;
+  creado_at: ColumnType<string, never, never>;
+  ultimo_acceso_at: string | null;
+}
+
+export interface SesionMysql {
+  token_hash: string;
+  usuario_id: string;
+  creada_at: ColumnType<string, never, string>;
+  vista_at: ColumnType<string, never, string>;
+  aparato: string | null;
+}
+
+export interface CodigoMysql {
+  id: string;
+  email: string;
+  proposito: "registro" | "acceso";
+  codigo_hash: string;
+  creado_at: ColumnType<string, never, string>;
+  vence_at: string;
+  intentos: ColumnType<number, never, number>;
+  usado_at: string | null;
+}
+
 export interface BaseMysql {
   listings_publicos: OfertaPublicaMysql;
   listing_availability: DisponibilidadMysql;
@@ -118,4 +148,7 @@ export interface BaseMysql {
   providers: ProveedorMysql;
   provider_members: MiembroMysql;
   user_roles: RolMysql;
+  usuarios: UsuarioMysql;
+  sesiones: SesionMysql;
+  codigos: CodigoMysql;
 }

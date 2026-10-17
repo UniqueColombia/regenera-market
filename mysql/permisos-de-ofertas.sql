@@ -21,9 +21,10 @@
 -- Sin variables, la base trata a quien escribe como visitante y lo rechaza: un
 -- olvido niega, no abre.
 --
--- Se aplica **después** de `espejo-catalogo.sql`, porque esa borra `listings`
--- y con ella sus triggers. `scripts/mysql/espejo.mts` aplica las dos en orden;
--- las pruebas de `mysql/pruebas/` la aplican al empezar.
+-- Se aplica **después** de `espejo-catalogo.sql` (que borra `listings`, y con
+-- ella sus triggers) y de `cuentas.sql` (las dos tablas de abajo apuntan a
+-- `usuarios`, como en Postgres apuntan a `auth.users`). `scripts/mysql/espejo.mts`
+-- aplica las tres en orden; las pruebas, `mysql/pruebas/preparar.ts`.
 
 drop table if exists provider_members;
 drop table if exists user_roles;
@@ -35,13 +36,15 @@ create table provider_members (
   user_id     char(36) character set ascii collate ascii_bin not null,
   primary key (provider_id, user_id),
   key miembros_usuario (user_id),
-  constraint miembros_proveedor foreign key (provider_id) references providers (id) on delete cascade
+  constraint miembros_proveedor foreign key (provider_id) references providers (id) on delete cascade,
+  constraint miembros_usuario foreign key (user_id) references usuarios (id) on delete cascade
 ) engine = innodb default charset = utf8mb4 collate = utf8mb4_uca1400_ai_ci;
 
 create table user_roles (
   user_id char(36) character set ascii collate ascii_bin not null,
   role    enum('buyer','provider','admin') not null,
-  primary key (user_id, role)
+  primary key (user_id, role),
+  constraint roles_usuario foreign key (user_id) references usuarios (id) on delete cascade
 ) engine = innodb default charset = utf8mb4 collate = utf8mb4_uca1400_ai_ci;
 
 drop function if exists es_admin;

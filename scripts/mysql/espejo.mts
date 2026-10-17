@@ -27,9 +27,10 @@ const raiz = join(import.meta.dirname, "..", "..");
 
 /**
  * En este orden: `espejo-catalogo.sql` borra `listings`, y con ella los
- * triggers que pone `permisos-de-ofertas.sql`.
+ * triggers que pone `permisos-de-ofertas.sql`; y las tablas de permisos apuntan
+ * a `usuarios`, que crea `cuentas.sql`.
  */
-const ESQUEMA = ["espejo-catalogo.sql", "permisos-de-ofertas.sql"];
+const ESQUEMA = ["espejo-catalogo.sql", "cuentas.sql", "permisos-de-ofertas.sql"];
 
 /** Lo que se copia de cada tabla: lo que tiene `espejo-catalogo.sql`, menos las columnas generadas. */
 const TABLAS = {

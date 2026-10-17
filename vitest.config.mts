@@ -41,6 +41,7 @@ export default defineConfig({
           include: ["mysql/pruebas/**/*.test.ts"],
           environment: "node",
           setupFiles: ["mysql/pruebas/entorno.ts"],
+          globalSetup: ["mysql/pruebas/preparar.ts"],
           testTimeout: 60_000,
           hookTimeout: 120_000,
           // Una base compartida: un archivo a la vez.

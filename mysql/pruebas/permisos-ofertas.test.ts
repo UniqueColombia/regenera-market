@@ -6,15 +6,13 @@
  *   npm run test:mysql
  *
  * Trabaja sobre la base de pruebas de Hostinger con datos inventados (empresas
- * `prueba-…`) que borra al terminar; el espejo del catálogo no se toca. Antes
- * vuelve a aplicar `mysql/permisos-de-ofertas.sql`, así que prueba lo que está
- * en el repositorio y no lo que quedó en la base.
+ * `prueba-…`) que borra al terminar; el espejo del catálogo no se toca.
+ * `preparar.ts` vuelve a aplicar el esquema antes, así que prueba lo que está en
+ * el repositorio y no lo que quedó en la base.
  */
-import { readFileSync } from "node:fs";
-import mysql from "mysql2/promise";
 import { sql, type Kysely } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { AJUSTES_DE_SESION, nuevaBaseMysql, opcionesMysql } from "../../src/lib/mysql/conexion";
+import { nuevaBaseMysql } from "../../src/lib/mysql/conexion";
 import { comoUsuario, escribirOfertaMysql, leerOferta, VISITANTE, type Actor } from "../../src/lib/mysql/ofertas";
 import type { BaseMysql } from "../../src/lib/mysql/esquema";
 
@@ -29,9 +27,10 @@ const usuarios: string[] = [];
 async function crearUsuario(opciones: { admin?: boolean } = {}): Promise<Actor> {
   const id = crypto.randomUUID();
   usuarios.push(id);
-  if (opciones.admin) {
-    await comoUsuario(db, SERVICIO, (t) => t.insertInto("user_roles").values({ user_id: id, role: "admin" }).execute());
-  }
+  await comoUsuario(db, SERVICIO, async (t) => {
+    await t.insertInto("usuarios").values({ id, email: `${id}@pruebas.invalid`, clave: null, metadatos: "{}" }).execute();
+    if (opciones.admin) await t.insertInto("user_roles").values({ user_id: id, role: "admin" }).execute();
+  });
   return { id, rol: "authenticated" };
 }
 
@@ -89,22 +88,16 @@ async function leer(id: string) {
 }
 
 describe.skipIf(!HAY_MYSQL)("permisos de una oferta en MariaDB", () => {
-  beforeAll(async () => {
-    const con = await mysql.createConnection({ ...opcionesMysql(), multipleStatements: true });
-    try {
-      await con.query(AJUSTES_DE_SESION);
-      await con.query(readFileSync("mysql/permisos-de-ofertas.sql", "utf8"));
-    } finally {
-      await con.end();
-    }
+  beforeAll(() => {
     db = nuevaBaseMysql();
-  }, 60_000);
+  });
 
   afterAll(async () => {
     if (!db) return;
     await comoUsuario(db, SERVICIO, async (t) => {
       if (empresas.length) await t.deleteFrom("providers").where("id", "in", empresas).execute();
-      if (usuarios.length) await t.deleteFrom("user_roles").where("user_id", "in", usuarios).execute();
+      // Con la cuenta se van sus roles y membresías (llaves foráneas).
+      if (usuarios.length) await t.deleteFrom("usuarios").where("id", "in", usuarios).execute();
     });
     await db.destroy();
   }, 60_000);
