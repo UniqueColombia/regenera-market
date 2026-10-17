@@ -74,7 +74,8 @@ agente del otro.
 | `docs/ROADMAP.md` | Camino del producto por fases, con criterio de salida | Humanos y agentes |
 | `docs/BETA.md` | Cómo se ejecutan las Fases 1 y 2, bloque por bloque | Humanos y agentes |
 | `docs/DEPLOY.md` | Stack de despliegue (desde el 2026-10-16, Hostinger), por qué se eligió y qué se descartó | Humanos y agentes |
-| `docs/CORREOS.md` | Paso a paso para pasar el remitente a Google Workspace y editar cada plantilla de correo, la de Supabase o la de la app | Humanos y agentes |
+| `docs/CORREOS.md` | El remitente (`info@seregenera.com`), cómo se suben las plantillas de Supabase, cómo se edita cada correo de la app y la foto del remitente (BIMI) | Humanos y agentes |
+| `docs/ENVIOS-Y-PAGOS.md` | Qué se copia de MercadoLibre y de Airbnb para el envío por cantidad y para pagarle al proveedor después de la entrega, y qué decide cada socio | Humanos y agentes |
 | `docs/IMAGENES.md` | Qué imágenes faltan, con qué prompt se generan y dónde van | Humanos y agentes |
 | `docs/NIVELES.md` | Cómo se gana el nivel de proveedor, el gemelo SQL/TS y sus trampas | Humanos y agentes |
 | `docs/PORTABILIDAD.md` | Qué depende de Supabase, qué costaría salir a una VPS y qué reglas lo mantienen barato | Humanos y agentes |
@@ -86,7 +87,7 @@ agente del otro.
 | `.claude/prospectos/` | CSV crudos del prospector. **No se versiona** (ver Límites duros) | Humanos |
 | `outputs/` | Entregables generados: el Excel de prospectos y, en `outputs/despliegue/`, el zip de la versión desplegada (solo el último). **No se versiona** | Humanos |
 | `.github/` | CI, plantilla de PR, CODEOWNERS | GitHub |
-| `plantillas-correo/` | Copia de referencia de los correos que manda Supabase. Su HTML vive en el panel, no en el repo | Humanos |
+| `plantillas-correo/` | La fuente de los correos que manda Supabase. Se suben al panel con `scripts/plantillas-supabase.mts` | Humanos y agentes |
 | `src/lib/legal.ts` · `src/lib/rutas.ts` | Datos de la sociedad y qué rutas son públicas. Los leen el pie, las páginas legales, `robots.txt` y el sitemap | Agentes |
 | `public/img/` | Imágenes del sitio ya optimizadas: marca, secciones, ofertas. `marca/` se regenera con `scripts/generar-marca.sh`, no se edita | — |
 | `tools/img-originales/` | Originales pesados de las imágenes. **No se versiona** | Humanos |

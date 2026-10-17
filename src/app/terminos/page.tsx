@@ -38,7 +38,12 @@ export const metadata: Metadata = {
  * (`DIAS_PARA_RECLAMAR`). Es el modelo de Airbnb y de MercadoLibre, y es lo que
  * le da garantía a las dos partes: el comprador sabe que el proveedor no cobra
  * si no entrega, y el proveedor sabe que la plata ya está pagada y esperando.
- * Pendiente de revisión de Ivan y de un contador: quién factura qué.
+ *
+ * **Lo que este texto no dice a propósito: quién factura.** Antes decía que la
+ * factura la emite el proveedor, y con el pago recaudado por Seregenera eso
+ * choca con el art. 1.6.1.4.9 del Decreto 1625 de 2016: en un mandato, la
+ * factura la expide el mandatario. Hasta que lo decida un contador, el texto
+ * no promete ni lo uno ni lo otro (`docs/ENVIOS-Y-PAGOS.md`, «Lo legal»).
  */
 export default function TerminosPage() {
   const tope = NIVELES[NIVELES.length - 1];
@@ -120,8 +125,8 @@ export default function TerminosPage() {
         nivel está en <Link href="/niveles">la página de niveles</Link>.
       </p>
       <p>
-        Los impuestos que correspondan se liquidan según la normativa aplicable y
-        se reflejan en la factura que emite el proveedor.
+        Los impuestos que correspondan se liquidan y se facturan según la
+        normativa aplicable.
       </p>
 
       <h2 id="pedidos">Pedidos y pago</h2>
@@ -214,11 +219,6 @@ export default function TerminosPage() {
           comprador. Al despachar, carga la guía en{" "}
           <Link href="/cuenta/empresa/pedidos">tus pedidos</Link>: es lo que le
           deja seguirlo, y lo que dice cuándo llegó.
-        </li>
-        <li>
-          <strong>Facturas tú.</strong> La venta es tuya, así que la factura al
-          comprador la emites tú, por el precio y el envío. Seregenera te factura
-          a ti su comisión.
         </li>
         <li>
           <strong>Respondes por lo que publicas.</strong> Descripción, precio,

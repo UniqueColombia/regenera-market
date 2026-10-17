@@ -4,14 +4,47 @@
 medias *ahora mismo* y qué sigue. Si acabas de hacer `git pull` y quieres saber
 qué hacer, empieza aquí y no en el ROADMAP.
 
-- **Corte:** 2026-10-14 · **actualizado el 2026-10-16** solo en lo de
-  producción y correo (ver el recuadro de abajo)
+- **Corte:** 2026-10-14 · **actualizado el 2026-10-16** en producción y
+  correo, y **el 2026-10-17** en correos, legales, envíos y pagos (los dos
+  primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
   desplegado **por tag** (hoy `v0.11.1`) con la skill `desplegar-hostinger`.
   `https://regenera-market.vercel.app` sigue encendido como respaldo. La base es
   la misma (Supabase), con las migraciones hasta la `0020` **aplicadas** (Jesús,
   2026-10-14). La `0021` y la `0022` están escritas y probadas, **sin aplicar**
   (ver abajo).
+
+> ## 🟢 Nuevo del 2026-10-17: plantillas subidas, legales al día y el modelo de pago al proveedor
+>
+> Pedido de Jesús. El detalle, en
+> [el hito](../.claude/hitos/2026-10-17-legales-correos-y-modelo-de-pago.md).
+>
+> - **Las seis plantillas de Supabase, subidas desde el repositorio** con
+>   `scripts/plantillas-supabase.mts` (`docs/CORREOS.md`, parte B). En el panel
+>   solo dos tenían texto propio, viejo y sin logo; las otras cuatro estaban en
+>   inglés. Y el *Site URL* pasó de `https://www.seregenera.com/` a
+>   `https://seregenera.com`.
+> - **Arreglado en el código, falta desplegarlo:** el botón «Entrar sin escribir
+>   el código» del correo mandaba a `https://0.0.0.0:3000/…` en Hostinger (la
+>   app tomaba el origen de la petición, que detrás del proxy es ese). Lo mismo
+>   le habría pasado a una sesión caducada. El código de seis dígitos siempre
+>   funcionó.
+> - **Privacidad y términos, vigencia 2026-10-17.** Hostinger en lugar de
+>   Vercel (que queda nombrado mientras siga el respaldo), la dirección de
+>   entrega y las reseñas en la tabla de datos, el NIT de la sociedad, y en los
+>   términos: envío, pago por llave Bre-B o transferencia y **cuándo se le paga
+>   al proveedor** (después de la entrega y de un plazo para reclamar). El
+>   registro, la cesta y `/vender` dicen ahora junto al botón que se aceptan los
+>   términos; `/vender` con una casilla propia.
+> - **El correo de contacto es `info@seregenera.com`** y la sociedad,
+>   Dimension Natural SAS, NIT 901812769-8 (Jesús). En `src/lib/legal.ts`.
+> - **Correos del pedido:** llevan el plazo de entrega y las formas de pago.
+> - **Envíos por cantidad y pago al proveedor:** qué se copia de MercadoLibre y
+>   de Airbnb, en `docs/ENVIOS-Y-PAGOS.md`. Es una propuesta con decisiones para
+>   los dos; no hay nada programado todavía.
+>
+> **Antes del próximo tag, Ivan lee los términos** (puntos 3, 10 y 11 de la
+> tabla de abajo). Al empujar a `main` ya se ven en el respaldo de Vercel.
 
 > ## 🟢 Nuevo del 2026-10-16: producción en Hostinger y correo propio
 >
@@ -23,8 +56,8 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > - **Todo correo sale de `info@seregenera.com`** (correo de Hostinger), tanto
 >   los de Supabase como los de la app. Comprobado: llegan a la bandeja de
 >   entrada. Ver `docs/CORREOS.md`.
-> - **Falta**, en este orden: la página de privacidad (nombra a Vercel como
->   encargado, y es una obligación legal), `APP_ENV` en lugar de `VERCEL_ENV` en
+> - **Falta**, en este orden: ~~la página de privacidad~~ (hecha el
+>   2026-10-17), `APP_ENV` en lugar de `VERCEL_ENV` en
 >   `src/lib/payments.ts` **antes** de encender BOLD en Hostinger, las variables
 >   de pago (BOLD y `PAGO_*`, puntos 2 y 4 de la tabla de abajo) y el webhook de
 >   BOLD a `https://seregenera.com/api/webhooks/bold`. Lista completa en
@@ -56,13 +89,17 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > |---|---|---|---|---|
 > | 1 | **Redes de Seregenera** en el pie, en los correos y en los datos de la portada | La URL de cada perfil que exista (Instagram, Facebook, LinkedIn, TikTok, YouTube, WhatsApp `https://wa.me/57…`) | `REDES` en `src/lib/legal.ts` — no es secreto, va en el código | Desde el 2026-10-15 los íconos se ven igual (pie, «Síguenos» del encabezado, menú del teléfono), marcados «pronto» y sin enlace; el `sameAs` y los correos siguen sin redes |
 > | 2 | **Pago en línea con BOLD** (tarjeta, PSE, Nequi, Botón Bancolombia) | Cuenta de comercio en BOLD y sus dos llaves del **Botón de pagos** (identidad y secreta); las de pruebas para Preview. Revisar en su panel los montos máximos por medio de pago | Variables de la Web App en Hostinger: `BOLD_LLAVE_IDENTIDAD` y `BOLD_LLAVE_SECRETA` (las de producción; `BOLD_MODO_PRUEBAS` **vacía**: fuera de Vercel no se protege sola). En el panel de BOLD, el webhook `https://seregenera.com/api/webhooks/bold` | El pedido ofrece solo llave Bre-B y transferencia |
-> | 3 | **Al encender BOLD**, los términos | Revisar el texto | «Pedidos, pago y entrega» en `src/app/terminos/page.tsx` y `VIGENCIA_TERMINOS` en `src/lib/legal.ts` | Dicen que el pago se coordina por transferencia, que hoy es cierto |
+> | 3 | **Los términos del 2026-10-17** | Leerlos enteros, sobre todo «Pedidos y pago», «Envío y entrega», «Si algo sale mal» y «Si vendes aquí». Al encender BOLD, nombrarla en «Pedidos y pago» | `src/app/terminos/page.tsx` y `VIGENCIA_TERMINOS` en `src/lib/legal.ts` | Dicen llave Bre-B o transferencia, que hoy es cierto |
 > | 4 | **Llave Bre-B y cuenta bancaria** para pagar sin pasarela | La llave de la cuenta de la sociedad; banco, tipo y número de cuenta, titular y NIT | Variables de la Web App en Hostinger: `PAGO_LLAVE_BREB`, `PAGO_BANCO`, `PAGO_TIPO_CUENTA`, `PAGO_NUMERO_CUENTA`, `PAGO_TITULAR`, `PAGO_NIT` (y `PAGO_CORREO_COMPROBANTES` si no es el de contacto). **No en el código**: el repo es público | El pedido dice «escríbenos y te mandamos los datos» |
 > | 5 | ~~**Las `SMTP_*`**~~ ✅ **Hecho el 2026-10-16**: `info@seregenera.com` en Hostinger y en Supabase (`docs/CORREOS.md`) | — | Hostinger y Supabase | En Vercel (el respaldo) siguen sin `SMTP_*` |
-> | 6 | **A qué buzón llegan las respuestas** a las invitaciones | Confirmar que es `CONTACTO.correo` (hoy el Gmail de la sociedad) o dar otro | `CONTACTO` en `src/lib/legal.ts` | Llegan a ese Gmail |
+> | 6 | ~~**A qué buzón llegan las respuestas**~~ ✅ **Hecho el 2026-10-17**: `info@seregenera.com` (Jesús) | — | `CONTACTO` en `src/lib/legal.ts` | — |
 > | 7 | **El texto de la invitación** | Leerlo y ajustarlo | `TEXTOS` en `src/lib/prospectos.ts` (también se edita antes de cada envío) | Sale el que está |
 > | 8 | **Convenio con Aveonline** (o la transportadora que sea) | Si su API cotiza por peso, medidas y destino | Una implementación detrás de `envioDeLinea()` (skill `nueva-integracion`) | Cada proveedor declara su tarifa local, nacional y por unidad |
 > | 9 | **Conseguir correos de prospectos** | Decidir si se enriquecen más lotes con el subagente `prospector-proveedores` | — | Del Excel del prospector, solo 17 de 2.827 empresas tienen correo |
+> | 10 | **Cuántos días tiene el comprador para reclamar** antes de que se le pague al proveedor | Confirmar el 5 o dar otro número | `DIAS_PARA_RECLAMAR` en `src/lib/legal.ts` (lo citan los términos) | 5 días hábiles, propuesta |
+> | 11 | **Quién factura qué** con el pago recaudado por Seregenera | Un contador. En un mandato, el art. 1.6.1.4.9 del Decreto 1625 de 2016 dice que factura el **mandatario** (Seregenera), no el proveedor como decían los términos. **Ya aplica**: el cobro por llave y transferencia a la cuenta de la sociedad ocurre hoy | `docs/ENVIOS-Y-PAGOS.md`, «Lo legal» | Desde el 2026-10-17 los términos no prometen quién factura |
+> | 12 | **Envíos por cantidad y liquidación al proveedor** | Las decisiones de `docs/ENVIOS-Y-PAGOS.md` | — | Nada programado |
+> | 13 | **La foto del remitente** (BIMI) | Dos registros DNS en hPanel: el dominio está en su cuenta y el MCP no lo ve. Y decidir si se paga el certificado para Gmail | `docs/CORREOS.md`, parte D2 | Sale la inicial; Jesús puede hacer la D1 (cuenta de Google) sin Ivan |
 
 > ## 🔴 Nuevo del 2026-10-14 (noche): aplicar la `0021` y la `0022`, en ese orden
 >

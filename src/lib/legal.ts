@@ -58,8 +58,12 @@ export const VIGENCIA_PRIVACIDAD = "2026-10-17";
  * MercadoLibre retienen la plata del vendedor hasta después de la entrega):
  * el comprador paga, Seregenera retiene su comisión y el proveedor cobra cuando
  * lo vendido llegó. **El número es una propuesta y espera el visto bueno de
- * Ivan**: es negocio, no código. Lo citan los términos; la liquidación al
- * proveedor, cuando se programe, tiene que leer este mismo valor.
+ * Ivan**: es negocio, no código. Cinco no es arbitrario: es el retracto de la
+ * Ley 1480 (art. 47, cinco días hábiles desde la entrega) y el plazo para
+ * pedir la reversión de un pago (art. 51); liberar antes deja al comprador con
+ * un derecho que Seregenera ya no puede cubrir con la plata retenida. Lo citan
+ * los términos; la liquidación al proveedor, cuando se programe, tiene que leer
+ * este mismo valor.
  */
 export const DIAS_PARA_RECLAMAR = 5;
 
