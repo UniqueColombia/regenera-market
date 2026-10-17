@@ -29,6 +29,13 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   de pago (BOLD y `PAGO_*`, puntos 2 y 4 de la tabla de abajo) y el webhook de
 >   BOLD a `https://seregenera.com/api/webhooks/bold`. Lista completa en
 >   `ROADMAP-MIGRACION.md`, B1.6.
+> - **Después, los correos** (pedido de Jesús): con el SMTP andando, repasar el
+>   formato de todos y crear los que faltan. Un correo de «empresa creada con
+>   éxito» (hoy el alta manda el de «postulación recibida») y el plazo de entrega
+>   dentro de los correos del pedido. Además: empresa cerrada, cuenta eliminada,
+>   compra, despacho, cambios de estado. Casi todos los manda la app
+>   (`src/lib/correo/plantillas.ts`), no Supabase. Detalle en `docs/CORREOS.md`,
+>   Parte C.
 - **Fase del roadmap:** 0 cerrada. Bloques 0, 1, 2 y **3** de `docs/BETA.md`
   cerrados y **en producción**. **El Bloque 4 (panel de proveedor) empezó**: las
   empresas publican sus ofertas desde `/cuenta/empresa/ofertas`.

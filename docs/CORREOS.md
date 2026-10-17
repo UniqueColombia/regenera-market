@@ -228,6 +228,12 @@ voz alta como si se lo dijeras a un hotelero: si suena raro, está mal.
 
 ## Parte C — Qué correos existen y cuáles faltan
 
+**Supabase solo manda los correos de acceso** (las seis primeras filas). Todo lo
+demás —empresa, compra, entrega, ofertas— lo manda **la aplicación** desde
+`src/lib/correo/plantillas.ts`, por el mismo SMTP. Así que «el formato de un
+correo» de una empresa o de un pedido se cambia en el código, no en el panel de
+Supabase.
+
 | Momento | ¿Quién lo manda? | Estado |
 |---|---|---|
 | Registro: código y enlace | Supabase | ✅ |
@@ -243,7 +249,23 @@ voz alta como si se lo dijeras a un hotelero: si suena raro, está mal.
 | Oferta publicada | Aplicación | ✅ conectado |
 | Cambio de estado del pedido (pagado, preparación, entregado, cancelado, devuelto) | Aplicación | ✅ conectado |
 | Aviso al proveedor de un pedido pagado | Aplicación | ✅ conectado |
+| Pedido despachado (`correoPedidoDespachado`) | Aplicación | ✅ conectado |
+| Ofertas cargadas desde Excel (`correoOfertasImportadas`) | Aplicación | ✅ conectado |
+| Cuenta eliminada (`correoCuentaEliminada`) | Aplicación | ✅ conectado, pero **necesita la `0021`**, todavía sin aplicar |
+| Empresa cerrada (`correoEmpresaCerrada`) | Aplicación | ✅ conectado, pero **necesita la `0021`**, todavía sin aplicar |
 | Oferta no aprobada | Aplicación | ❌ falta un campo de motivo en la base: una migración y una decisión de los dos |
+| **Empresa creada con éxito** | Aplicación | ❌ **pendiente** (2026-10-16). El alta en `/vender` manda `correoPostulacionRecibida`, escrito para cuando el equipo revisaba cada alta. Desde que la empresa entra sola, falta un correo de «tu empresa ya está en Seregenera» con el siguiente paso (publicar la primera oferta) |
+| **Plazo de entrega en los correos del pedido** | Aplicación | ❌ **pendiente** (2026-10-16). `plazoDeEntrega()` (`src/lib/envios.ts`) ya sale en la ficha, la cesta y la página del pedido, pero no en `correoPedidoRecibido` ni en `correoPedidoDespachado` |
+
+### Pendiente: repasar el formato de todos los correos (2026-10-16)
+
+Ahora que el remitente es `info@seregenera.com` y el SMTP funciona en producción,
+toca una pasada por todos los correos con la skill `redaccion-producto`:
+empresa creada, empresa cerrada, cuenta eliminada, compra, despacho y plazo de
+entrega, cambios de estado, ofertas. Que digan lo mismo que la pantalla, con el
+mismo tono, y que cada uno lleve a un solo paso. Primero las dos filas ❌
+pendientes de la tabla, después el resto. Las plantillas de Supabase (Parte B)
+entran en la misma pasada.
 
 **Dónde está conectado cada uno:** los de ofertas y de pedidos salen de
 `src/lib/correo/notificaciones.ts`, que se llama **después** de guardar el
