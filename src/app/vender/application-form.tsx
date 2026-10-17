@@ -70,6 +70,7 @@ const PASO_DE_CAMPO: Record<string, number> = {
   giros: 2,
   description: 2,
   consent: 2,
+  terminos: 2,
 };
 
 /**
@@ -516,6 +517,31 @@ export function ApplicationForm({
           </label>
           {errors.consent && (
             <p className="mt-2 text-xs font-medium text-red-700">{errors.consent}</p>
+          )}
+
+          <label className="mt-3 flex cursor-pointer items-start gap-3 text-sm text-ink">
+            <input
+              type="checkbox"
+              name="terminos"
+              data-paso={2}
+              required
+              className="mt-0.5 size-4 shrink-0 accent-brand-700"
+            />
+            <span>
+              Acepto los{" "}
+              <Link
+                href="/terminos#proveedores"
+                target="_blank"
+                className="text-brand-700 underline underline-offset-2"
+              >
+                términos para vender en Seregenera
+              </Link>
+              : la comisión, cómo y cuándo recibo el pago de cada venta, y lo
+              que me toca como proveedor.
+            </span>
+          </label>
+          {errors.terminos && (
+            <p className="mt-2 text-xs font-medium text-red-700">{errors.terminos}</p>
           )}
         </div>
       </fieldset>

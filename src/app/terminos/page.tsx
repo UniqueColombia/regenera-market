@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PaginaLegal } from "@/components/pagina-legal";
-import { CONTACTO, VIGENCIA_TERMINOS } from "@/lib/legal";
+import { CONTACTO, DIAS_PARA_RECLAMAR, VIGENCIA_TERMINOS } from "@/lib/legal";
 import { COMISION_BASE, NIVELES, comisionEnPorcentaje } from "@/lib/niveles";
 import { descripcion, publica } from "@/lib/seo";
 
@@ -31,6 +31,19 @@ export const metadata: Metadata = {
  * comisión y media cuando algo sale mal. Escribirlo de otra forma —«Seregenera
  * te vende»— convertiría a la sociedad en responsable solidaria de la calidad de
  * lo que produce un tercero, que no es el negocio ni lo que puede sostener.
+ *
+ * **El dinero de la venta es del proveedor, y Seregenera lo recauda por
+ * él.** Desde el 2026-10-17 el texto lo dice así (un mandato de recaudo), y
+ * dice cuándo se le paga: después de la entrega y del plazo para reclamar
+ * (`DIAS_PARA_RECLAMAR`). Es el modelo de Airbnb y de MercadoLibre, y es lo que
+ * le da garantía a las dos partes: el comprador sabe que el proveedor no cobra
+ * si no entrega, y el proveedor sabe que la plata ya está pagada y esperando.
+ *
+ * **Lo que este texto no dice a propósito: quién factura.** Antes decía que la
+ * factura la emite el proveedor, y con el pago recaudado por Seregenera eso
+ * choca con el art. 1.6.1.4.9 del Decreto 1625 de 2016: en un mandato, la
+ * factura la expide el mandatario. Hasta que lo decida un contador, el texto
+ * no promete ni lo uno ni lo otro (`docs/ENVIOS-Y-PAGOS.md`, «Lo legal»).
  */
 export default function TerminosPage() {
   const tope = NIVELES[NIVELES.length - 1];
@@ -48,11 +61,12 @@ export default function TerminosPage() {
       <h2 id="aceptacion">Al usar el sitio, aceptas estas condiciones</h2>
       <p>
         Seregenera es operado por <strong>{CONTACTO.razonSocial}</strong>,
-        sociedad constituida en {CONTACTO.pais}. Al navegar por el sitio aceptas
+        sociedad constituida en {CONTACTO.pais} con NIT {CONTACTO.nit}. Al navegar por el sitio aceptas
         estos términos y la{" "}
         <Link href="/privacidad">política de privacidad</Link>. Al crear una
-        cuenta, al publicar una oferta o al confirmar un pedido los aceptas
-        además de forma expresa, y ahí queda registrado cuándo.
+        cuenta, al dar de alta una empresa o al confirmar un pedido los aceptas
+        además de forma expresa: cada una de esas pantallas lo dice junto al
+        botón, y la fecha queda guardada con tu cuenta, tu empresa o tu orden.
       </p>
       <p>
         Si no estás de acuerdo con algo de lo que sigue, no uses la plataforma.
@@ -111,34 +125,66 @@ export default function TerminosPage() {
         nivel está en <Link href="/niveles">la página de niveles</Link>.
       </p>
       <p>
-        Los impuestos que correspondan se liquidan según la normativa aplicable y
-        se reflejan en la factura que emite el proveedor.
+        Los impuestos que correspondan se liquidan y se facturan según la
+        normativa aplicable.
       </p>
 
-      <h2 id="pedidos">Pedidos, pago y entrega</h2>
+      <h2 id="pedidos">Pedidos y pago</h2>
       <p>
-        Un pedido confirmado congela el título y el precio de cada ítem: lo que
-        aceptaste es lo que queda en la orden, aunque el proveedor cambie su
-        catálogo al día siguiente.
+        Un pedido confirmado congela el título, el precio y el envío de cada
+        ítem: lo que aceptaste es lo que queda en la orden, aunque el proveedor
+        cambie su catálogo al día siguiente.
       </p>
       <p>
-        <strong>Hoy el pago se coordina por transferencia bancaria</strong> y una
-        persona del equipo confirma que llegó. Mientras sea así, los datos de tu
-        cuenta bancaria no pasan por la plataforma. Cuando exista pago en línea
-        lo procesará una pasarela autorizada y se dirá en el momento de pagar.
+        <strong>Lo que pagas lo recibe {CONTACTO.razonSocial} por cuenta del
+        proveedor.</strong> Seregenera lo guarda hasta que el pedido te llega, y
+        solo entonces le paga al proveedor lo suyo (cómo, en{" "}
+        <a href="#proveedores">«Si vendes aquí»</a>). Si el pedido no llega o se
+        cancela, la plata sigue aquí para devolvértela.
       </p>
       <p>
-        El plazo, la cobertura y las condiciones de entrega las fija cada
-        proveedor en su oferta. Los ítems marcados como <em>cotización</em> no se
+        <strong>Hoy pagas con llave Bre-B o por transferencia</strong> a la
+        cuenta de {CONTACTO.razonSocial}, con la referencia de tu orden, y una
+        persona del equipo confirma que llegó. Los datos de tu cuenta bancaria no
+        pasan por la plataforma. Cuando haya pago en línea, lo procesará una
+        pasarela autorizada que recibe ella misma los datos de tu tarjeta o de tu
+        cuenta, y se dirá en el momento de pagar.
+      </p>
+      <p>
+        Un pedido sin pagar se cancela solo a las 72 horas, y lo que reservaba
+        vuelve al catálogo. Los ítems marcados como <em>cotización</em> no se
         compran directo: se pide un precio y no hay venta hasta que lo aceptas.
+      </p>
+
+      <h2 id="envio">Envío y entrega</h2>
+      <p>
+        Cada proveedor decide cómo llega lo que vende: lo lleva él o lo manda por
+        una transportadora que él elige. Al publicar declara cuánto cuesta el
+        envío —dentro de su departamento, al resto del país y lo que suma cada
+        unidad adicional— y en cuántos días hábiles llega, contados desde que se
+        confirma tu pago.
+      </p>
+      <p>
+        <strong>El envío se suma al precio en la cesta, antes de que
+        confirmes</strong>, según el departamento de entrega que elijas. Va
+        entero al proveedor, para pagar el transporte: Seregenera no cobra
+        comisión sobre el envío. Si una oferta no declara tarifa, el envío se
+        coordina con el proveedor y no se cobra en la orden.
+      </p>
+      <p>
+        Cuando despacha, el proveedor carga la guía y la sigues desde tu pedido.
+        Cuando te llegue, márcalo con «Ya me llegó»; si te lo entregó en mano,
+        puede marcarlo él.
       </p>
 
       <h2 id="reclamos">Si algo sale mal</h2>
       <p>
-        Escribe primero a{" "}
-        <a href={`mailto:${CONTACTO.correo}`}>{CONTACTO.correo}</a> con el número
-        de tu orden. Seregenera media con el proveedor y puede retener la
-        liquidación de esa venta mientras se resuelve.
+        Escribe a <a href={`mailto:${CONTACTO.correo}`}>{CONTACTO.correo}</a>{" "}
+        con la referencia de tu orden: a más tardar{" "}
+        <strong>{DIAS_PARA_RECLAMAR} días hábiles después de la entrega</strong>{" "}
+        si lo que llegó no es lo que se publicó o llegó dañado, o en cuanto
+        pase el plazo de entrega si no llegó. Seregenera media con el proveedor
+        y <strong>no le paga esa venta mientras se resuelve</strong>.
       </p>
       <p>
         La responsabilidad por la calidad, la idoneidad, la seguridad y la
@@ -150,7 +196,30 @@ export default function TerminosPage() {
       </p>
 
       <h2 id="proveedores">Si vendes aquí</h2>
+      <p>
+        Al dar de alta tu empresa aceptas estos términos a nombre de ella, y
+        declaras que puedes obligarla. Esto es lo que te toca como proveedor,
+        además de todo lo anterior.
+      </p>
       <ul>
+        <li>
+          <strong>Cómo y cuándo cobras.</strong> Lo que paga el comprador lo
+          recibe {CONTACTO.razonSocial} por cuenta tuya: le encargas a
+          Seregenera que recaude el pago de tus ventas. Cuando el pedido queda
+          entregado —lo confirma el comprador, o lo marcas tú si lo entregaste
+          en mano— y pasan {DIAS_PARA_RECLAMAR} días hábiles sin un reclamo, te
+          transferimos el precio y el envío menos la comisión de tu nivel, a una
+          cuenta bancaria a nombre de tu empresa. Si hay un reclamo, ese pago
+          espera a que se resuelva; si la venta se cancela o se devuelve, la
+          plata vuelve al comprador y no hay comisión.
+        </li>
+        <li>
+          <strong>Despachas en el plazo que prometiste.</strong> El costo y los
+          días de entrega que declaras en tu oferta son los que ve y paga el
+          comprador. Al despachar, carga la guía en{" "}
+          <Link href="/cuenta/empresa/pedidos">tus pedidos</Link>: es lo que le
+          deja seguirlo, y lo que dice cuándo llegó.
+        </li>
         <li>
           <strong>Respondes por lo que publicas.</strong> Descripción, precio,
           fotos, impacto declarado y certificaciones tienen que ser ciertos y

@@ -47,9 +47,9 @@ export default function PrivacidadPage() {
     >
       <h2 id="responsable">Quién responde por tus datos</h2>
       <p>
-        <strong>Dimension Natural SAS</strong>, sociedad constituida en Colombia,
-        es la responsable del tratamiento de los datos personales que se recogen
-        en Seregenera. Puedes escribirle a{" "}
+        <strong>{CONTACTO.razonSocial}</strong>, sociedad constituida en{" "}
+        {CONTACTO.pais} con NIT {CONTACTO.nit}, es la responsable del
+        tratamiento de los datos personales que se recogen en Seregenera. Puedes escribirle a{" "}
         <a href={`mailto:${CONTACTO.correo}`}>{CONTACTO.correo}</a> o llamar al{" "}
         <a href={`tel:${CONTACTO.telefonoE164}`}>{CONTACTO.telefono}</a>.
       </p>
@@ -103,6 +103,27 @@ export default function PrivacidadPage() {
             <td>
               Gestionar la entrega, liquidar al proveedor y poder auditar la
               operación después
+            </td>
+          </tr>
+          <tr>
+            <td>
+              La dirección de entrega: departamento, ciudad, dirección e
+              indicaciones para llegar
+            </td>
+            <td>Al comprar un producto que se envía</td>
+            <td>
+              Que el pedido te llegue. La ve <strong>el proveedor que te
+              vende</strong>, junto con tu nombre y tu teléfono, para
+              despacharlo; la transportadora que él elija la recibe en la guía.
+              Un proveedor no ve los pedidos de otro
+            </td>
+          </tr>
+          <tr>
+            <td>Tus reseñas: la calificación, el texto y tu nombre abreviado</td>
+            <td>Al reseñar algo que compraste</td>
+            <td>
+              Mostrarla en la ficha de la oferta. <strong>Es pública</strong>,
+              firmada solo con tu nombre y la inicial del apellido («Ana M.»)
             </td>
           </tr>
           <tr>
@@ -203,11 +224,21 @@ export default function PrivacidadPage() {
           las imágenes que subes.
         </li>
         <li>
-          <strong>Vercel</strong> — servidores donde corre el sitio.
+          <strong>Hostinger</strong> — servidores donde corre el sitio, y el
+          buzón <a href={`mailto:${CONTACTO.correo}`}>{CONTACTO.correo}</a>{" "}
+          desde el que te mandamos los códigos de acceso y los avisos de tus
+          pedidos.
         </li>
         <li>
-          <strong>El servicio de correo</strong> que entrega los mensajes de
-          acceso y los avisos de tus pedidos.
+          <strong>Vercel</strong> — solo mientras mantengamos la copia de
+          respaldo del sitio en <code>regenera-market.vercel.app</code>, que
+          usa la misma base de datos. Si entras por ahí, tus datos pasan por sus
+          servidores.
+        </li>
+        <li>
+          <strong>La transportadora</strong> que elija el proveedor para
+          despacharte un producto: recibe tu nombre, tu teléfono y la dirección
+          de entrega, nada más.
         </li>
         <li>
           <strong>La pasarela de pago (BOLD)</strong>, solo si eliges pagar en

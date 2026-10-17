@@ -55,3 +55,4 @@ referencie al anterior.
 | 2026-10-15 | [«Tu empresa» y «Tu cuenta» compactas, y un fondo botánico para los formularios](2026-10-15-cuenta-y-empresa-compactas-con-fondo-botanico.md) | Jesús Seiler | 3 |
 | 2026-10-15 | [Los íconos de las redes se ven ya, como «pronto»](2026-10-15-redes-visibles-como-pronto.md) | Jesús Seiler | — |
 | 2026-10-16 | [Producción pasa a Hostinger, se despliega por tag, y el correo sale de `info@seregenera.com`](2026-10-16-produccion-en-hostinger.md) | Jesús Seiler | — (infraestructura: vía B-1) |
+| 2026-10-17 | [Las plantillas de Supabase salen del repositorio, los legales dejan Vercel y el proveedor cobra después de la entrega](2026-10-17-legales-correos-y-modelo-de-pago.md) | Jesús Seiler | — |

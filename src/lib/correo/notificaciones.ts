@@ -161,7 +161,9 @@ export async function avisarDespacho(itemId: string): Promise<void> {
     const db = createAdminClient();
     const { data: item } = await db
       .from("order_items")
-      .select("title_snapshot, transportadora, guia, orders(reference, buyer_name, buyer_email)")
+      .select(
+        "title_snapshot, transportadora, guia, entrega_dias_min, entrega_dias_max, orders(reference, buyer_name, buyer_email)",
+      )
       .eq("id", itemId)
       .maybeSingle();
     const orden = item?.orders as unknown as
@@ -178,6 +180,8 @@ export async function avisarDespacho(itemId: string): Promise<void> {
         titulo: item.title_snapshot,
         transportadora: item.transportadora ?? undefined,
         guia: item.guia ?? undefined,
+        diasMin: item.entrega_dias_min ?? undefined,
+        diasMax: item.entrega_dias_max ?? undefined,
       }),
     ]);
   } catch (e) {

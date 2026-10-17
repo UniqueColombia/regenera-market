@@ -165,5 +165,24 @@ lockup "$VERDE" 48 "$TMP/lock-firma.png"
   -gravity center -composite "$REDES/firma-correo.png"
 echo "  ok $REDES/firma-correo.png"
 
+# --- Foto del remitente (BIMI) -------------------------------------------------
+# El logo que algunos buzones muestran junto al remitente (docs/CORREOS.md,
+# parte D). BIMI exige SVG Tiny PS: cuadrado, con <title>, sin x/y en la raíz,
+# sin clipPath ni nada externo. Por eso sale del compacto y no del de detalle,
+# que recorta los continentes con clipPath. Crema sobre verde como el avatar, y
+# el dibujo en el 58 % central, que sobrevive al recorte en círculo. Vive en
+# public/ y no en marca/ porque lo enlaza un registro DNS: si cambia de ruta,
+# el logo desaparece sin que nada avise.
+{
+  echo '<svg version="1.2" baseProfile="tiny-ps" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">'
+  echo '  <title>Seregenera</title>'
+  echo "  <rect width=\"200\" height=\"200\" fill=\"$VERDE\"/>"
+  echo "  <g transform=\"translate(60.8 42) scale(0.784)\" fill=\"none\" stroke=\"$CREMA\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\">"
+  sed -n '/<g /,/<\/g>/p' "$MARCA/isotipo-compacto.svg" | sed '1d;$d' | sed 's# />#/>#'
+  echo '  </g>'
+  echo '</svg>'
+} > public/bimi.svg
+echo "  ok public/bimi.svg"
+
 echo
 echo "Marca regenerada. Peso de $MARCA: $(du -sh "$MARCA" | cut -f1)"

@@ -49,8 +49,23 @@ const TIPOS: readonly EmailOtpType[] = [
   "email_change",
 ];
 
+/**
+ * El dominio público, para las redirecciones de abajo.
+ *
+ * **No `request.nextUrl.origin`.** En Hostinger la app escucha en
+ * `0.0.0.0:3000` detrás de su proxy y ese es el origen que ve la petición: el
+ * enlace del correo verificaba bien y mandaba a la persona a
+ * `https://0.0.0.0:3000/…`, una dirección que no abre nada (comprobado con curl
+ * el 2026-10-17). En Vercel no se notaba porque su proxy entrega el Host
+ * público. Sin `NEXT_PUBLIC_SITE_URL` (un preview) se usa el de la petición.
+ */
+function origenPublico(request: NextRequest): string {
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? request.nextUrl.origin).replace(/\/$/, "");
+}
+
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = origenPublico(request);
   const next = searchParams.get("next") ?? "/";
   const destino = next.startsWith("/") && !next.startsWith("//") ? next : "/";
 

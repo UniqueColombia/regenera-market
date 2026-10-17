@@ -740,9 +740,13 @@ function CheckoutPanel({
 
         <p className="mt-3 text-xs leading-relaxed text-muted">
           Te escribimos a{" "}
-          <strong className="break-all text-ink">{comprador.email}</strong>. El
-          pago se coordina por transferencia: al confirmar te mostramos las
-          instrucciones y la referencia de tu orden.
+          <strong className="break-all text-ink">{comprador.email}</strong>. Al
+          confirmar te mostramos cómo pagar y la referencia de tu orden, y
+          aceptas los{" "}
+          <Link href="/terminos#pedidos" className="text-brand-700 underline underline-offset-2">
+            términos de compra
+          </Link>
+          .
         </p>
       </div>
     </form>

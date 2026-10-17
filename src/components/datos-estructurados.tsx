@@ -73,6 +73,9 @@ export function DatosDelSitio() {
             "@id": `${siteUrl}/#organizacion`,
             name: "Seregenera",
             legalName: CONTACTO.razonSocial,
+            // Visible en el pie de todas las páginas, que es lo que permite
+            // declararlo aquí (ver «Datos estructurados» en `seo-y-legal`).
+            taxID: CONTACTO.nit,
             url: siteUrl,
             logo: url("/icon.png"),
             image: url("/opengraph-image.jpg"),

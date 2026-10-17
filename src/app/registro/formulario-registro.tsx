@@ -205,6 +205,21 @@ export function FormularioRegistro({ volver }: { volver?: string }) {
         entrarás con tu contraseña, y solo te pediremos el código cuando entres
         desde un dispositivo nuevo.
       </p>
+
+      {/* Lo que hace cierto el «al crear una cuenta los aceptas de forma
+          expresa» de `/terminos`: la fecha queda en la cuenta, y la versión es
+          la de `VIGENCIA_TERMINOS` ese día. */}
+      <p className="mt-2 text-xs leading-relaxed text-muted">
+        Al crear tu cuenta aceptas los{" "}
+        <Link href="/terminos" className="text-brand-700 underline underline-offset-2">
+          términos y condiciones
+        </Link>{" "}
+        y la{" "}
+        <Link href="/privacidad" className="text-brand-700 underline underline-offset-2">
+          política de privacidad
+        </Link>
+        .
+      </p>
     </form>
   );
 }
