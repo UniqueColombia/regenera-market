@@ -256,6 +256,13 @@ export async function subirImagenDeOferta(datos: FormData): Promise<ResultadoIma
   const empresa = await getMiEmpresa();
   if (!empresa) return { ok: false, error: "Tu cuenta todavía no gestiona ninguna empresa." };
 
+  // Cada llamada deja un archivo nuevo que nada borra hasta que se borra la
+  // empresa. En el modo MySQL el disco es el mismo de la base: sin tope, una
+  // sesión de empresa en bucle llena la cuota de la cuenta y tumba el sitio.
+  if (!dentroDelRitmo(`subir-oferta:${empresa.id}`, 60, 3600)) {
+    return { ok: false, error: "Subiste muchas fotos seguidas. Espera un rato y vuelve a intentarlo." };
+  }
+
   const revisada = revisarImagen(datos.get("imagen"));
   if (!revisada.ok) return { ok: false, error: revisada.error };
 

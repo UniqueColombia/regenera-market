@@ -173,6 +173,14 @@ const nextConfig: NextConfig = {
      * foto es el argumento de venta.
      */
     formats: ["image/avif", "image/webp"],
+    /**
+     * Tope de la caché del optimizador. Sin él, Next toma la mitad del disco
+     * libre que ve al arrancar, y en Hostinger ese disco es la cuota de la
+     * cuenta, la misma de MariaDB y de las fotos. La versión de `/archivos/…`
+     * no se comprueba al leer (`almacen-disco.ts`): cada versión inventada es
+     * una entrada nueva, así que sin tope se podía llenar la cuota a peticiones.
+     */
+    maximumDiskCacheSize: 300_000_000,
     remotePatterns: anfitrion
       ? [
           {

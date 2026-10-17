@@ -3,6 +3,7 @@ import { createClient } from "./supabase/server";
 import { getUser } from "./auth";
 import { COMMISSION_RATE } from "./pricing";
 import { logisticaDisponible } from "./repo";
+import { modoMysql } from "./modo";
 import { cuantasPaginas, rango, type Pagina } from "./paginacion";
 import type {
   DestinoEnvio,
@@ -269,6 +270,8 @@ export async function crearOrden(datos: {
   /** Desde la 0014. Obligatorio si hay productos físicos: la base lo exige. */
   destino?: DestinoEnvio;
 }): Promise<ResultadoCrearOrden> {
+  // Antes de mirar el stock: lo que retienen los pedidos vencidos vuelve primero.
+  await vencerPedidosDeFondo();
   const db = await createClient();
   const comunes = {
     _id: datos.id,
@@ -650,6 +653,28 @@ export async function vencerPedidosSinPago(): Promise<number> {
   } catch (e) {
     console.error("[ordenes] vencer_pedidos_sin_pago", e);
     return 0;
+  }
+}
+
+let ultimoVencimiento = 0;
+
+/**
+ * El `pg_cron` que el modo MySQL no tiene. Allá `vencer_pedidos_sin_pago()`
+ * corría cada hora; aquí la corre la app, como mucho una vez por hora y por
+ * proceso, con la llave de servicio (que en `rpc.ts` hace de cron). La llaman
+ * `crearOrden()` y la ficha de una oferta, que es donde un pedido abandonado
+ * estorba: su stock retenido cierra la compra a otra persona. Sin esto solo se
+ * vencían al abrir `/admin/ordenes`. Nunca lanza.
+ */
+export async function vencerPedidosDeFondo(): Promise<void> {
+  if (!modoMysql() || Date.now() - ultimoVencimiento < 3_600_000) return;
+  ultimoVencimiento = Date.now();
+  try {
+    const { data, error } = await createAdminClient().rpc("vencer_pedidos_sin_pago");
+    if (error) console.error(`[ordenes] vencer_pedidos_sin_pago: ${error.message}`);
+    else if (data) console.info(`[ordenes] ${data} pedido(s) sin pago vencidos`);
+  } catch (e) {
+    console.error("[ordenes] vencer_pedidos_sin_pago", e);
   }
 }
 

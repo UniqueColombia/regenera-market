@@ -5,6 +5,13 @@ description: Invariantes de negocio y seguridad de Seregenera. Cárgala ANTES de
 
 # Invariantes del dominio
 
+> ⚠️ **Desde el 2026-10-17 la «gemela en SQL» de producción no es Postgres**:
+> es `src/lib/mysql/postgrest/rpc.ts` (`crear_orden`, `calificar`…) y
+> `mysql/logica.sql` (triggers de stock, estados y puntos), sobre MariaDB. Un
+> cambio de regla de dinero, estados o reseñas va en `src/lib`, en `rpc.ts` o
+> `logica.sql`, y en la migración de Postgres si se quiere conservar la vuelta
+> atrás; se prueba con `npm test` y `npm run test:mysql`.
+
 Seregenera es un marketplace **multi-proveedor con comisión**: en una misma
 orden hay dinero de varias empresas distintas. Eso convierte varias decisiones
 que parecen de estilo en decisiones de auditoría. Cada regla de abajo tiene un

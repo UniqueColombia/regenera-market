@@ -149,6 +149,12 @@ sobrescribe.
 Viven en el panel de la Web App (hPanel → `seregenera.com` → Variables de
 entorno). Los nombres y para qué sirve cada una, en `docs/VARIABLES.md`.
 
+> ⚠️ **Desde el 2026-10-17 producción corre con `BASE_DE_DATOS=mysql`** (y las
+> `MYSQL_*` y `ALMACEN_CARPETA`). Si se pierde en un cambio de variables, la app
+> vuelve **sin avisar** a Supabase con los datos de ese día y empieza a escribir
+> allí: los datos quedan partidos en dos. Después de tocar variables, comprobar
+> que siguen las siete del modo MySQL. Ver `docs/MODO-MYSQL.md`.
+
 - **`hosting_nodejs_replace-environment-variables` reemplaza el juego entero**:
   lo que no se manda, se borra. El agente no conoce `SMTP_PASSWORD` (la puso
   Jesús en el panel, y una contraseña no pasa por el chat), así que **un cambio

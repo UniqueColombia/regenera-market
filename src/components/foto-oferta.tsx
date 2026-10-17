@@ -30,7 +30,10 @@ export function FotoOferta({
   /** Para quien necesita saber que ya se puede mostrar sin un hueco en blanco. */
   onLoad?: () => void;
 }) {
-  if (src.startsWith("/")) {
+  // Las líneas de fotos de una oferta las escribe su empresa. `next/image` lanza
+  // —y tumba la página— con una ruta local que trae `?` o con `//otro-dominio`
+  // (que no es local); esas van por `<img>`, donde lo peor es una foto rota.
+  if (src.startsWith("/") && !src.startsWith("//") && !src.includes("?")) {
     return (
       <Image
         src={src}

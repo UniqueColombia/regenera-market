@@ -61,6 +61,11 @@ export function opcionesMysql(): PoolOptions {
     // devuelve PostgREST (`postgrest/valores.ts`).
     dateStrings: true,
     timezone: "Z",
+    // Sin esto, un objeto pasado como valor de `?` se expande en `col = valor`
+    // (la inyección por objeto clásica de mysql2): un filtro `x = ?` con
+    // `{ x: 1 }` dejaría de comparar. La capa ya manda JSON como texto; esto es
+    // por si algún día llega un objeto de un formulario.
+    stringifyObjects: true,
     // `tinyint(1)` es el boolean de MySQL. Sin esto llega 0/1, y `featured ===
     // true` o `quote_only` nunca se cumplen.
     typeCast(campo, siguiente) {
@@ -80,13 +85,13 @@ function poolNuevo(): Pool {
     conexion.query(AJUSTES_DE_SESION);
   });
   // Quién pide lo dicen variables de sesión, y una variable de sesión sobrevive
-  // a la devolución de la conexión al pool. **Se borran al devolverla**: sin
-  // esto, la siguiente petición que la tomara heredaría la identidad de la
-  // anterior, admin incluido. Va en el evento y no al final de cada petición
-  // porque así no le suma un viaje a la base a quien espera la respuesta: el
-  // borrado queda encolado en la conexión antes de cualquier consulta del
-  // siguiente que la use. La capa compatible, además, fija la identidad al
-  // empezar (`postgrest/contexto.ts`).
+  // a la devolución de la conexión al pool. Esto las borra cuando la conexión
+  // vuelve a la lista de libres. **No basta solo**: si hay alguien esperando, el
+  // pool le entrega la conexión directamente y este evento no salta. Por eso
+  // `enTransaccion` (`postgrest/contexto.ts`) encola además el borrado antes de
+  // devolverla, y fija la identidad al empezar. Quien use `getMysql()` o el pool
+  // a pelo **no** tiene esa garantía: no puede depender de `auth_uid()` ni de
+  // `es_cliente()`, ni escribir en tablas cuyos triggers los lean.
   pool.on("release", (conexion) => {
     conexion.query(SIN_IDENTIDAD);
   });

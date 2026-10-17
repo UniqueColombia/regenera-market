@@ -35,7 +35,8 @@ class ConsultaRpc implements PromiseLike<Respuesta> {
   }
 
   private async ejecutar(): Promise<Respuesta> {
-    const fn = RPCS[this.nombre];
+    // `hasOwn`: con `RPCS[nombre]` a secas, `rpc("constructor")` encontraba una función.
+    const fn = Object.hasOwn(RPCS, this.nombre) ? RPCS[this.nombre] : undefined;
     if (!fn) {
       return {
         data: null,

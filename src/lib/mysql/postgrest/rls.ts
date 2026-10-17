@@ -29,8 +29,8 @@ export const COLUMNAS_DE_VISITANTE: Record<string, readonly string[]> = {
 };
 
 function aplica(actor: Actor, tabla: string): boolean {
-  const t = TABLAS[tabla];
-  return actor.rol !== "service_role" && Boolean(t) && !t.vista && t.rls;
+  const t = Object.hasOwn(TABLAS, tabla) ? TABLAS[tabla] : undefined;
+  return actor.rol !== "service_role" && t !== undefined && !t.vista && t.rls;
 }
 
 function unir(expresiones: string[]): string {

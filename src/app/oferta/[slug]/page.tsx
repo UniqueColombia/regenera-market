@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import {
   BadgeCheck,
   Clock,
@@ -43,6 +44,7 @@ import {
   VERTICAL_LABEL,
 } from "@/lib/taxonomy";
 import { getSesion } from "@/lib/auth";
+import { vencerPedidosDeFondo } from "@/lib/orders";
 import { getFuenteDeCambio } from "@/lib/tipo-de-cambio";
 
 export async function generateMetadata(
@@ -73,6 +75,9 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
   const { slug } = await props.params;
   const listing = await getListingBySlug(slug);
   if (!listing) notFound();
+  // Después de responder: si un pedido abandonado retiene el stock, quien llegue
+  // a «Agotado» nunca llega a `crearOrden()`, que es el otro sitio que lo libera.
+  after(vencerPedidosDeFondo);
 
   const provider = await getProviderById(listing.providerId);
   const subcategoria = subcategoriaLabel(listing.category, listing.subcategory);

@@ -718,8 +718,11 @@ export const RPCS: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
   async vencer_pedidos_sin_pago(c, a) {
     // `auth.role() is not null and not is_admin()`: el cron de Postgres corre
     // sin rol; por PostgREST siempre hay uno (también la llave de servicio), así
-    // que desde la app solo pasa un administrador.
-    if (!(await esAdmin(c))) throw new ErrorPg("solo-admin");
+    // que desde la app solo pasa un administrador. **Aquí no hay cron**: lo hace
+    // la app con la llave de servicio (`vencerPedidosDeFondo()` de
+    // src/lib/orders.ts), que solo existe en el servidor. Un cliente sigue
+    // necesitando ser administrador.
+    if (c.actor.rol !== "service_role" && !(await esAdmin(c))) throw new ErrorPg("solo-admin");
     const horas = Math.max(Number(a._horas ?? 72) || 72, 24);
     const r = await w(
       c,

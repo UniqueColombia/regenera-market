@@ -5,6 +5,15 @@ description: Los tres caminos de entrada a Seregenera —registro, acceso con co
 
 # Acceso y registro
 
+> ⚠️ **Desde el 2026-10-17 las cuentas no son de Supabase Auth**: en producción
+> (`BASE_DE_DATOS=mysql`) las lleva `src/lib/mysql/cuentas.ts` detrás de
+> `src/lib/mysql/postgrest/auth.ts`, con la cookie `sgr_sesion`. Los códigos los
+> manda la app con `plantillas-correo/01` y `02`, no el panel de Supabase. Lo
+> que diga abajo sobre el panel de Supabase vale solo para la vuelta atrás. Las
+> reglas de esa capa (cambiar la clave cierra las demás sesiones, registrarse
+> otra vez sin confirmar no toca la cuenta) tienen prueba en
+> `mysql/pruebas/sesiones.test.ts`.
+
 El modelo está explicado en la cabecera de `src/app/entrar/actions.ts` y no se
 repite aquí. Esta skill trata de lo que se rompe al tocarlo: **a dónde va la
 persona después**, que es donde estaba el bug del 2026-09-19.

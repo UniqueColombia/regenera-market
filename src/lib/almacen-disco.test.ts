@@ -14,7 +14,15 @@ beforeAll(async () => {
 });
 afterAll(() => rm(carpeta, { recursive: true, force: true }));
 
-const foto = (texto: string, tipo = "image/webp") => new Blob([texto], { type: tipo });
+const FIRMA: Record<string, number[]> = {
+  "image/webp": [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50],
+  "image/jpeg": [0xff, 0xd8, 0xff],
+  "image/png": [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+};
+/** Una «foto» de mentira: la firma de su formato y un texto para reconocerla. */
+const foto = (texto: string, tipo = "image/webp") => new Blob([new Uint8Array(FIRMA[tipo]), texto], { type: tipo });
+/** El texto de una foto WebP de mentira (detrás de sus 12 bytes de firma). */
+const textoDe = (cuerpo?: Uint8Array) => new TextDecoder().decode(cuerpo?.subarray(12));
 
 /** `/archivos/logos/<dueño>/<versión>/<archivo>` → los cuatro pedazos que recibe la ruta. */
 const pedazos = (url: string) => url.replace(/^\/archivos\//, "").split("/");
@@ -27,7 +35,7 @@ describe("AlmacenDisco", () => {
     expect(r.url).toMatch(new RegExp(`^/archivos/logos/${EMPRESA}/[a-z0-9]+/imagen\\.webp$`));
     const leida = await leerImagen(carpeta, pedazos(r.url));
     expect(leida?.tipo).toBe("image/webp");
-    expect(new TextDecoder().decode(leida?.cuerpo)).toBe("logo-1");
+    expect(textoDe(leida?.cuerpo)).toBe("logo-1");
   });
 
   it("subir otra foto reemplaza el archivo y cambia la URL", async () => {
@@ -37,7 +45,7 @@ describe("AlmacenDisco", () => {
     if (!a.ok || !b.ok) throw new Error("no guardó");
     expect(a.url).not.toBe(b.url);
     const leida = await leerImagen(carpeta, pedazos(a.url));
-    expect(new TextDecoder().decode(leida?.cuerpo)).toBe("nueva");
+    expect(textoDe(leida?.cuerpo)).toBe("nueva");
     // Sin temporales a medio escribir.
     expect((await readdir(join(carpeta, "logos", EMPRESA))).filter((n) => n.endsWith(".tmp"))).toEqual([]);
   });
@@ -45,6 +53,12 @@ describe("AlmacenDisco", () => {
   it("la extensión sale del tipo", async () => {
     const r = await almacen.guardar("avatares", EMPRESA, foto("x", "image/jpeg"), "image/jpeg");
     expect(r.ok && r.url.endsWith("/imagen.jpg")).toBe(true);
+  });
+
+  it("no guarda lo que no es del tipo que dice ser", async () => {
+    const html = new Blob(["<script>alert(1)</script>"], { type: "image/png" });
+    expect((await almacen.guardar("avatares", EMPRESA, html, "image/png")).ok).toBe(false);
+    expect((await almacen.guardar("avatares", EMPRESA, foto("x", "image/png"), "image/webp")).ok).toBe(false);
   });
 
   it("no escribe fuera de su carpeta", async () => {

@@ -94,8 +94,8 @@ agente del otro.
 | `tools/img-originales/` | Originales pesados de las imágenes. **No se versiona** | Humanos |
 | `scripts/` | Utilidades de repositorio: política de ramas, verificar antes de mergear, prospectar proveedores, optimizar imágenes, generar la marca | Humanos y hooks |
 | `src/` | Aplicación Next.js (App Router) | — |
-| `supabase/migrations/` | Esquema SQL con RLS | — |
-| `mysql/` · `src/lib/mysql/` | El modo MySQL: el esquema de MariaDB (`esquema.sql` generado, `logica.sql` a mano), la capa compatible con Supabase y sus pruebas (`mysql/pruebas/`, `npm run test:mysql`). Ver `docs/MODO-MYSQL.md` | Agentes |
+| `supabase/migrations/` | El esquema de Postgres con RLS. **Desde el 2026-10-17 es historia**: producción corre sobre MariaDB y Supabase solo es la vuelta atrás | — |
+| `mysql/` · `src/lib/mysql/` | **La base de producción desde el 2026-10-17** (modo MySQL): el esquema de MariaDB (`esquema.sql`, `logica.sql`), la capa compatible con Supabase y sus pruebas (`mysql/pruebas/`, `npm run test:mysql`). Ver `docs/MODO-MYSQL.md`, sobre todo «Trampas que ya costaron una caída» | Agentes |
 | `supabase/pruebas/` | Pruebas de la base contra un Postgres desechable, y `supabase-minimo.sql`: lo que las migraciones necesitan de Supabase | Agentes y CI |
 | `src/**/*.test.ts` | Pruebas de las reglas de `src/lib` (precios, formato de dinero…) | Agentes y CI |
 
@@ -114,7 +114,7 @@ pueden pedir a mano con `/<nombre>`.
 | `flujo-git` | Vas a crear una rama, abrir un PR, hacer un release o resolver un conflicto. **Antes del primer commit de cualquier tarea.** |
 | `registrar-hito` | Terminaste algo que otro debería poder reconstruir sin preguntarte |
 | `dominio-regenera` | Tocas precios, comisiones, órdenes, roles o puntaje de sostenibilidad |
-| `supabase-schema` | Tocas `supabase/migrations/` o `src/lib/repo.ts` |
+| `supabase-schema` | Tocas `supabase/migrations/` o `src/lib/repo.ts`. **Ojo:** desde el 2026-10-17 la base que manda es MariaDB; un cambio de esquema va a `mysql/*.sql` y `src/lib/mysql/` (`docs/MODO-MYSQL.md`) hasta que haya skill propia |
 | `nueva-integracion` | Conectas un servicio externo (pasarela, correo, WhatsApp, ERP de un cliente) |
 | `componentizacion` | Creas un archivo en `src/components/`, dudas entre Server y Client Component, o una página pasa de ~150 líneas de JSX |
 | `diseno-visual` | Escribes clases de Tailwind, eliges un color, maquetas una página o ajustas el aspecto de un componente |
@@ -158,7 +158,10 @@ Para agregar uno: archivo nuevo en `.claude/agents/`, frontmatter `name` +
    luego `npx eslint .`, luego `npm test`. Los cuatro en limpio. El build va
    primero porque genera los tipos de rutas que `tsc` necesita. Si tocaste
    `supabase/migrations/` o una regla que tiene gemela en SQL (precios, estados,
-   reseñas), también `npm run test:base`. El CI corre todo; no abras PR sin
+   reseñas), también `npm run test:base`. Si tocaste `mysql/`, `src/lib/mysql/`
+   o una regla con gemela en `rpc.ts`/`logica.sql` —lo que corre en
+   producción—, también `npm run test:mysql` (necesita las `MYSQL_*` del
+   `.env`; el CI no lo corre). El CI corre todo lo demás; no abras PR sin
    haberlo corrido local.
 5. **Registrar el hito** si el cambio es estructural. Carga `registrar-hito`.
 6. **Abrir PR** contra `staging` con `gh pr create`. La plantilla se llena sola.

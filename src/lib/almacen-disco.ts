@@ -57,6 +57,20 @@ export function urlEnDisco(bucket: Bucket, duenio: string, version: string, arch
   return `/archivos/${bucket}/${duenio}/${version}/${archivo}`;
 }
 
+/**
+ * ¿Los primeros bytes son de verdad del tipo declarado? El tipo lo pone el
+ * cliente en el `FormData`, y sin esto cualquier cosa de hasta medio mega se
+ * guardaría como `imagen.png`. Se sirve con `nosniff` y tipo de imagen, así que
+ * no llega a ser un XSS, pero no se guarda lo que no es una imagen.
+ */
+export function bytesDeImagen(tipo: string, b: Uint8Array): boolean {
+  const empieza = (...firma: number[]) => firma.every((x, i) => b[i] === x);
+  if (tipo === "image/png") return empieza(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
+  if (tipo === "image/jpeg") return empieza(0xff, 0xd8, 0xff);
+  // RIFF....WEBP
+  return empieza(0x52, 0x49, 0x46, 0x46) && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50;
+}
+
 /** ¿Es una ruta que este almacén pudo haber escrito? Todo lo demás es un 404. */
 function rutaValida(bucket: string, duenio: string, archivo: string): boolean {
   return BUCKETS.has(bucket) && UUID.test(duenio) && ARCHIVO.test(archivo);
@@ -85,16 +99,23 @@ export class AlmacenDisco implements AlmacenDeImagenes {
       console.error(`[almacenamiento] ruta rechazada: ${bucket}/${duenio}/${nombre}`);
       return { ok: false, error: "No pudimos guardar la imagen. Inténtalo de nuevo en un minuto." };
     }
+    const bytes = Buffer.from(await archivo.arrayBuffer());
+    if (!bytesDeImagen(tipo, bytes)) {
+      return { ok: false, error: "Tiene que ser una imagen JPG, PNG o WebP." };
+    }
     const carpeta = join(this.carpeta, bucket, duenio);
     const destino = join(carpeta, nombre);
+    // Primero a un temporal y después el cambio de nombre: quien pida la foto
+    // mientras se escribe ve la anterior entera, nunca media nueva. Declarado
+    // fuera del `try` para poder borrarlo si la escritura falla a medias (disco
+    // lleno): si no, cada fallo deja un `.tmp` ocupando cuota.
+    const temporal = `${destino}.${crypto.randomUUID()}.tmp`;
     try {
       await mkdir(carpeta, { recursive: true });
-      // Primero a un temporal y después el cambio de nombre: quien pida la
-      // foto mientras se escribe ve la anterior entera, nunca media nueva.
-      const temporal = `${destino}.${crypto.randomUUID()}.tmp`;
-      await writeFile(temporal, Buffer.from(await archivo.arrayBuffer()));
+      await writeFile(temporal, bytes);
       await rename(temporal, destino);
     } catch (e) {
+      await rm(temporal, { force: true }).catch(() => {});
       console.error(`[almacenamiento] ${bucket}/${duenio}/${nombre}: ${e instanceof Error ? e.message : String(e)}`);
       return { ok: false, error: "No pudimos guardar la imagen. Inténtalo de nuevo en un minuto." };
     }

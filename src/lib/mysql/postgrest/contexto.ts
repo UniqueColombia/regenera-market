@@ -1,5 +1,5 @@
 import type { PoolConnection } from "mysql2/promise";
-import { getPoolMysql } from "../conexion";
+import { getPoolMysql, SIN_IDENTIDAD } from "../conexion";
 import type { Actor } from "./tipos";
 
 /**
@@ -21,8 +21,8 @@ import type { Actor } from "./tipos";
  * empezar, con transacción o sin ella, y son dos viajes menos a la base. Las
  * escrituras y las funciones siempre van en transacción.
  *
- * El borrado de la identidad al terminar lo hace el pool al recibir la
- * conexión de vuelta (`conexion.ts`), fuera del camino de la respuesta.
+ * El borrado de la identidad al terminar se encola en la conexión al
+ * devolverla (en el `finally`), fuera del camino de la respuesta.
  */
 export async function enTransaccion<T>(
   actor: Actor,
@@ -56,6 +56,11 @@ export async function enTransaccion<T>(
       throw Object.assign(e as object, { pista });
     }
   } finally {
+    // La identidad se borra **antes** de devolverla, encolada en la conexión (sin
+    // esperar: mysql2 corre los comandos en orden). El evento `release` del pool
+    // no basta: si hay otra petición esperando, el pool le pasa la conexión
+    // directamente y ese evento no salta, con lo que heredaría esta identidad.
+    con.connection.query(SIN_IDENTIDAD);
     con.release();
   }
 }
