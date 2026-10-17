@@ -31,6 +31,13 @@ export async function enTransaccion<T>(
 ): Promise<T> {
   const con = await getPoolMysql().promise().getConnection();
   try {
+    // Solo pesa en `next dev`: React guarda el valor de cada `await` del código
+    // propio para sus herramientas y lo recorre por sus propiedades. Dentro de
+    // `con.connection` está la cola de mysql2, y una consulta encolada tiene un
+    // `then()` trampa que imprime «…on the result of query that is not a
+    // promise…» y lanza. Va justo después del `await`, antes de que React lo
+    // recorra; mysql2 lee la propiedad por nombre y no lo nota.
+    Object.defineProperty(con, "connection", { enumerable: false });
     await con.query("set @app_usuario = ?, @app_rol = ?, @app_definer = ?, @app_derivados = null, @app_pista = null", [
       actor.id,
       actor.rol,
