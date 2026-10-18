@@ -25,8 +25,12 @@ leer() {
   local v
   v=$(grep -E "^$1=" "$ENV" | head -n1 | cut -d= -f2-)
   v=${v%$'\r'}
-  v=${v#\"}
-  v=${v%\"}
+  # Hostinger guarda entre comillas simples el valor que lleva `$` (la clave de
+  # la base) y entre dobles el resto: quitar solo las dobles mandaba la clave
+  # con sus comillas, y la base contestaba «Access denied».
+  case "$v" in
+    \'*\' | \"*\") v=${v:1:${#v}-2} ;;
+  esac
   printf '%s' "$v"
 }
 
