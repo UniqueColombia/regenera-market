@@ -116,7 +116,7 @@ async function probar(usuario: string): Promise<number> {
     // hace falta.
     const guion = `
 set -euo pipefail
-leer() { local v; v=$(grep -E "^$1=" "${ENV_APP}" | head -n1 | cut -d= -f2-); v=\${v%$'\\r'}; v=\${v#\\"}; v=\${v%\\"}; printf '%s' "$v"; }
+leer() { local v; v=$(grep -E "^$1=" "${ENV_APP}" | head -n1 | cut -d= -f2-); v=\${v%$'\\r'}; case "$v" in \\'*\\' | \\"*\\") v=\${v:1:\${#v}-2} ;; esac; printf '%s' "$v"; }
 ULTIMA=$(ls -1 ~/respaldos/base-*.sql.gz | sort | tail -n 1)
 FOTOS=$(ls -1 ~/respaldos/fotos-*.tar.gz | sort | tail -n 1)
 echo "  copia: $(basename "$ULTIMA") y $(basename "$FOTOS")"
