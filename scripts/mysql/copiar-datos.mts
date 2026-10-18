@@ -23,7 +23,7 @@
  * 5. Compara cuántas filas hay en cada tabla, en las dos bases.
  */
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import mysql from "mysql2/promise";
 import { createClient } from "@supabase/supabase-js";
@@ -89,7 +89,11 @@ async function aDisco(carpeta: string, url: string): Promise<string> {
   const bytes = Buffer.from(await r.arrayBuffer());
   await mkdir(join(carpeta, bucket, duenio), { recursive: true });
   await writeFile(join(carpeta, bucket, duenio, archivo), bytes);
-  const nueva = `/archivos/${bucket}/${duenio}/${v ? Number(v).toString(36) : "0"}/${archivo}`;
+  // La versión de la URL es la fecha del archivo y `/archivos` la comprueba
+  // (`almacen-disco.ts`): el archivo se queda con la fecha del `?v=` de Storage.
+  const ms = v ? Number(v) : 0;
+  await utimes(join(carpeta, bucket, duenio, archivo), ms / 1000, ms / 1000);
+  const nueva = `/archivos/${bucket}/${duenio}/${ms.toString(36)}/${archivo}`;
   copiadas.set(url, nueva);
   return nueva;
 }

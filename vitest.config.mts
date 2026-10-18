@@ -31,9 +31,9 @@ export default defineConfig({
           hookTimeout: 120_000,
         },
       },
-      // - `mysql`: el experimento MySQL, contra la base de pruebas de Hostinger
-      //   (`npm run test:mysql`). Necesita las `MYSQL_*` del `.env`; sin ellas
-      //   (el CI) se salta. Cada consulta cruza internet: tarda segundos.
+      // - `mysql`: el modo MySQL (producción desde el 2026-10-17), contra un
+      //   MariaDB vacío (`npm run test:mysql`): el job `mysql` del CI lo levanta,
+      //   y en el PC hace falta uno propio en las `MYSQL_*`. Sin ellas se salta.
       {
         resolve: { alias },
         test: {

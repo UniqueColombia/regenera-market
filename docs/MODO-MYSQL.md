@@ -31,7 +31,8 @@ razones de cada decisión están en los hitos `2026-10-17-experimento-mysql-*`,
 | `mysql/logica.sql` | Las funciones y los 25 triggers de Postgres, traducidos | A mano, **gemelos de Postgres** |
 | `scripts/mysql/copiar-datos.mts` | Copia todo de Supabase a MySQL (sin tocar Supabase) | — |
 | `scripts/mysql/comparar-sitio.mts` | Las páginas públicas en los dos modos, comparadas | — |
-| `mysql/pruebas/` | 73 pruebas contra la base de pruebas (`npm run test:mysql`) | — |
+| `mysql/pruebas/` | Las pruebas del modo (`npm run test:mysql`), contra un MariaDB vacío: el job `mysql` del CI lo levanta en cada push | — |
+| `scripts/servidor/respaldar.sh` y `scripts/respaldos.mts` | Las copias de seguridad de producción: ver «Copias de seguridad» | — |
 
 Cómo se imita lo que Postgres hace solo (detalle en la cabecera de `mysql/logica.sql`):
 
@@ -47,9 +48,17 @@ Cómo se imita lo que Postgres hace solo (detalle en la cabecera de `mysql/logic
 
 ## Probarlo en el PC
 
-1. **Los datos.** La base de pruebas de Hostinger ya tiene una copia del
-   2026-10-17. Para traer lo de hoy (borra lo que haya en MySQL y vuelve a
-   copiar todo):
+> **La base de pruebas de Hostinger (`…_sgpruebas`) se borró el 2026-10-17**,
+> y desde el PC ya no se llega a la de producción. Las pruebas automáticas
+> corren en el CI (job `mysql`, un MariaDB 11.8 que se levanta y se tira). Para
+> `npm run dev:mysql` o `npm run test:mysql` en el PC hace falta un MariaDB
+> propio en las `MYSQL_*` del `.env` (las de ahora apuntan a la base borrada):
+> `test:mysql` crea las tablas solo si la base está vacía, y para usar la app
+> hay que llenarla con `copiar-datos.mts`, como abajo. Lo de abajo es cómo se
+> probó antes del corte.
+
+1. **Los datos.** Para traer lo de Supabase (borra lo que haya en MySQL y
+   vuelve a copiar todo; se niega con la base de producción):
 
    ```bash
    ALMACEN_CARPETA="$(pwd -W)/outputs/almacen-pruebas" node --env-file=.env scripts/mysql/copiar-datos.mts
@@ -120,6 +129,49 @@ conviene hacerlo mientras no haya ventas reales.
 Cuando lleve dos semanas estable: apagar el latido de Supabase
 (`.github/workflows/latido.yml`), dejar de subir las plantillas al panel de
 Supabase y decidir qué se hace con el proyecto de allá.
+
+## Copias de seguridad
+
+Desde el 2026-10-17. **Lo que hay:**
+
+| Dónde | Qué | Cuánto |
+|---|---|---|
+| `~/respaldos/` en el servidor (fuera de `domains/`) | `base-AAAA-MM-DD.sql.gz` (`mariadb-dump` con tablas, datos, rutinas, triggers y vistas) y `fotos-AAAA-MM-DD.tar.gz` (la carpeta de `ALMACEN_CARPETA`, con las fechas de cada archivo) | Una por día, a las 03:15 UTC, por un cron de la cuenta; se guardan 14 días |
+| `outputs/respaldos/` en el PC de quien corre `bajar` | Las dos últimas, copiadas | Las 4 más recientes de cada tipo |
+| Las copias automáticas de Hostinger | Lo que el plan guarde de la cuenta (hPanel → Archivos → Copias de seguridad) | No se ven por la API: comprobarlo en hPanel |
+
+**Los comandos** (`scripts/respaldos.mts`, con la llave SSH y la API como
+`desplegar.mts`):
+
+```bash
+node --env-file=.env scripts/respaldos.mts instalar   # sube respaldar.sh y hace una copia ya
+node --env-file=.env scripts/respaldos.mts probar     # restaura la última en una base temporal, compara y la borra
+node --env-file=.env scripts/respaldos.mts bajar      # trae la última al PC
+```
+
+`probar` es el simulacro: conviene correrlo una vez al mes y antes de cualquier
+cambio grande. `bajar`, cada semana: las del servidor sirven contra un error,
+no contra perder la cuenta de hosting. La salida del cron la da la API
+(`hosting_cron-jobs_output`).
+
+**Restaurar de verdad**, por SSH en el servidor (es reemplazar producción: se
+hace con el sitio en mantenimiento y después de bajar una copia de lo actual):
+
+```bash
+cd ~/respaldos
+# las MYSQL_* de la app (si la clave tiene $ o espacios, usar la función `leer` de respaldar.sh)
+set -a; . ~/domains/seregenera.com/hbuilds/config/.env; set +a
+zcat base-AAAA-MM-DD.sql.gz | MYSQL_PWD="$MYSQL_PASSWORD" mariadb -h 127.0.0.1 -u "$MYSQL_USER" "$MYSQL_DATABASE"
+tar -xzf fotos-AAAA-MM-DD.tar.gz -C ~      # recrea ~/seregenera-archivos con sus fechas
+```
+
+Con el mismo usuario de la app, los DEFINER de la copia son los suyos y la
+lógica queda bien (ver la trampa de abajo). En otra base o con otro usuario,
+quitarlos antes: `sed -E 's/DEFINER=`[^`]*`@`[^`]*`//g'`, como hace `probar`.
+
+**El primer administrador**, si alguna vez no queda ninguno: por SSH en el
+servidor, `insert into user_roles (user_id, role) values ('<id de la cuenta>', 'admin');`
+con el mismo `mariadb` de arriba. `scripts/crear-admin.mts` habla con Supabase.
 
 ## Trampas que ya costaron una caída
 

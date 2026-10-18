@@ -51,6 +51,15 @@ const nombre = opcion("--nombre");
 const quitar = args.includes("--quitar");
 const avisar = args.includes("--avisar");
 const listar = args.includes("--listar");
+// Desde el 2026-10-17 producción corre sobre MariaDB y sus cuentas no están en
+// Supabase: un administrador creado aquí no existe en seregenera.com. En
+// producción se nombra desde /admin/usuarios. Esto queda para la vuelta atrás.
+if (!args.includes("--supabase")) {
+  console.error(
+    "Este script trabaja sobre Supabase, que desde el 2026-10-17 ya no es producción. Los administradores de seregenera.com se gestionan en /admin/usuarios. Para Supabase, agrega --supabase.",
+  );
+  process.exit(1);
+}
 
 const db = createAdminClient();
 

@@ -92,5 +92,5 @@ export function clienteDeToken(token: string): ClienteMysql {
 
 /** El de `createAdminClient()`: la llave de servicio. Se salta las políticas, como allá. */
 export function clienteDeServicio(): ClienteMysql {
-  return cliente(new AuthMysql({}), async () => SERVICIO);
+  return cliente(new AuthMysql({ servicio: true }), async () => SERVICIO);
 }

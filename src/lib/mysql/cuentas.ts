@@ -43,6 +43,21 @@ export const INTENTOS_POR_CODIGO = 5;
 export const CODIGOS_POR_HORA = 5;
 /** Lo mínimo entre un código y el siguiente al mismo correo. */
 export const ESPERA_ENTRE_CODIGOS_SEGUNDOS = 60;
+/**
+ * Cuántos en un día al mismo correo. Con solo el tope por hora, alguien podía
+ * probar 25 códigos por hora contra una cuenta indefinidamente (5 × 5 intentos)
+ * y llenarle el buzón a su dueño con 120 correos al día.
+ */
+export const CODIGOS_POR_DIA = 12;
+/**
+ * Cuántos en una hora entre todos los correos. Supabase ponía un tope así por
+ * proyecto; sin él, cualquiera podía mandar códigos a direcciones inventadas
+ * hasta gastar la cuota de envío del buzón, y entonces no le llegaría el suyo a
+ * nadie. Holgado para el tráfico de hoy.
+ */
+export const CODIGOS_POR_HORA_EN_TOTAL = 300;
+/** Cuántas cuentas sin confirmar se crean en una hora en total, por lo mismo. */
+export const REGISTROS_POR_HORA_EN_TOTAL = 150;
 
 // scrypt con N = 2^15, r = 8, p = 1: 32 MB y unas decenas de milisegundos por
 // contraseña. Más alto aprieta la memoria de un hosting compartido cuando
@@ -137,6 +152,36 @@ export async function crearCuenta(
   }
 }
 
+/** ¿Se llegó al tope de registros sin confirmar de la última hora, entre todos? */
+export async function demasiadosRegistros(db: Kysely<BaseMysql>): Promise<boolean> {
+  const { rows } = await sql<{ n: number }>`
+    select count(*) as n from usuarios
+     where correo_confirmado_at is null and creado_at > now(6) - interval 1 hour`.execute(db);
+  return Number(rows[0].n) >= REGISTROS_POR_HORA_EN_TOTAL;
+}
+
+/**
+ * Limpieza que en Supabase hacía la plataforma: los códigos de más de dos días
+ * (ya no sirven ni cuentan para ningún tope) y las cuentas que se registraron
+ * solas y nunca confirmaron en una semana. Sin esto, un registro en bucle deja
+ * filas para siempre.
+ *
+ * **Solo las que se registraron con contraseña** (`clave` no nula) y no tienen
+ * más que el rol de comprador ni ninguna empresa: las que crea un
+ * administrador tampoco están confirmadas —no tienen clave hasta que la persona
+ * entra con un código— y pueden tener una empresa esperándolas.
+ */
+export async function limpiarCuentas(db: Kysely<BaseMysql>): Promise<void> {
+  await sql`delete from codigos where creado_at < now(6) - interval 2 day`.execute(db);
+  await sql`
+    delete from usuarios
+     where correo_confirmado_at is null
+       and clave is not null
+       and creado_at < now(6) - interval 7 day
+       and not exists (select 1 from provider_members m where m.user_id = usuarios.id)
+       and not exists (select 1 from user_roles r where r.user_id = usuarios.id and r.role <> 'buyer')`.execute(db);
+}
+
 /**
  * ¿Es la contraseña de esa cuenta? La respuesta es la misma si el correo no
  * existe, si la cuenta no tiene contraseña o si la contraseña está mal, y tarda
@@ -155,7 +200,16 @@ export async function comprobarClave(
   relleno ??= cifrarClave(randomBytes(16).toString("hex"));
   const valida = await verificarClave(clave, cuenta?.clave ?? (await relleno));
   if (!cuenta?.clave || !valida) return { ok: false };
-  if (!cuenta.clave.startsWith("scrypt$")) await cambiarClave(db, cuenta.id, clave);
+  if (!cuenta.clave.startsWith("scrypt$")) {
+    // Solo si sigue siendo el hash viejo: si la contraseña cambió entre la
+    // lectura y aquí, esto la devolvería a la anterior.
+    await db
+      .updateTable("usuarios")
+      .set({ clave: await cifrarClave(clave) })
+      .where("id", "=", cuenta.id)
+      .where("clave", "=", cuenta.clave)
+      .execute();
+  }
   return { ok: true, usuarioId: cuenta.id, confirmada: Boolean(cuenta.correo_confirmado_at) };
 }
 
@@ -186,6 +240,13 @@ export async function borrarCuenta(db: Kysely<BaseMysql>, usuarioId: string): Pr
     const cuenta = await trx.selectFrom("usuarios").select("email").where("id", "=", usuarioId).executeTakeFirst();
     if (!cuenta) return;
     await trx.deleteFrom("codigos").where("email", "=", cuenta.email).execute();
+    // Un borrado en cascada no dispara triggers en MariaDB (en Postgres sí). Sus
+    // reacciones y sus artículos se borran a mano antes, para que
+    // `community_reactions_despues_de_borrar` recuente las publicaciones ajenas
+    // y `community_posts_antes_de_borrar` le quite a la empresa los puntos de
+    // esos artículos, que mueven su nivel y con él su comisión.
+    await sql`delete from community_reactions where user_id = ${usuarioId}`.execute(trx);
+    await sql`delete from community_posts where author_id = ${usuarioId}`.execute(trx);
     await trx.deleteFrom("usuarios").where("id", "=", usuarioId).execute();
   });
 }
@@ -223,15 +284,25 @@ export async function pedirCodigo(
   if (!cuenta) return { ok: false, motivo: "sin-cuenta" };
   if (proposito === "registro" && cuenta.correo_confirmado_at) return { ok: false, motivo: "ya-confirmada" };
 
-  const { rows } = await sql<{ hace: number | null; enLaHora: number }>`
-    select timestampdiff(second, max(creado_at), now(6)) as hace, count(*) as enLaHora
+  const { rows } = await sql<{ hace: number | null; enLaHora: number | null; enElDia: number }>`
+    select timestampdiff(second, max(creado_at), now(6)) as hace,
+           sum(creado_at > now(6) - interval 1 hour) as enLaHora,
+           count(*) as enElDia
       from codigos
-     where email = ${email} and creado_at > now(6) - interval 1 hour`.execute(db);
-  const { hace, enLaHora } = rows[0];
+     where email = ${email} and creado_at > now(6) - interval 1 day`.execute(db);
+  const { hace, enLaHora, enElDia } = rows[0];
   if (hace !== null && Number(hace) < ESPERA_ENTRE_CODIGOS_SEGUNDOS) {
     return { ok: false, motivo: "espera", segundos: ESPERA_ENTRE_CODIGOS_SEGUNDOS - Number(hace) };
   }
-  if (Number(enLaHora) >= CODIGOS_POR_HORA) return { ok: false, motivo: "demasiados" };
+  if (Number(enLaHora ?? 0) >= CODIGOS_POR_HORA || Number(enElDia) >= CODIGOS_POR_DIA) {
+    return { ok: false, motivo: "demasiados" };
+  }
+  const { rows: total } = await sql<{ n: number }>`
+    select count(*) as n from codigos where creado_at > now(6) - interval 1 hour`.execute(db);
+  if (Number(total[0].n) >= CODIGOS_POR_HORA_EN_TOTAL) {
+    console.error(`[cuentas] tope global de códigos alcanzado (${total[0].n} en una hora): ¿alguien pidiéndolos en bucle?`);
+    return { ok: false, motivo: "demasiados" };
+  }
 
   const id = crypto.randomUUID();
   const codigo = randomInt(0, 1_000_000).toString().padStart(6, "0");
@@ -276,6 +347,17 @@ export async function verificarEnlace(
     ? await db.selectFrom("codigos").select("email").where("id", "=", id).executeTakeFirst()
     : undefined;
   if (!fila) return { ok: false, motivo: "invalido" };
+  // Un enlace de un correo anterior (o el que abre un antivirus al revisar el
+  // correo) no gasta uno de los intentos del código vigente: si no es el último
+  // que se pidió, se rechaza sin probarlo.
+  const ultimo = await db
+    .selectFrom("codigos")
+    .select("id")
+    .where("email", "=", fila.email)
+    .orderBy("creado_at", "desc")
+    .limit(1)
+    .executeTakeFirst();
+  if (ultimo?.id !== id) return { ok: false, motivo: "invalido" };
   return verificarCodigo(db, fila.email, codigo);
 }
 

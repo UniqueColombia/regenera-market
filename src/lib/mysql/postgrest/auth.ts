@@ -11,7 +11,9 @@ import {
   cerrarSesion,
   comprobarClave,
   crearCuenta,
+  demasiadosRegistros,
   leerCuenta,
+  limpiarCuentas,
   leerSesion,
   pedirCodigo,
   verificarCodigo,
@@ -106,7 +108,12 @@ async function mandarCodigo(email: string, codigo: string, id: string, registro:
   if (!envio.ok) console.error(`[modo-mysql] el código no salió (${envio.via}): ${envio.error}`);
 }
 
+/** La limpieza de `limpiarCuentas()`, como mucho una vez por hora y por proceso. */
+let ultimaLimpieza = 0;
+
 export class AuthMysql {
+  /** Solo el cliente de servicio tiene `admin`, como en Supabase (que lo exige con la llave de servicio). */
+  private readonly servicio: boolean;
   private readonly almacen?: AlmacenDeSesion;
   private token?: string;
   private cerrada = false;
@@ -118,7 +125,9 @@ export class AuthMysql {
     token?: string;
     /** Para que varias consultas de la misma petición no lean la sesión una vez cada una. */
     resolver?: (token: string | undefined) => Promise<Cuenta | null>;
+    servicio?: boolean;
   }) {
+    this.servicio = opciones.servicio ?? false;
     this.almacen = opciones.almacen;
     this.token = opciones.token;
     this.resolver = opciones.resolver ?? ((t) => leerSesion(getMysql(), t));
@@ -159,6 +168,14 @@ export class AuthMysql {
 
   async signUp(datos: { email: string; password: string; options?: { data?: Record<string, unknown> } }) {
     const db = getMysql();
+    if (Date.now() - ultimaLimpieza > 3_600_000) {
+      ultimaLimpieza = Date.now();
+      await limpiarCuentas(db).catch((e) => console.error("[cuentas] limpieza", e));
+    }
+    if (await demasiadosRegistros(db)) {
+      console.error("[cuentas] tope global de registros alcanzado: ¿alguien registrando en bucle?");
+      return { data: { user: null, session: null }, error: error(429, "over_email_send_rate_limit", "email rate limit exceeded") };
+    }
     const r = await crearCuenta(db, { email: datos.email, clave: datos.password, metadatos: datos.options?.data });
     let usuarioId: string;
     if (r.ok) usuarioId = r.usuarioId;
@@ -282,12 +299,17 @@ export class AuthMysql {
     return { data: { user: null, session: null }, error: error(400, "flow_state_not_found", "invalid flow state") };
   }
 
+  // Con un cliente de sesión, Supabase responde 403 a `auth.admin`: aquí igual.
+  // Sin esto, cualquier código que tuviera el cliente de una persona podía
+  // borrar o leer la cuenta de otra.
   readonly admin = {
     getUserById: async (id: string) => {
+      if (!this.servicio) return { data: { user: null }, error: error(403, "not_admin", "User not allowed") };
       const c = await leerCuenta(getMysql(), id);
       return c ? { data: { user: aUsuario(c) }, error: null } : { data: { user: null }, error: error(404, "user_not_found", "User not found") };
     },
     deleteUser: async (id: string) => {
+      if (!this.servicio) return { data: { user: null }, error: error(403, "not_admin", "User not allowed") };
       await borrarCuenta(getMysql(), id);
       return { data: { user: null }, error: null };
     },

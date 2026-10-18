@@ -77,6 +77,48 @@ jobs:
       - name: Pruebas de la base
         run: npm run test:base
 
+  # El modo MySQL —lo que corre en producción desde el 2026-10-17— contra un
+  # MariaDB 11.8 vacío (la versión de Hostinger) que levanta el propio job.
+  # `mysql/pruebas/preparar.ts` crea las tablas y la lógica; las pruebas crean
+  # sus datos. La clave es de un contenedor que muere con el job: no es un secreto.
+  mysql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: raiz-del-ci
+          MARIADB_DATABASE: pruebas
+          MARIADB_USER: pruebas
+          MARIADB_PASSWORD: pruebas-del-ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: pruebas
+      MYSQL_USER: pruebas
+      MYSQL_PASSWORD: pruebas-del-ci
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Pruebas del modo MySQL
+        run: npm run test:mysql
+
   secretos:
     runs-on: ubuntu-latest
     timeout-minutes: 5
