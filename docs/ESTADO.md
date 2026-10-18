@@ -8,7 +8,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
   correo, y **el 2026-10-17** en correos, legales, envíos, pagos y la base de
   datos (los tres primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.12.0`) con la skill `desplegar-hostinger`;
+  desplegado **por tag** (hoy `v0.12.3`) con la skill `desplegar-hostinger`;
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
   2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
   el primer recuadro). Supabase quedó congelado con los datos de ese día, con
@@ -45,7 +45,21 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   `v0.12.2`:** los topes por IP ya no se fían de la primera de
 >   `x-forwarded-for` (la escribe el cliente): usan `x-real-ip`, que el proxy de
 >   Hostinger reescribe (comprobado con una inventada), en `ritmo.ts`,
->   `/api/medicion` y `/vender`.
+>   `/api/medicion` y `/vender`. **Resuelto después, en `v0.12.3`**
+>   ([hito](../.claude/hitos/2026-10-17-pendientes-de-la-auditoria-y-copias.md)):
+>   los pendientes menores (la versión de `/archivos` atada a la fecha del
+>   archivo, quitar una foto la borra, topes globales de códigos y registros,
+>   limpieza de cuentas sin confirmar), el CI prueba MariaDB (job `mysql`) y hay
+>   **copias de seguridad diarias** de la base y las fotos en `~/respaldos`
+>   (03:15 UTC, 14 días), con el simulacro de restauración hecho y cuadrado.
+>   Cómo se usan: `docs/MODO-MYSQL.md`, «Copias de seguridad».
+> - **Falta, Jesús, dejado a propósito para después:** apagar el Vercel de
+>   respaldo y apuntar `latido.yml` a `seregenera.com`; y **pausar Supabase
+>   hacia el 2026-10-31**, tras dos semanas estables. Hasta entonces Supabase es
+>   la vuelta atrás.
+> - **Nunca copiar `~/seregenera-archivos` sin conservar las fechas** de los
+>   archivos: desde `v0.12.3` son la versión de cada foto, y sin ellas todas dan
+>   404. Para restaurar, `tar -xzf` de la copia, que las conserva.
 
 > ## 🟢 Nuevo del 2026-10-17: plantillas subidas, legales al día y el modelo de pago al proveedor
 >

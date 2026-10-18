@@ -159,7 +159,7 @@ hace con el sitio en mantenimiento y después de bajar una copia de lo actual):
 
 ```bash
 cd ~/respaldos
-# las MYSQL_* de la app (si la clave tiene $ o espacios, usar la función `leer` de respaldar.sh)
+# las MYSQL_* de la app; Hostinger pone entre comillas simples lo que lleva $ (la clave), así que `.` las lee bien
 set -a; . ~/domains/seregenera.com/hbuilds/config/.env; set +a
 zcat base-AAAA-MM-DD.sql.gz | MYSQL_PWD="$MYSQL_PASSWORD" mariadb -h 127.0.0.1 -u "$MYSQL_USER" "$MYSQL_DATABASE"
 tar -xzf fotos-AAAA-MM-DD.tar.gz -C ~      # recrea ~/seregenera-archivos con sus fechas
