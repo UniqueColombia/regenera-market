@@ -30,6 +30,13 @@ import { LISTINGS } from "../src/data/listings.ts";
 import { CERTIFICATIONS } from "../src/lib/taxonomy.ts";
 
 const soloResumen = process.argv.includes("--resumen");
+// Desde el 2026-10-17 producción corre sobre MariaDB: Supabase es solo la copia
+// para volver atrás. Escribir aquí sin darse cuenta sería sembrar en la base
+// equivocada, así que hay que pedirlo con palabras.
+if (!process.argv.includes("--supabase")) {
+  console.error("Este script escribe en Supabase, que desde el 2026-10-17 ya no es producción (docs/MODO-MYSQL.md). Si de verdad es lo que quieres, agrega --supabase.");
+  process.exit(1);
+}
 const db = createAdminClient();
 
 /** Aborta con un mensaje legible en vez de un volcado de PostgrestError. */

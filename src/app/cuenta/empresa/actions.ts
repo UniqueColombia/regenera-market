@@ -51,9 +51,9 @@ export async function guardarLogo(datos: FormData): Promise<ResultadoImagenUI> {
   return guardarImagenDeEmpresa(datos, "logo_url", "imagen");
 }
 
-/** Quitar el logo y volver al monograma. No borra el archivo — ver `quitarFoto()`. */
+/** Quitar el logo y volver al monograma. Borra también el archivo — ver `quitarFoto()`. */
 export async function quitarLogo(): Promise<ResultadoImagenUI> {
-  return borrarImagenDeEmpresa("logo_url");
+  return borrarImagenDeEmpresa("logo_url", "imagen");
 }
 
 /**
@@ -67,7 +67,7 @@ export async function guardarPortada(datos: FormData): Promise<ResultadoImagenUI
 }
 
 export async function quitarPortada(): Promise<ResultadoImagenUI> {
-  return borrarImagenDeEmpresa("cover_url");
+  return borrarImagenDeEmpresa("cover_url", "portada");
 }
 
 /**
@@ -106,12 +106,15 @@ async function guardarImagenDeEmpresa(
 
 async function borrarImagenDeEmpresa(
   columna: "logo_url" | "cover_url",
+  pieza: "imagen" | "portada",
 ): Promise<ResultadoImagenUI> {
   const empresa = await miEmpresa();
   if (!empresa.ok) return empresa;
 
   const escrito = await escribirImagen(empresa.id, empresa.slug, columna, null);
-  return escrito.ok ? { ok: true, url: "" } : escrito;
+  if (!escrito.ok) return escrito;
+  await getAlmacen().borrarPieza("logos", empresa.id, pieza);
+  return { ok: true, url: "" };
 }
 
 async function miEmpresa(): Promise<

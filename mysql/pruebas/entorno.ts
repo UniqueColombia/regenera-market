@@ -1,7 +1,8 @@
 /**
- * Las pruebas de `mysql/pruebas/` hablan con la base de pruebas de Hostinger:
- * leen las `MYSQL_*` del `.env` de la máquina. Sin `.env` (el CI) no hace nada,
- * y las pruebas se saltan solas (`HAY_MYSQL`).
+ * Las pruebas de `mysql/pruebas/` hablan con un MariaDB: el del job `mysql` del
+ * CI (las `MYSQL_*` vienen del entorno) o uno propio en el PC (del `.env`). La
+ * base de pruebas de Hostinger se borró el 2026-10-17. Sin `MYSQL_*`, las
+ * pruebas se saltan solas (`HAY_MYSQL`).
  *
  * **El SMTP se apaga aquí**: las pruebas de cuentas mandan códigos, y con el
  * buzón de `info@seregenera.com` configurado saldrían correos de verdad a

@@ -207,7 +207,11 @@ export async function quitarFoto(): Promise<ResultadoImagenUI> {
     return { ok: false, error: "Tu sesión se cerró. Entra otra vez." };
   }
   const resultado = await escribirAvatar(user.id, null);
-  return resultado.ok ? { ok: true, url: "" } : resultado;
+  if (!resultado.ok) return resultado;
+  // Con la columna vacía nadie la enlaza, pero el archivo seguía saliendo en su
+  // URL (que lleva el id de la persona): quitar la foto es que deje de existir.
+  await getAlmacen().borrarPieza("avatares", user.id, "imagen");
+  return { ok: true, url: "" };
 }
 
 async function escribirAvatar(

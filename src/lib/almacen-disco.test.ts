@@ -44,10 +44,29 @@ describe("AlmacenDisco", () => {
     const b = await almacen.guardar("logos", EMPRESA, foto("nueva"), "image/webp", "portada");
     if (!a.ok || !b.ok) throw new Error("no guardó");
     expect(a.url).not.toBe(b.url);
-    const leida = await leerImagen(carpeta, pedazos(a.url));
-    expect(textoDe(leida?.cuerpo)).toBe("nueva");
+    expect(textoDe((await leerImagen(carpeta, pedazos(b.url)))?.cuerpo)).toBe("nueva");
+    // La URL vieja ya no sirve nada: su versión no es la del archivo.
+    expect(await leerImagen(carpeta, pedazos(a.url))).toBeUndefined();
     // Sin temporales a medio escribir.
     expect((await readdir(join(carpeta, "logos", EMPRESA))).filter((n) => n.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("una versión inventada es un 404, aunque el archivo exista", async () => {
+    const r = await almacen.guardar("logos", EMPRESA, foto("v"), "image/webp", "oferta-version");
+    if (!r.ok) throw new Error("no guardó");
+    const [bucket, duenio, , archivo] = pedazos(r.url);
+    expect(await leerImagen(carpeta, [bucket, duenio, "zzzz1", archivo])).toBeUndefined();
+    expect(await leerImagen(carpeta, pedazos(r.url))).toBeDefined();
+  });
+
+  it("quitar una pieza borra sus archivos; cambiar de formato no deja el anterior", async () => {
+    const jpg = await almacen.guardar("avatares", EMPRESA, foto("j", "image/jpeg"), "image/jpeg", "portada");
+    const webp = await almacen.guardar("avatares", EMPRESA, foto("w"), "image/webp", "portada");
+    if (!jpg.ok || !webp.ok) throw new Error("no guardó");
+    expect((await readdir(join(carpeta, "avatares", EMPRESA))).filter((n) => n.startsWith("portada."))).toEqual(["portada.webp"]);
+    await almacen.borrarPieza("avatares", EMPRESA, "portada");
+    expect(await leerImagen(carpeta, pedazos(webp.url))).toBeUndefined();
+    await expect(almacen.borrarPieza("avatares", EMPRESA, "portada")).resolves.toBeUndefined();
   });
 
   it("la extensión sale del tipo", async () => {

@@ -20,8 +20,14 @@ import { clienteDeServicio, clienteDeSesion, clienteDeToken, clienteEfimero } fr
  */
 const sesionDe = cache(async (token: string | undefined) => leerSesion(getMysql(), token));
 
-/** La cookie es `Secure` cuando el sitio va por https (también en localhost, que el navegador trata como seguro). */
-const segura = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://");
+/**
+ * La cookie es `Secure` siempre en producción, y fuera de ella cuando el sitio va
+ * por https. Antes dependía solo de `NEXT_PUBLIC_SITE_URL`, que se graba al
+ * compilar: un build con la variable mal puesta dejaba la sesión viajando sin
+ * `Secure`.
+ */
+const segura = () =>
+  process.env.NODE_ENV === "production" || (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://");
 
 export async function clienteMysqlDeSesion(): Promise<SupabaseClient> {
   const almacen = await cookies();

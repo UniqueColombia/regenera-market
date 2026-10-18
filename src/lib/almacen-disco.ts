@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AlmacenDeImagenes, Bucket, Pieza, ResultadoImagen } from "./almacenamiento";
 
@@ -20,6 +20,13 @@ import type { AlmacenDeImagenes, Bucket, Pieza, ResultadoImagen } from "./almace
  *
  * La versión cambia en cada subida (para que nadie vea la foto vieja en caché)
  * y el archivo en disco no: subir otra foto reemplaza la anterior.
+ *
+ * **La versión es la fecha del archivo** (sus milisegundos en base 36, que se le
+ * ponen como fecha de modificación al guardarlo) y se comprueba al leer: una
+ * versión que no es la del archivo da 404. Sin eso, cada versión inventada era
+ * una URL nueva que el optimizador de imágenes procesaba y guardaba en caché, y
+ * una foto quitada seguía saliendo en su URL. Copiar la carpeta tiene que
+ * conservar las fechas (`tar` y `scp -p` lo hacen).
  *
  * **Lo que se pierde frente a Storage:** allá la política de la 0008 volvía a
  * comprobar que la carpeta era de quien subía. Aquí no hay segunda comprobación:
@@ -44,12 +51,17 @@ const TIPO_DE: Record<string, string> = { webp: "image/webp", jpg: "image/jpeg",
  * **La extensión sale del tipo y no del archivo original**, porque el original
  * ya no existe: lo que llega aquí es lo que el navegador reconvirtió. Si el
  * tipo cambia entre una subida y la siguiente —de WebP a JPEG, que es lo que
- * pasa en un Safari viejo— quedan dos archivos y la URL guardada apunta al
- * último. El anterior queda huérfano, pesa kilobytes y nadie lo sirve.
+ * pasa en un Safari viejo— `guardar()` borra el de la otra extensión: si no,
+ * seguiría saliendo en su URL vieja.
  */
 export function nombreDeArchivo(tipo: string, pieza: Pieza): string {
   const extension = tipo === "image/png" ? "png" : tipo === "image/jpeg" ? "jpg" : "webp";
   return `${pieza}.${extension}`;
+}
+
+/** La versión de una URL a partir de la fecha del archivo, en milisegundos. */
+export function versionDeFecha(ms: number): string {
+  return Math.round(ms).toString(36);
 }
 
 /** La URL de una imagen guardada en disco. */
@@ -110,16 +122,36 @@ export class AlmacenDisco implements AlmacenDeImagenes {
     // fuera del `try` para poder borrarlo si la escritura falla a medias (disco
     // lleno): si no, cada fallo deja un `.tmp` ocupando cuota.
     const temporal = `${destino}.${crypto.randomUUID()}.tmp`;
+    const ahora = Date.now();
     try {
       await mkdir(carpeta, { recursive: true });
       await writeFile(temporal, bytes);
+      // La fecha antes del cambio de nombre: el archivo aparece ya con su versión.
+      await utimes(temporal, ahora / 1000, ahora / 1000);
       await rename(temporal, destino);
+      const otras = ["webp", "jpg", "png"].map((ext) => `${pieza}.${ext}`).filter((n) => n !== nombre);
+      await Promise.all(otras.map((n) => rm(join(carpeta, n), { force: true })));
     } catch (e) {
       await rm(temporal, { force: true }).catch(() => {});
       console.error(`[almacenamiento] ${bucket}/${duenio}/${nombre}: ${e instanceof Error ? e.message : String(e)}`);
       return { ok: false, error: "No pudimos guardar la imagen. Inténtalo de nuevo en un minuto." };
     }
-    return { ok: true, url: urlEnDisco(bucket, duenio, Date.now().toString(36), nombre) };
+    return { ok: true, url: urlEnDisco(bucket, duenio, versionDeFecha(ahora), nombre) };
+  }
+
+  /** Borra los archivos de una pieza (`imagen.*`, `portada.*`): al quitar la foto, deja de existir. No lanza. */
+  async borrarPieza(bucket: Bucket, duenio: string, pieza: Pieza): Promise<void> {
+    if (!BUCKETS.has(bucket) || !UUID.test(duenio)) return;
+    const carpeta = join(this.carpeta, bucket, duenio);
+    try {
+      const nombres = await readdir(carpeta);
+      await Promise.all(
+        nombres.filter((n) => ARCHIVO.test(n) && n.slice(0, n.lastIndexOf(".")) === pieza).map((n) => rm(join(carpeta, n), { force: true })),
+      );
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return;
+      console.error(`[almacenamiento] no se borró ${bucket}/${duenio}/${pieza}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   /** No lanza, como el de Supabase: lo llama una baja que ya está hecha en la base. */
@@ -135,8 +167,8 @@ export class AlmacenDisco implements AlmacenDeImagenes {
 
 /**
  * La imagen que pide `/archivos/<bucket>/<dueño>/<versión>/<archivo>`, o
- * `undefined` si la ruta no es una que este almacén escriba o el archivo no
- * existe. La versión no se usa para leer: solo cambia la URL.
+ * `undefined` si la ruta no es una que este almacén escriba, el archivo no
+ * existe o la versión no es la suya (la fecha del archivo).
  */
 export async function leerImagen(
   carpeta: string,
@@ -145,8 +177,10 @@ export async function leerImagen(
   if (ruta.length !== 4) return undefined;
   const [bucket, duenio, version, archivo] = ruta;
   if (!VERSION.test(version) || !rutaValida(bucket, duenio, archivo)) return undefined;
+  const destino = join(carpeta, bucket, duenio, archivo);
   try {
-    const cuerpo = new Uint8Array(await readFile(join(carpeta, bucket, duenio, archivo)));
+    if (versionDeFecha((await stat(destino)).mtimeMs) !== version) return undefined;
+    const cuerpo = new Uint8Array(await readFile(destino));
     return { cuerpo, tipo: TIPO_DE[archivo.slice(archivo.lastIndexOf(".") + 1)] };
   } catch {
     return undefined;

@@ -160,9 +160,11 @@ Para agregar uno: archivo nuevo en `.claude/agents/`, frontmatter `name` +
    `supabase/migrations/` o una regla que tiene gemela en SQL (precios, estados,
    reseñas), también `npm run test:base`. Si tocaste `mysql/`, `src/lib/mysql/`
    o una regla con gemela en `rpc.ts`/`logica.sql` —lo que corre en
-   producción—, también `npm run test:mysql` (necesita las `MYSQL_*` del
-   `.env`; el CI no lo corre). El CI corre todo lo demás; no abras PR sin
-   haberlo corrido local.
+   producción—, también `npm run test:mysql`: lo corre el CI (job `mysql`,
+   un MariaDB que se levanta solo); en el PC hace falta un MariaDB propio,
+   porque la base de pruebas de Hostinger ya no existe. Lo que vaya a
+   producción espera al CI en verde en `staging`. No abras PR sin haber corrido
+   local lo demás.
 5. **Registrar el hito** si el cambio es estructural. Carga `registrar-hito`.
 6. **Abrir PR** contra `staging` con `gh pr create`. La plantilla se llena sola.
 
