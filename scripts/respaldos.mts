@@ -129,13 +129,16 @@ prod() { MYSQL_PWD="$(leer MYSQL_PASSWORD)" mariadb -N -B -h 127.0.0.1 -u "$(lee
 OBJETOS="select concat_ws(' · ', (select count(*) from information_schema.routines where routine_schema = database()), (select count(*) from information_schema.triggers where trigger_schema = database()), (select count(*) from information_schema.views where table_schema = database()))"
 echo "  rutinas · triggers · vistas: copia $(en "$OBJETOS") · hoy $(prod "$OBJETOS")"
 CONTEO=$(en "select group_concat(concat('select ''', table_name, ''', count(*) from ', char(96), table_name, char(96)) order by table_name separator ' union all ') from information_schema.tables where table_schema = database() and table_type = 'BASE TABLE'")
+# Variables y \`<<<\`, no \`< <(…)\`: el servidor (CageFS) no tiene /dev/fd.
+HOY=$(prod "$CONTEO")
+COPIA=$(en "$CONTEO")
 declare -A hoy
-while IFS=$'\\t' read -r t n; do hoy[$t]=$n; done < <(prod "$CONTEO")
+while IFS=$'\\t' read -r t n; do hoy[$t]=$n; done <<< "$HOY"
 while IFS=$'\\t' read -r t a; do
   b=\${hoy[$t]:-?}
   if [ "$a" = "$b" ]; then m="✓"; else m="≠"; fi
   printf '  %s %-28s copia %6s · hoy %6s\\n' "$m" "$t" "$a" "$b"
-done < <(en "$CONTEO")
+done <<< "$COPIA"
 echo "  fotos en la copia: $(tar -tzf "$FOTOS" | grep -vc '/$') · hoy en disco: $(find "$(leer ALMACEN_CARPETA)" -type f | wc -l)"
 `;
     const r = ssh(usuario, "bash -s", guion);
