@@ -50,8 +50,9 @@ export async function cambiarRol(datos: unknown): Promise<ResultadoRol> {
   if (!conceder && role === "admin") {
     // Dos frenos que la base no puede poner por sí sola, y que existen por el
     // mismo motivo: un panel que se puede cerrar desde dentro se cierra desde
-    // dentro. Recuperarlo exige volver a `scripts/crear-admin.mts` con la clave
-    // de servicio, o sea a alguien con acceso al servidor.
+    // dentro. Recuperarlo exige a alguien con acceso al servidor: un `insert` en
+    // `user_roles` desde allí en el modo MySQL (`docs/MODO-MYSQL.md`), o
+    // `scripts/crear-admin.mts --supabase` en la vuelta atrás.
     if (userId === admin.id) {
       return {
         ok: false,

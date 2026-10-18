@@ -149,6 +149,17 @@ const nextConfig: NextConfig = {
    */
   productionBrowserSourceMaps: false,
 
+  experimental: {
+    /**
+     * Cuánto cuerpo de petición guarda en memoria el proxy (`src/proxy.ts`) antes
+     * de pasarla. Por defecto, 10 MB: cualquiera, sin sesión, podía tener
+     * ocupados 10 MB por petición. Las Server Actions cortan en 1 MB (no hay
+     * `serverActions.bodySizeLimit`), y la foto más grande que se sube es de
+     * medio mega: 2 MB sobra.
+     */
+    proxyClientMaxBodySize: "2mb",
+  },
+
   async headers() {
     return [
       {

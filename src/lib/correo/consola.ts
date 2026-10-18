@@ -32,7 +32,10 @@ export class EnviadorConsola implements EnviadorCorreo {
         `Para:   ${mensaje.para}`,
         `Asunto: ${mensaje.asunto}`,
         "",
-        mensaje.texto,
+        // En producción el cuerpo no va al registro: un correo de acceso lleva el
+        // código y el enlace que abren la cuenta, y el registro del servidor lo
+        // leen más personas que el dueño del buzón.
+        process.env.NODE_ENV === "production" ? "(el cuerpo no se escribe en producción)" : mensaje.texto,
         "─".repeat(72),
         "",
       ].join("\n"),

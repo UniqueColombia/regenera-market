@@ -18,8 +18,10 @@ export const dynamic = "force-dynamic";
  * concedería el código en vez de la base.
  *
  * **El primer administrador no se crea aquí.** No se puede: la política
- * `user_roles_admin_write` exige ya ser uno. Ese arranque en frío lo resuelve
- * `scripts/crear-admin.mts` desde el servidor, una sola vez.
+ * `user_roles_admin_write` exige ya ser uno. Ese arranque en frío lo resolvía
+ * `scripts/crear-admin.mts`, que habla con Supabase; en el modo MySQL
+ * (producción desde el 2026-10-17) es un `insert` en `user_roles` hecho desde
+ * el servidor (`docs/MODO-MYSQL.md`).
  */
 export default async function UsuariosPage() {
   const [usuarios, proveedores, vinculos, yo] = await Promise.all([

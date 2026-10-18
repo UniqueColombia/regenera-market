@@ -1,3 +1,4 @@
+import { isAbsolute } from "node:path";
 import { createClient } from "./supabase/server";
 import { createAdminClient } from "./supabase/admin";
 import { isSupabaseConfigured } from "./supabase/config";
@@ -81,6 +82,12 @@ export interface AlmacenDeImagenes {
    * convertir una baja hecha en un error en pantalla.
    */
   borrarCarpeta(bucket: Bucket, duenio: string): Promise<void>;
+  /**
+   * Borra una pieza (`imagen`, `portada`) de un dueño, en cualquier formato. Para
+   * cuando alguien quita su foto: vaciar la columna no basta, el archivo seguía
+   * saliendo en su URL. **No lanza**, por lo mismo que `borrarCarpeta`.
+   */
+  borrarPieza(bucket: Bucket, duenio: string, pieza: Pieza): Promise<void>;
 }
 
 /**
@@ -105,6 +112,8 @@ class SinAlmacen implements AlmacenDeImagenes {
   }
 
   async borrarCarpeta(): Promise<void> {}
+
+  async borrarPieza(): Promise<void> {}
 }
 
 class AlmacenSupabase implements AlmacenDeImagenes {
@@ -172,6 +181,18 @@ class AlmacenSupabase implements AlmacenDeImagenes {
       console.error(`[almacenamiento] no se borró ${bucket}/${duenio}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
+
+  /** Con el de servicio, como `borrarCarpeta`: quien llama ya comprobó que la pieza es suya. */
+  async borrarPieza(bucket: Bucket, duenio: string, pieza: Pieza): Promise<void> {
+    try {
+      const db = createAdminClient();
+      const rutas = ["webp", "jpg", "png"].map((ext) => `${duenio}/${pieza}.${ext}`);
+      const { error } = await db.storage.from(bucket).remove(rutas);
+      if (error) throw new Error(error.message);
+    } catch (e) {
+      console.error(`[almacenamiento] no se borró ${bucket}/${duenio}/${pieza}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
 }
 
 /**
@@ -189,7 +210,14 @@ class AlmacenSupabase implements AlmacenDeImagenes {
  */
 export function getAlmacen(): AlmacenDeImagenes {
   if (modoMysql()) {
-    return process.env.ALMACEN_CARPETA ? new AlmacenDisco(process.env.ALMACEN_CARPETA) : new SinAlmacen();
+    const carpeta = process.env.ALMACEN_CARPETA;
+    // Una ruta relativa (o con `~`) caería dentro de la carpeta de la app, que
+    // cada despliegue reemplaza entera: las fotos durarían hasta el siguiente tag.
+    if (carpeta && !isAbsolute(carpeta)) {
+      console.error(`[almacenamiento] ALMACEN_CARPETA tiene que ser una ruta absoluta: ${carpeta}`);
+      return new SinAlmacen();
+    }
+    return carpeta ? new AlmacenDisco(carpeta) : new SinAlmacen();
   }
   if (isSupabaseConfigured()) return new AlmacenSupabase();
   return new SinAlmacen();

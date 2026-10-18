@@ -145,6 +145,9 @@ describe.skipIf(!HAY_MYSQL)("permisos en el modo MySQL", () => {
     });
 
     it("una empresa sube su certificación, pero no se la verifica sola (la política mira la fila ya pasada por el trigger)", async () => {
+      // El catálogo no viene en el esquema (lo trae `seed.mts` o la copia de
+      // datos): en el MariaDB vacío del CI no hay ninguna certificación.
+      await servicio().from("certifications").upsert({ code: "b-corp", label: "B Corp", issuer: "B Lab", points: 0 });
       const yo = await crearPersona();
       const empresa = await crearEmpresa({ miembro: yo });
       const r = await yo.db
