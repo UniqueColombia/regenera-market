@@ -132,38 +132,63 @@ Supabase y decidir qué se hace con el proyecto de allá.
 
 ## Copias de seguridad
 
-Desde el 2026-10-17. **Lo que hay:**
+Desde el 2026-10-17, **cifradas desde el 2026-10-20**. **Lo que hay:**
 
 | Dónde | Qué | Cuánto |
 |---|---|---|
-| `~/respaldos/` en el servidor (fuera de `domains/`) | `base-AAAA-MM-DD.sql.gz` (`mariadb-dump` con tablas, datos, rutinas, triggers y vistas) y `fotos-AAAA-MM-DD.tar.gz` (la carpeta de `ALMACEN_CARPETA`, con las fechas de cada archivo) | Una por día, a las 03:15 UTC, por un cron de la cuenta; se guardan 14 días |
-| `outputs/respaldos/` en el PC de quien corre `bajar` | Las dos últimas, copiadas | Las 4 más recientes de cada tipo |
+| `~/respaldos/` en el servidor (fuera de `domains/`) | `base-AAAA-MM-DD.sql.gz.cms` (`mariadb-dump` con tablas, datos, rutinas, triggers y vistas) y `fotos-AAAA-MM-DD.tar.gz.cms` (la carpeta de `ALMACEN_CARPETA`, con las fechas de cada archivo), **cifradas** | Una por día, a las 03:15 UTC, por un cron de la cuenta; se guardan 14 días |
+| `outputs/respaldos/` en el PC de quien corre `bajar` | Las dos últimas, copiadas tal cual (cifradas) | Las 4 más recientes de cada tipo |
 | Las copias automáticas de Hostinger | Lo que el plan guarde de la cuenta (hPanel → Archivos → Copias de seguridad) | No se ven por la API: comprobarlo en hPanel |
+
+**El cifrado.** CMS de OpenSSL: AES-256 para el contenido y RSA-4096 para la
+llave de cada archivo. El servidor solo tiene el **certificado**
+(`~/respaldos/respaldos.crt`), que cierra pero no abre; la **llave privada**
+está en el PC (`~/.ssh/seregenera_respaldos.key`) y en el gestor de
+contraseñas. Así, quien se lleve una copia —del servidor, del PC o de un
+disco— no la puede leer. Lo que no protege: a quien ya tiene la cuenta de
+hosting, que lee la base directamente. **Perder la llave privada es perder
+todas las copias**: por eso vive en el gestor, no solo en un PC.
 
 **Los comandos** (`scripts/respaldos.mts`, con la llave SSH y la API como
 `desplegar.mts`):
 
 ```bash
-node --env-file=.env scripts/respaldos.mts instalar   # sube respaldar.sh y hace una copia ya
-node --env-file=.env scripts/respaldos.mts probar     # restaura la última en una base temporal, compara y la borra
-node --env-file=.env scripts/respaldos.mts bajar      # trae la última al PC
+node scripts/respaldos.mts llave                               # una vez: crea la pareja de llaves en este PC
+node --env-file=.env scripts/respaldos.mts instalar            # comprueba la pareja, sube certificado y respaldar.sh, y hace una copia ya
+node --env-file=.env scripts/respaldos.mts probar              # descifra y restaura la última en una base temporal, compara y la borra
+node --env-file=.env scripts/respaldos.mts bajar               # trae la última (cifrada) al PC
+node --env-file=.env scripts/respaldos.mts retirar-sin-cifrar  # borra del servidor las copias en claro de antes del 2026-10-20
+node scripts/respaldos.mts descifrar outputs/respaldos/base-AAAA-MM-DD.sql.gz.cms
 ```
 
+En el **otro PC** no se corre `llave`: se copian los dos archivos desde el
+gestor a `~/.ssh/` (o a las rutas de `RESPALDOS_LLAVE` y
+`RESPALDOS_CERTIFICADO`). Una pareja nueva obliga a volver a `instalar`, y las
+copias hechas con la anterior solo las abre la anterior.
+
 `probar` es el simulacro: conviene correrlo una vez al mes y antes de cualquier
-cambio grande. `bajar`, cada semana: las del servidor sirven contra un error,
-no contra perder la cuenta de hosting. La salida del cron la da la API
-(`hosting_cron-jobs_output`).
+cambio grande. Descifra en el servidor con la llave mandada por SSH a un
+temporal que se borra al terminar. `bajar`, cada semana: las del servidor
+sirven contra un error, no contra perder la cuenta de hosting. La salida del
+cron la da la API (`hosting_cron-jobs_output`); sin certificado, `respaldar.sh`
+se niega en vez de dejar una copia en claro.
 
 **Restaurar de verdad**, por SSH en el servidor (es reemplazar producción: se
-hace con el sitio en mantenimiento y después de bajar una copia de lo actual):
+hace con el sitio en mantenimiento y después de bajar una copia de lo actual).
+Primero subir la llave privada a un temporal, y borrarla al terminar:
 
 ```bash
 cd ~/respaldos
+umask 077; cat > .llave            # pegar la llave privada del gestor y cerrar con Ctrl+D
 # las MYSQL_* de la app; Hostinger pone entre comillas simples lo que lleva $ (la clave), así que `.` las lee bien
 set -a; . ~/domains/seregenera.com/hbuilds/config/.env; set +a
-zcat base-AAAA-MM-DD.sql.gz | MYSQL_PWD="$MYSQL_PASSWORD" mariadb -h 127.0.0.1 -u "$MYSQL_USER" "$MYSQL_DATABASE"
-tar -xzf fotos-AAAA-MM-DD.tar.gz -C ~      # recrea ~/seregenera-archivos con sus fechas
+openssl cms -decrypt -binary -inform DER -inkey .llave -in base-AAAA-MM-DD.sql.gz.cms   | zcat | MYSQL_PWD="$MYSQL_PASSWORD" mariadb -h 127.0.0.1 -u "$MYSQL_USER" "$MYSQL_DATABASE"
+openssl cms -decrypt -binary -inform DER -inkey .llave -in fotos-AAAA-MM-DD.tar.gz.cms   | tar -xz -C ~                   # recrea ~/seregenera-archivos con sus fechas
+rm -f .llave
 ```
+
+Una copia de antes del 2026-10-20 (`.sql.gz` / `.tar.gz`, sin `.cms`) se
+restaura igual sin el paso de `openssl`: `zcat` y `tar -xzf` directos.
 
 Con el mismo usuario de la app, los DEFINER de la copia son los suyos y la
 lógica queda bien (ver la trampa de abajo). En otra base o con otro usuario,

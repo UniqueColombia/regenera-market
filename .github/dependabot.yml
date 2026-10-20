@@ -1,0 +1,37 @@
+# Dependabot: avisa de dependencias vulnerables o viejas y abre el PR que las
+# actualiza. Pedido de Jesús el 2026-10-20, a sabiendas de que cada PR manda
+# correo: es la excepción a la entrega directa (ver la skill entrega-directa,
+# «PRs de Dependabot»).
+#
+# Las actualizaciones de versión van contra `staging`, como cualquier cambio, y
+# de ahí a `main` por el camino de siempre. Las de seguridad (las que dispara
+# una alerta) las abre GitHub contra la rama por defecto, `main`, digan lo que
+# digan estas líneas; las alertas y esas actualizaciones se encienden en
+# Settings → Code security, y eso solo lo puede hacer un administrador (Ivan).
+#
+# Las menores y de parche van en un solo PR por semana para no llenar el correo;
+# las mayores, cada una por su lado, porque son las que rompen.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: staging
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: America/Bogota
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      menores-y-parches:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: staging
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"

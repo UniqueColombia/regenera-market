@@ -1,22 +1,21 @@
 name: Latido
 
 # ---------------------------------------------------------------------------
-# Mantiene despierto el proyecto de Supabase.
+# El monitor de producción: una vez al día, desde fuera, pregunta a
+# https://seregenera.com/api/latido si está viva.
 #
-# El plan gratuito **pausa un proyecto que pasa siete días sin actividad de
-# API**. No borra los datos —restaurar es un botón en el panel— pero mientras
-# está pausado el sitio responde 500 a todo el mundo, y eso se descubre tarde y
-# mal: cuando alguien a quien le pasaste el enlace se encuentra una página
-# muerta.
+# Ese endpoint consulta la base (MariaDB de Hostinger desde el 2026-10-17) y,
+# desde el 2026-10-20, revisa también la configuración de producción: si falta
+# algo crítico —sobre todo `BASE_DE_DATOS=mysql`, cuya pérdida haría volver la
+# app a Supabase en silencio— responde 503 aunque la base conteste. Qué falta lo
+# dice el registro del servidor, no la respuesta (es pública).
 #
-# Lo que cuenta como actividad es una petición **desde fuera**. Un `pg_cron`
-# dentro de Postgres no sirve: corre en la base sin generar ni una llamada a la
-# API, así que el contador de inactividad no se entera. Por eso el latido lo
-# dispara GitHub, que es una máquina ajena al proyecto.
+# Si el job se pone rojo, GitHub manda el correo. Es el único aviso automático
+# que hay de que producción se cayó o se desconfiguró.
 #
-# De paso vigila producción: si un día el sitio responde 500 porque alguien
-# borró una variable de entorno, este job se pone rojo y GitHub manda el correo.
-# Es el único aviso automático que hay hoy de que producción se cayó.
+# Hasta el 2026-10-20 apuntaba al Vercel de respaldo y servía además para que
+# Supabase no pausara el proyecto por inactividad. Con producción en Hostinger y
+# Supabase camino de pausarse, eso dejó de tener sentido.
 #
 # ⚠️ **GitHub desactiva los `schedule` de un repositorio tras 60 días sin
 # actividad** y avisa por correo antes de hacerlo. Si el proyecto se queda
@@ -42,67 +41,32 @@ jobs:
     timeout-minutes: 5
 
     env:
-      SITIO: https://regenera-market.vercel.app
-      # Se leen aquí, a nivel de job, y no dentro del paso que los usa: el
-      # contexto `secrets` NO existe en el `if` de un paso (solo github, needs,
-      # job, runner, env, vars, steps, inputs y matrix), y usarlo ahí revienta el
-      # workflow entero con «Unrecognized named-value: 'secrets'». El `env` del
-      # job sí está disponible, así que el secreto se copia aquí y la condición
-      # mira la copia. Mientras no existan, valen cadena vacía.
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SITIO: https://seregenera.com
 
     steps:
-      - name: Despertar la base a través de la aplicación
+      - name: Preguntar a producción si está viva y bien configurada
         run: |
           set -uo pipefail
-
-          # /api/latido consulta Postgres y devuelve JSON. Si todavía no está
-          # desplegado (la ruta nació en la rama de la clave y el panel), se cae
-          # a /catalogo, que también lee de la base y existe desde antes.
-          for ruta in /api/latido /catalogo; do
-            echo "→ GET $SITIO$ruta"
-            codigo=$(curl -sS -o /tmp/respuesta -w "%{http_code}" \
-                      --max-time 45 --retry 3 --retry-delay 20 --retry-all-errors \
-                      "$SITIO$ruta" || echo "000")
-            echo "   HTTP $codigo"
-
-            if [ "$codigo" = "200" ]; then
-              head -c 300 /tmp/respuesta; echo
-              echo "✅ La base respondió por $ruta."
-              exit 0
-            fi
-
-            # 404 = esa ruta aún no existe en producción; se prueba la siguiente.
-            # Cualquier otro código es un fallo de verdad y hay que verlo.
-            if [ "$codigo" != "404" ]; then
-              echo "::error::$ruta respondió $codigo. 500 suele ser Supabase pausado o una variable de entorno borrada; 000 es que el sitio no contestó."
-              head -c 500 /tmp/respuesta; echo
-              exit 1
-            fi
-          done
-
-          echo "::error::Ninguna ruta respondió 200. Revisa que el despliegue de producción esté vivo."
-          exit 1
-
-      # Segundo camino, directo contra la API de Supabase, sin pasar por Vercel.
-      # Solo corre si alguien con permiso de administración del repositorio creó
-      # los dos secretos; mientras no existan, se salta sin ensuciar el log.
-      #
-      # Sirve para distinguir "se cayó Vercel" de "se pausó Supabase", que desde
-      # fuera se ven igual: un 500.
-      - name: Tocar la API de Supabase directamente
-        if: ${{ env.SUPABASE_URL != '' && env.SUPABASE_ANON_KEY != '' }}
-        run: |
-          set -uo pipefail
-          codigo=$(curl -sS -o /tmp/rest -w "%{http_code}" \
+          echo "→ GET $SITIO/api/latido"
+          codigo=$(curl -sS -o /tmp/respuesta -w "%{http_code}" \
                     --max-time 45 --retry 3 --retry-delay 20 --retry-all-errors \
-                    -H "apikey: $SUPABASE_ANON_KEY" \
-                    -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-                    "$SUPABASE_URL/rest/v1/providers?select=id&limit=1" || echo "000")
-          echo "REST HTTP $codigo"
-          if [ "$codigo" != "200" ]; then
-            echo "::error::La API de Supabase respondió $codigo. Si el sitio sí contestó, el problema no es Vercel."
-            exit 1
+                    "$SITIO/api/latido" || echo "000")
+          echo "   HTTP $codigo"
+          head -c 300 /tmp/respuesta; echo
+
+          if [ "$codigo" = "200" ] && grep -q '"ok":true' /tmp/respuesta; then
+            echo "✅ Producción responde y la base contesta."
+            exit 0
           fi
-          echo "✅ PostgREST responde."
+
+          case "$codigo" in
+            503)
+              if grep -q '"configuracion"' /tmp/respuesta; then
+                echo "::error::Producción está mal configurada (falta una variable crítica). El registro del servidor dice cuál: hPanel → seregenera.com → registros, líneas [configuracion] o [latido]."
+              else
+                echo "::error::La base no respondió (503). Revisa el MariaDB de Hostinger y las MYSQL_* de la app."
+              fi ;;
+            000) echo "::error::El sitio no contestó. ¿Está caído el Node.js de Hostinger o falló el último build?" ;;
+            *)   echo "::error::/api/latido respondió $codigo." ;;
+          esac
+          exit 1

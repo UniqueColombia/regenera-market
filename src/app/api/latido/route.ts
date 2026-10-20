@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { esProduccion, revisarConfiguracion } from "@/lib/configuracion";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { dentroDelRitmo, origenDeLaPeticion } from "@/lib/ritmo";
@@ -35,6 +36,13 @@ import { dentroDelRitmo, origenDeLaPeticion } from "@/lib/ritmo";
  * Cuando topa responde **429 con `Retry-After`**, que es lo que un monitor
  * entiende como «estoy vivo, estás llamando demasiado», y no un 503 que se
  * leería como caída.
+ *
+ * **Desde el 2026-10-20 también vigila la configuración de producción**
+ * (`src/lib/configuracion.ts`): con algo crítico —sobre todo perder
+ * `BASE_DE_DATOS=mysql`, que haría volver la app a Supabase en silencio—
+ * responde 503 aunque la base conteste. La respuesta solo dice
+ * `"configuracion"`: qué variable falta va al registro del servidor, no a un
+ * endpoint público.
  */
 
 // Nunca se cachea: una respuesta guardada diría "vivo" con la base caída, que
@@ -47,6 +55,14 @@ export async function GET() {
       { ok: false, motivo: "demasiadas-peticiones" },
       { status: 429, headers: { "retry-after": "60" } },
     );
+  }
+
+  if (esProduccion()) {
+    const { criticos } = revisarConfiguracion();
+    if (criticos.length) {
+      console.error("[latido] configuración incompleta:", criticos.join(" · "));
+      return NextResponse.json({ ok: false, motivo: "configuracion" }, { status: 503 });
+    }
   }
 
   if (!isSupabaseConfigured()) {
