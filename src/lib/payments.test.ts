@@ -16,7 +16,7 @@ function conBold({ pruebas = false } = {}) {
   vi.stubEnv("BOLD_LLAVE_IDENTIDAD", "llave-identidad");
   vi.stubEnv("BOLD_LLAVE_SECRETA", "kgfq2nN0o52XqnuXZWIN2F");
   vi.stubEnv("BOLD_MODO_PRUEBAS", pruebas ? "1" : "");
-  vi.stubEnv("VERCEL_ENV", "preview");
+  vi.stubEnv("NODE_ENV", "test");
 }
 
 /** Lo que manda BOLD al webhook, según su documentación. */
@@ -107,7 +107,7 @@ describe("BOLD", () => {
     const cuerpo = aviso();
     const conVacia = new Headers({ "x-bold-signature": firmar(cuerpo, "") });
     expect(getGateway().leerNotificacion(cuerpo, conVacia)).not.toBeNull();
-    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
     expect(getGateway().leerNotificacion(cuerpo, conVacia)).toBeNull();
   });
 });

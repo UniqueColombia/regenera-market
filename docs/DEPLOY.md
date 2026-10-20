@@ -31,8 +31,9 @@ Lo que cambió respecto a Vercel y hay que tener presente:
   subido y un build lanzado.
 - **El build es `next build --webpack`**: Turbopack no compila en el entorno de
   Hostinger (ver la skill).
-- **`VERCEL_ENV` no existe** fuera de Vercel: `BOLD_MODO_PRUEBAS` tiene que ir
-  vacía en producción (ver `docs/VARIABLES.md`).
+- **`VERCEL_ENV` no existe** fuera de Vercel: la guarda de `BOLD_MODO_PRUEBAS`
+  mira `NODE_ENV` (`src/lib/payments.ts`), que en una compilación de producción
+  la ignora. Aun así tiene que ir vacía en producción (ver `docs/VARIABLES.md`).
 
 Lo que sigue en este documento es la decisión de 2026-08, **con Vercel**. Queda
 como historia: explica por qué el repositorio es público y por qué Supabase.
