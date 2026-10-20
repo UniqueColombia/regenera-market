@@ -45,13 +45,9 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >          las copias viejas en claro (`.sql.gz` / `.tar.gz`).
 >    - [ ] Al día siguiente, la salida del cron (`hosting_cron-jobs_output`):
 >          «respaldo … (cifrado)».
-> 3. **`.env` del PC de la oficina** (de vuelta allá): la línea de
->    `HOSTINGER_API_KEY` tiene el token **más texto pegado** (siete palabras
->    separadas por espacios) y la API responde 401. Tiene que quedar
->    `HOSTINGER_API_KEY=<token>` y nada más en esa línea. Y sobra
->    `HOSTINGER_USER` (`docs/VARIABLES.md`, «Lo que NO va en el `.env`»). Con el
->    token, `desplegar.mts` y `respaldos.mts` funcionan también allí; mientras
->    tanto se despliega con `scp` y el MCP (hito del 2026-10-20).
+> 3. ~~`.env` del PC de la oficina~~: **listo el 2026-10-20** (token de API
+>    válido, SSH con llave propia, sin credenciales de hPanel). Desde ahí
+>    funcionan también `desplegar.mts` y `respaldos.mts`.
 > 4. Lo de **Ivan** (Dependabot) y **retirar Supabase** pasaron a la lista
 >    general: «Solo Ivan» y «Lo que sigue», punto 4.
 > 5. Bajos, cuando haya tiempo: Turnstile en `/registro` y `/entrar` si aparece
