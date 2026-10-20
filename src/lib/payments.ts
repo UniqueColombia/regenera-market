@@ -296,14 +296,15 @@ class BoldGateway implements PaymentGateway {
  *
  * `BOLD_MODO_PRUEBAS=1` solo cambia cómo se verifica el webhook (con la llave
  * vacía, como manda BOLD en pruebas). **Nunca en Production**: con la llave
- * vacía, cualquiera puede firmar una notificación. Por eso se ignora si
- * `VERCEL_ENV` dice `production`.
+ * vacía, cualquiera puede firmar una notificación. Por eso se ignora en
+ * cualquier compilación de producción (`NODE_ENV`), que es la que corre en
+ * Hostinger. `VERCEL_ENV` ya no sirve de guarda: fuera de Vercel no existe.
  */
 export function getGateway(): PaymentGateway {
   const identidad = process.env.BOLD_LLAVE_IDENTIDAD?.trim();
   const secreta = process.env.BOLD_LLAVE_SECRETA?.trim();
   if (identidad && secreta) {
-    const pruebas = process.env.BOLD_MODO_PRUEBAS === "1" && process.env.VERCEL_ENV !== "production";
+    const pruebas = process.env.BOLD_MODO_PRUEBAS === "1" && process.env.NODE_ENV !== "production";
     return new BoldGateway(identidad, secreta, pruebas);
   }
   return new ManualGateway();

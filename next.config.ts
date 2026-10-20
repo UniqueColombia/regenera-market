@@ -134,6 +134,9 @@ function cabecerasDeSeguridad(produccion: boolean) {
 }
 
 const nextConfig: NextConfig = {
+  /** Sin `X-Powered-By: Next.js`: no hay por qué decir qué framework es. */
+  poweredByHeader: false,
+
   /**
    * Los mapas de código **no se publican**.
    *

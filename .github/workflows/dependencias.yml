@@ -1,0 +1,24 @@
+name: Dependencias
+
+# Vigila las dependencias de producción sin abrir PR ni mandar correo de
+# Dependabot (la entrega es directa, ver la skill entrega-directa). Falla —y
+# GitHub avisa— solo si aparece una vulnerabilidad alta o crítica.
+on:
+  push:
+    branches: [main, staging]
+    paths: [package.json, package-lock.json]
+  schedule:
+    - cron: "0 12 * * 1" # los lunes
+  workflow_dispatch:
+
+jobs:
+  auditar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: npm audit (solo producción)
+        run: npm audit --omit=dev --audit-level=high
