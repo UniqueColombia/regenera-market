@@ -27,6 +27,15 @@ updates:
     groups:
       menores-y-parches:
         update-types: [minor, patch]
+    ignore:
+      # Los tipos de Node siguen la versión con la que corre producción (Node 22
+      # en Hostinger y en el CI): con los de una mayor, `tsc` dejaría usar APIs
+      # que el servidor no tiene. Se sube junto con el runtime, a mano.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # Las pruebas de `test:base` imitan a Supabase, que corre Postgres 17.
+      - dependency-name: embedded-postgres
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
