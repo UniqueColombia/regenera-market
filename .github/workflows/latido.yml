@@ -17,6 +17,15 @@ name: Latido
 # Supabase no pausara el proyecto por inactividad. Con producción en Hostinger y
 # Supabase camino de pausarse, eso dejó de tener sentido.
 #
+# **La CDN de Hostinger (`server: hcdn`) puede contestar 403 con una página de
+# desafío anti-bots** a las IP de los servidores de GitHub (pasó el 2026-10-20,
+# el primer día). Por eso el `curl` se presenta como navegador y, si aun así lo
+# que vuelve es esa página HTML y no el JSON de la app, el job lo deja como
+# **aviso** y no como fallo: eso dice que la CDN no dejó mirar, no que el sitio
+# esté caído, y un correo de «caído» que es mentira enseña a ignorar el
+# verdadero. La salida de fondo es una excepción para `/api/latido` en la
+# seguridad de la CDN (hPanel), si el plan la permite.
+#
 # ⚠️ **GitHub desactiva los `schedule` de un repositorio tras 60 días sin
 # actividad** y avisa por correo antes de hacerlo. Si el proyecto se queda
 # quieto dos meses, hay que volver a activarlo a mano en la pestaña Actions —
@@ -49,6 +58,8 @@ jobs:
           set -uo pipefail
           echo "→ GET $SITIO/api/latido"
           codigo=$(curl -sS -o /tmp/respuesta -w "%{http_code}" \
+                    -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 SeregeneraLatido" \
+                    -H "Accept: application/json" \
                     --max-time 45 --retry 3 --retry-delay 20 --retry-all-errors \
                     "$SITIO/api/latido" || echo "000")
           echo "   HTTP $codigo"
@@ -56,6 +67,12 @@ jobs:
 
           if [ "$codigo" = "200" ] && grep -q '"ok":true' /tmp/respuesta; then
             echo "✅ Producción responde y la base contesta."
+            exit 0
+          fi
+
+          # La página de desafío de la CDN: HTML, no el JSON de la app.
+          if [ "$codigo" = "403" ] && grep -qi "<!DOCTYPE html" /tmp/respuesta; then
+            echo "::warning::La CDN de Hostinger respondió con su desafío anti-bots (403): no dejó mirar desde GitHub. No dice que el sitio esté caído. Ver la cabecera de este archivo."
             exit 0
           fi
 
