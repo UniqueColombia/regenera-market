@@ -8,7 +8,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
   correo, y **el 2026-10-17** en correos, legales, envíos, pagos y la base de
   datos (los tres primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.12.3`; `v0.12.4` etiquetada y pendiente de desplegar, ver el primer recuadro) con la skill `desplegar-hostinger`;
+  desplegado **por tag** (hoy `v0.12.5`, desde el 2026-10-20) con la skill `desplegar-hostinger`;
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
   2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
   el primer recuadro). Supabase quedó congelado con los datos de ese día, con
@@ -16,56 +16,49 @@ qué hacer, empieza aquí y no en el ROADMAP.
   el 2026-10-17), y es la vuelta atrás. `https://regenera-market.vercel.app`
   sigue encendido, pero contra Supabase: ya no es un respaldo de producción.
 
-> ## 🟠 Pendiente para el PC de la casa (2026-10-20): copias cifradas, `v0.12.4` y variables
+> ## 🟠 Pendiente para el PC de la casa (2026-10-20): copias cifradas y lo que queda de la auditoría
 >
-> Pedido de Jesús tras una auditoría de seguridad (nada crítico). Se preparó
-> desde el PC de la oficina, que no tiene la llave SSH ni `HOSTINGER_API_KEY`;
-> esto se hace donde están. El detalle y el porqué, en
+> Pedido de Jesús tras una auditoría de seguridad (nada crítico). El detalle y
+> el porqué, en
 > [el hito](../.claude/hitos/2026-10-20-copias-cifradas-monitor-y-dependabot.md).
-> **En orden:**
 >
-> 1. **Sincronizar:** `git pull` de `staging` y `main`, y `npm ci` (el lock
->    trae `kysely` y `mysql2`).
-> 2. **Variables de la Web App** (hPanel → `seregenera.com`):
->    - [ ] `IS_WEBPACK_TEST`: confirmar que ya no está (el 2026-10-20, después
->          de borrarla en el panel, la API la seguía listando).
->    - [ ] Guardar en el gestor de contraseñas los valores de
->          `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
->          `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Settings → API) y **borrarlas**:
->          el modo MySQL no las usa y, sin ellas, perder `BASE_DE_DATOS` ya no
->          devuelve la app a Supabase. Son de compilación: borrarlas justo antes
->          del paso 3 para que un solo build sirva. **`NEXT_PUBLIC_SITE_URL` NO
->          se borra** (correos, redirecciones, sitemap).
->    - [x] `SESION_SECRETO` puesta el 2026-10-20 (que esté también en el gestor).
-> 3. **Desplegar `v0.12.4`** (ya etiquetada): `node --env-file=.env
->    scripts/desplegar.mts v0.12.4`. Ojo: el build que se lanzó el 2026-10-20
->    sobre `v0.12.3` **falló** por el tope de hilos de Hostinger (57 workers);
->    `v0.12.4` lo limita a 4. Producción sigue con el build anterior, sano.
->    Comprobar:
->    - [ ] `curl -sI https://seregenera.com | grep -i powered` no devuelve nada.
->    - [ ] `https://seregenera.com/api/latido` da `200` y `"ok":true`.
->    - [ ] En el registro del servidor, `[configuracion] producción completa`
->          (o solo los avisos que se esperan).
->    - [ ] GitHub → Actions → **Latido** → *Run workflow*: verde.
-> 4. **Copias cifradas** (`docs/MODO-MYSQL.md`, «Copias de seguridad»):
+> **Hecho el 2026-10-20 (desde la oficina):** `v0.12.4` y `v0.12.5` en
+> producción (subidas por SSH y compiladas con el MCP; el build ahora usa 4
+> workers, con 57 Hostinger lo mataba); variables de Supabase e
+> `IS_WEBPACK_TEST` borradas de la Web App, `SESION_SECRETO` puesta, y el
+> registro dice `[configuracion] producción completa`; el latido de GitHub
+> vigila `seregenera.com` y está verde; los 7 PRs de Dependabot resueltos (3
+> aplicados, 4 cerrados con motivo). El PC de la oficina ya tiene su llave SSH
+> (`~/.ssh/seregenera_hostinger`, agregada en hPanel).
+>
+> **Falta, en orden:**
+>
+> 1. **Sincronizar:** `git pull` de `staging` y `main`, y `npm ci`.
+> 2. **Copias cifradas** (`docs/MODO-MYSQL.md`, «Copias de seguridad»; el
+>    servidor tiene OpenSSL 3.5.8, comprobado):
 >    - [ ] `node scripts/respaldos.mts llave` y **guardar la llave privada y el
->          certificado en el gestor** antes de seguir.
->    - [ ] `node --env-file=.env scripts/respaldos.mts instalar` (si el servidor
->          no tuviera `openssl`, falla aquí con ese mensaje).
+>          certificado en el gestor** antes de seguir. Se crea una sola vez; en
+>          el otro PC se copian del gestor a `~/.ssh/`.
+>    - [ ] `node --env-file=.env scripts/respaldos.mts instalar`
 >    - [ ] `… probar`: tablas, rutinas, triggers, vistas y fotos ✓.
 >    - [ ] `… retirar-sin-cifrar` y `… bajar`; borrar de `outputs/respaldos/`
 >          las copias viejas en claro (`.sql.gz` / `.tar.gz`).
 >    - [ ] Al día siguiente, la salida del cron (`hosting_cron-jobs_output`):
 >          «respaldo … (cifrado)».
-> 5. **Ivan** (administrador del repositorio): Settings → Code security →
+> 3. **`.env` del PC de la oficina:** `HOSTINGER_API_KEY` tiene 10 caracteres y
+>    la API la rechaza (401): no es un token. Generar uno en hPanel → perfil →
+>    API y ponerlo ahí. Y quitar `HOSTINGER_USER`, `HOSTINGER_PASSWORD` y
+>    `HOSTINGER_API_USER` (`docs/VARIABLES.md`, «Lo que NO va en el `.env`»).
+>    Con el token, `desplegar.mts` y `respaldos.mts` funcionan también allí.
+> 4. **Ivan** (administrador del repositorio): Settings → Code security →
 >    encender *Dependabot alerts* y *Dependabot security updates* (y, si quiere,
->    CodeQL). Los PRs de versiones llegan solos los lunes; cómo se tratan, en la
->    skill `entrega-directa`.
-> 6. **PC de la oficina:** quitar del `.env` el usuario y la contraseña de hPanel
->    (`docs/VARIABLES.md`, «Lo que NO va en el `.env`»).
-> 7. Sigue en pie **pausar Supabase hacia el 2026-10-31** y, al hacerlo, rotar
->    sus llaves. El Vercel de respaldo ya no importa: no hay acceso y nada
->    depende de él (el latido apunta a `seregenera.com`).
+>    CodeQL). Los PRs de versiones ya llegan solos; cómo se tratan, en la skill
+>    `entrega-directa`.
+> 5. **Pausar Supabase hacia el 2026-10-31** y, al hacerlo, rotar sus llaves. La
+>    app ya no las tiene; el Vercel de respaldo tampoco importa.
+> 6. Bajos, cuando haya tiempo: Turnstile en `/registro` y `/entrar` si aparece
+>    abuso, que «Regístrate» no diga si el correo existe, subir el costo de
+>    scrypt, caducidad de los aparatos de confianza, dos `select("*")`.
 
 > ## 🟢 Nuevo del 2026-10-17 (noche): producción sobre el MariaDB de Hostinger
 >
