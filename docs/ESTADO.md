@@ -8,13 +8,64 @@ qué hacer, empieza aquí y no en el ROADMAP.
   correo, y **el 2026-10-17** en correos, legales, envíos, pagos y la base de
   datos (los tres primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.12.3`) con la skill `desplegar-hostinger`;
+  desplegado **por tag** (hoy `v0.12.3`; `v0.12.4` etiquetada y pendiente de desplegar, ver el primer recuadro) con la skill `desplegar-hostinger`;
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
   2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
   el primer recuadro). Supabase quedó congelado con los datos de ese día, con
   todas las migraciones aplicadas (también la `0021` y la `0022`, comprobado
   el 2026-10-17), y es la vuelta atrás. `https://regenera-market.vercel.app`
   sigue encendido, pero contra Supabase: ya no es un respaldo de producción.
+
+> ## 🟠 Pendiente para el PC de la casa (2026-10-20): copias cifradas, `v0.12.4` y variables
+>
+> Pedido de Jesús tras una auditoría de seguridad (nada crítico). Se preparó
+> desde el PC de la oficina, que no tiene la llave SSH ni `HOSTINGER_API_KEY`;
+> esto se hace donde están. El detalle y el porqué, en
+> [el hito](../.claude/hitos/2026-10-20-copias-cifradas-monitor-y-dependabot.md).
+> **En orden:**
+>
+> 1. **Sincronizar:** `git pull` de `staging` y `main`, y `npm ci` (el lock
+>    trae `kysely` y `mysql2`).
+> 2. **Variables de la Web App** (hPanel → `seregenera.com`):
+>    - [ ] `IS_WEBPACK_TEST`: confirmar que ya no está (el 2026-10-20, después
+>          de borrarla en el panel, la API la seguía listando).
+>    - [ ] Guardar en el gestor de contraseñas los valores de
+>          `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
+>          `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Settings → API) y **borrarlas**:
+>          el modo MySQL no las usa y, sin ellas, perder `BASE_DE_DATOS` ya no
+>          devuelve la app a Supabase. Son de compilación: borrarlas justo antes
+>          del paso 3 para que un solo build sirva. **`NEXT_PUBLIC_SITE_URL` NO
+>          se borra** (correos, redirecciones, sitemap).
+>    - [x] `SESION_SECRETO` puesta el 2026-10-20 (que esté también en el gestor).
+> 3. **Desplegar `v0.12.4`** (ya etiquetada): `node --env-file=.env
+>    scripts/desplegar.mts v0.12.4`. Ojo: el build que se lanzó el 2026-10-20
+>    sobre `v0.12.3` **falló** por el tope de hilos de Hostinger (57 workers);
+>    `v0.12.4` lo limita a 4. Producción sigue con el build anterior, sano.
+>    Comprobar:
+>    - [ ] `curl -sI https://seregenera.com | grep -i powered` no devuelve nada.
+>    - [ ] `https://seregenera.com/api/latido` da `200` y `"ok":true`.
+>    - [ ] En el registro del servidor, `[configuracion] producción completa`
+>          (o solo los avisos que se esperan).
+>    - [ ] GitHub → Actions → **Latido** → *Run workflow*: verde.
+> 4. **Copias cifradas** (`docs/MODO-MYSQL.md`, «Copias de seguridad»):
+>    - [ ] `node scripts/respaldos.mts llave` y **guardar la llave privada y el
+>          certificado en el gestor** antes de seguir.
+>    - [ ] `node --env-file=.env scripts/respaldos.mts instalar` (si el servidor
+>          no tuviera `openssl`, falla aquí con ese mensaje).
+>    - [ ] `… probar`: tablas, rutinas, triggers, vistas y fotos ✓.
+>    - [ ] `… retirar-sin-cifrar` y `… bajar`; borrar de `outputs/respaldos/`
+>          las copias viejas en claro (`.sql.gz` / `.tar.gz`).
+>    - [ ] Al día siguiente, la salida del cron (`hosting_cron-jobs_output`):
+>          «respaldo … (cifrado)».
+> 5. **Ivan** (administrador del repositorio): Settings → Code security →
+>    encender *Dependabot alerts* y *Dependabot security updates* (y, si quiere,
+>    CodeQL). Los PRs de versiones llegan solos los lunes; cómo se tratan, en la
+>    skill `entrega-directa`.
+> 6. **PC de la oficina:** quitar del `.env` el usuario y la contraseña de hPanel
+>    (`docs/VARIABLES.md`, «Lo que NO va en el `.env`»).
+> 7. Sigue en pie **pausar Supabase hacia el 2026-10-31** y, al hacerlo, rotar
+>    sus llaves. El Vercel de respaldo ya no importa: no hay acceso y nada
+>    depende de él (el latido apunta a `seregenera.com`).
 
 > ## 🟢 Nuevo del 2026-10-17 (noche): producción sobre el MariaDB de Hostinger
 >
