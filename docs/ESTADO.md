@@ -45,18 +45,16 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >          las copias viejas en claro (`.sql.gz` / `.tar.gz`).
 >    - [ ] Al día siguiente, la salida del cron (`hosting_cron-jobs_output`):
 >          «respaldo … (cifrado)».
-> 3. **`.env` del PC de la oficina:** `HOSTINGER_API_KEY` tiene 10 caracteres y
->    la API la rechaza (401): no es un token. Generar uno en hPanel → perfil →
->    API y ponerlo ahí. Y quitar `HOSTINGER_USER`, `HOSTINGER_PASSWORD` y
->    `HOSTINGER_API_USER` (`docs/VARIABLES.md`, «Lo que NO va en el `.env`»).
->    Con el token, `desplegar.mts` y `respaldos.mts` funcionan también allí.
-> 4. **Ivan** (administrador del repositorio): Settings → Code security →
->    encender *Dependabot alerts* y *Dependabot security updates* (y, si quiere,
->    CodeQL). Los PRs de versiones ya llegan solos; cómo se tratan, en la skill
->    `entrega-directa`.
-> 5. **Pausar Supabase hacia el 2026-10-31** y, al hacerlo, rotar sus llaves. La
->    app ya no las tiene; el Vercel de respaldo tampoco importa.
-> 6. Bajos, cuando haya tiempo: Turnstile en `/registro` y `/entrar` si aparece
+> 3. **`.env` del PC de la oficina** (de vuelta allá): la línea de
+>    `HOSTINGER_API_KEY` tiene el token **más texto pegado** (siete palabras
+>    separadas por espacios) y la API responde 401. Tiene que quedar
+>    `HOSTINGER_API_KEY=<token>` y nada más en esa línea. Y sobra
+>    `HOSTINGER_USER` (`docs/VARIABLES.md`, «Lo que NO va en el `.env`»). Con el
+>    token, `desplegar.mts` y `respaldos.mts` funcionan también allí; mientras
+>    tanto se despliega con `scp` y el MCP (hito del 2026-10-20).
+> 4. Lo de **Ivan** (Dependabot) y **retirar Supabase** pasaron a la lista
+>    general: «Solo Ivan» y «Lo que sigue», punto 4.
+> 5. Bajos, cuando haya tiempo: Turnstile en `/registro` y `/entrar` si aparece
 >    abuso, que «Regístrate» no diga si el correo existe, subir el costo de
 >    scrypt, caducidad de los aparatos de confianza, dos `select("*")`.
 
@@ -159,8 +157,8 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   los de Supabase como los de la app. Comprobado: llegan a la bandeja de
 >   entrada. Ver `docs/CORREOS.md`.
 > - **Falta**, en este orden: ~~la página de privacidad~~ (hecha el
->   2026-10-17), `APP_ENV` en lugar de `VERCEL_ENV` en
->   `src/lib/payments.ts` **antes** de encender BOLD en Hostinger, las variables
+>   2026-10-17), ~~`APP_ENV` en lugar de `VERCEL_ENV` en
+>   `src/lib/payments.ts`~~ (hecho el 2026-10-20 con `NODE_ENV`, `v0.12.4`), las variables
 >   de pago (BOLD y `PAGO_*`, puntos 2 y 4 de la tabla de abajo) y el webhook de
 >   BOLD a `https://seregenera.com/api/webhooks/bold`. Lista completa en
 >   `ROADMAP-MIGRACION.md`, B1.6.
@@ -956,6 +954,19 @@ gh api repos/UniqueColombia/regenera-market/branches/main/protection >/dev/null 
   && echo "aplicada" || echo "SIN aplicar"
 ```
 
+**4. Dependabot: las alertas y las actualizaciones de seguridad.** Pedido de
+Jesús el 2026-10-20. Settings → Code security → encender *Dependabot alerts* y
+*Dependabot security updates* (y, si se quiere, *CodeQL* en su configuración por
+defecto, gratis en repositorios públicos). Requiere admin: Jesús no lo es.
+`.github/dependabot.yml` ya funciona sin esto —abre los PRs de versiones cada
+lunes contra `staging`—, pero **sin las alertas nadie se entera de una
+vulnerabilidad nueva hasta el lunes siguiente**, y las actualizaciones de
+seguridad no se abren solas. Cómo se tratan sus PRs: skill `entrega-directa`.
+
+```bash
+gh api repos/UniqueColombia/regenera-market/vulnerability-alerts -i 2>/dev/null | head -1   # 204 = encendidas (solo lo ve un admin)
+```
+
 ### 🟠 Cualquiera con acceso a Vercel
 
 **4. Las tres variables de Supabase en el entorno *Preview*.** Las de Production
@@ -1111,6 +1122,20 @@ enseñarle ese panel.
 > 2026-10-17** (`v0.12.0`, hito `2026-10-17-produccion-sobre-mariadb.md`). Lo de
 > abajo es el análisis de la vía A (VPS), que sigue valiendo si algún día se
 > elige esa.
+>
+> **Lo que queda: retirar Supabase** (decisión de Jesús, 2026-10-20: todo vive
+> en Hostinger). Producción ya no tiene sus variables desde ese día. En orden:
+>
+> - [ ] **Pausar** el proyecto en el panel de Supabase (reversible).
+> - [ ] **Respaldo final** antes de borrarlo: *Database → Backups* o un
+>       `pg_dump`, guardado cifrado fuera del repo. Es la única copia de cómo
+>       estaba todo el 2026-10-17.
+> - [ ] **Eliminar** el proyecto (irreversible; lo hace quien sea su dueño en
+>       Supabase) y rotar o revocar `SUPABASE_ACCESS_TOKEN` en las cuentas.
+> - [ ] Después, sin prisa: quitar del código el modo Supabase
+>       (`src/lib/supabase/`, `@supabase/*`, `supabase/pruebas`, el job `base`
+>       del CI) y dejar `supabase/migrations/` como historia. Es un cambio
+>       grande: hoy no estorba, porque sin sus variables no se usa.
 
 **Decidido, sin fecha: arranca cuando Ivan compre el VPS de Hostinger.** El
 destino es que todo lo que hoy vive en Vercel y Supabase corra en una máquina

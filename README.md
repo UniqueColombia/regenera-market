@@ -9,7 +9,25 @@ sobre cada venta.
 
 > **¿Acabas de hacer `git pull` y quieres saber en qué vamos?**
 > → **[`docs/ESTADO.md`](docs/ESTADO.md)**: qué está a medias, qué falta, quién
-> puede hacer cada cosa y con qué comando se comprueba.
+> puede hacer cada cosa y con qué comando se comprueba. Este README describe el
+> producto y cómo está hecho; el avance del día vive allá.
+
+## Dónde corre
+
+| | |
+|---|---|
+| **Producción** | **https://seregenera.com**, una Web App de Node.js en Hostinger (plan Business), desde el 2026-10-16 |
+| **Base de datos** | El **MariaDB del mismo hosting**, desde el 2026-10-17 (el «modo MySQL», `BASE_DE_DATOS=mysql`). Cómo funciona: [`docs/MODO-MYSQL.md`](docs/MODO-MYSQL.md) |
+| **Fotos** | En el disco del servidor (`ALMACEN_CARPETA`), servidas por `/archivos/…` |
+| **Correo** | `info@seregenera.com`, el correo de Hostinger ([`docs/CORREOS.md`](docs/CORREOS.md)) |
+| **Copias de seguridad** | Diarias, de la base y las fotos, en el servidor; cifradas con llave pública desde `v0.12.4` ([`docs/MODO-MYSQL.md`](docs/MODO-MYSQL.md), «Copias de seguridad») |
+| **Despliegue** | Por tag (`v0.MINOR.PATCH`), con un comando: `scripts/desplegar.mts`. Skill `desplegar-hostinger` |
+| **Monitor** | `.github/workflows/latido.yml`: cada día pregunta a `/api/latido` si la base contesta y la configuración de producción está completa |
+
+**Supabase fue la base hasta el 2026-10-17** y ya no se usa: producción no tiene
+sus variables. En el código sigue el «modo Supabase» (`supabase/migrations/`,
+`src/lib/supabase/`) como historia y vuelta atrás; retirarlo es un pendiente de
+`docs/ESTADO.md`. Vercel, el hosting anterior, tampoco se usa.
 
 ## Arranque
 
@@ -18,38 +36,49 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-**No requiere credenciales para correr.** El catálogo se sirve desde datos
-semilla en memoria (`src/data/`), así que la aplicación es navegable de
-inmediato.
+**No requiere credenciales para correr.** Sin base configurada, el catálogo se
+sirve desde datos de demostración en memoria (`src/data/`), así que la
+aplicación es navegable de inmediato. Para trabajar contra un MariaDB propio,
+`npm run dev:mysql` ([`docs/MODO-MYSQL.md`](docs/MODO-MYSQL.md), «Probarlo en el
+PC»). Las variables de entorno, sus nombres y de dónde sale cada una:
+[`docs/VARIABLES.md`](docs/VARIABLES.md) (no hay `.env.example`: ningún `.env`
+entra al repositorio).
 
 ## Cómo está organizado
 
 | Ruta | Qué hace |
 |---|---|
-| `/` | Portada: propuesta de valor, verticales, ofertas destacadas |
+| `/` | Portada: propuesta de valor, verticales, ofertas destacadas y comunidad |
 | `/catalogo` | Listado con filtros por tipo, vertical, categoría, departamento, nivel y certificación. Los filtros son un formulario GET, así que cada combinación es una URL compartible e indexable |
 | `/oferta/[slug]` | Ficha de la oferta, con compra o solicitud de cotización |
 | `/proveedores` · `/proveedor/[slug]` | Directorio y perfil público de proveedores |
-| `/verificacion` | Metodología de verificación + autodiagnóstico interactivo |
-| `/vender` | Propuesta para proveedores y formulario de postulación |
-| `/carrito` · `/orden/[reference]` | Cesta multi-proveedor, checkout y confirmación |
+| `/verificacion` · `/niveles` | Metodología de verificación, autodiagnóstico y cómo se gana el nivel de proveedor |
+| `/vender` | Propuesta para proveedores y alta de la empresa |
+| `/comunidad` | Artículos, preguntas y prácticas de los proveedores, con reacciones |
+| `/carrito` · `/orden/[reference]` | Cesta multi-proveedor, pedido y pago |
 | `/registro` · `/entrar` | Crear cuenta y acceder: contraseña, y código de seis dígitos como segundo factor en dispositivos nuevos |
-| `/cuenta` · `/cuenta/clave` | Datos, contraseña y dispositivos de confianza |
-| `/admin` | Panel: resumen, ofertas, proveedores, postulaciones, órdenes y usuarios |
-| `/api/latido` | Señal de vida: consulta Postgres y dice cuánto tardó |
+| `/cuenta` · `/cuenta/clave` | Datos, contraseña, dispositivos de confianza y baja de la cuenta |
+| `/cuenta/empresa` | Panel del proveedor: datos de la empresa, giros, sus ofertas y los pedidos que tiene que despachar |
+| `/admin` | Panel del equipo: resumen, analíticas, ofertas, proveedores, postulaciones, órdenes, reseñas, comunidad, usuarios y contacto con prospectos |
+| `/legal` · `/privacidad` · `/terminos` | Políticas y términos |
+| `/api/latido` | Señal de vida: consulta la base y revisa la configuración de producción |
+| `/api/webhooks/bold` | Avisos de pago de la pasarela, con la firma verificada |
 
 | Módulo | Responsabilidad |
 |---|---|
 | `src/lib/types.ts` | Modelo de dominio |
 | `src/lib/taxonomy.ts` | Verticales, categorías, niveles, certificaciones, departamentos |
-| `src/lib/sustainability.ts` | Motor de puntaje: dimensiones, pesos y cálculo del nivel |
-| `src/lib/repo.ts` | Acceso a datos. Funciones async a propósito, para que el cambio a Supabase no toque las páginas |
+| `src/lib/sustainability.ts` · `src/lib/niveles.ts` | Puntaje de sostenibilidad y nivel del proveedor por experiencia |
+| `src/lib/repo.ts` | Acceso a datos. El mismo código sirve para MariaDB y para Supabase |
+| `src/lib/mysql/` | La capa que hace que MariaDB responda como Supabase: consultas, políticas de acceso por fila (RLS) aplicadas en cada lectura y escritura, funciones, cuentas y sesiones |
 | `src/lib/pricing.ts` | Precio efectivo (minorista/mayorista), comisión e impacto agregado |
-| `src/lib/payments.ts` | Capa de pasarela. Hoy modo manual; `getGateway()` es el único punto a cambiar |
-| `src/lib/password.ts` | Fuerza de una contraseña, con las mismas reglas en el navegador y en el servidor |
-| `src/lib/dispositivos.ts` | Dispositivos de confianza: qué convierte el código en segundo factor y no en peaje diario |
-| `src/lib/orders.ts` | Órdenes en Postgres. Explica por qué la escritura usa la clave de servicio y la lectura no |
-| `supabase/migrations/` | Esquema completo con RLS. `0001`–`0004`, todas aplicadas e inmutables |
+| `src/lib/payments.ts` | Capa de pasarela: BOLD si están sus llaves; si no, pago manual por llave Bre-B o transferencia, confirmado por el equipo en `/admin/ordenes` |
+| `src/lib/orders.ts` | Órdenes: la compra es una transacción idempotente que descuenta cupo (`crear_orden()`) |
+| `src/lib/almacenamiento.ts` | Dónde se guardan las fotos (disco del servidor o Supabase Storage) |
+| `src/lib/configuracion.ts` | Lo que producción necesita tener configurado; lo revisan el arranque y el latido |
+| `src/lib/password.ts` · `src/lib/dispositivos.ts` · `src/lib/inactividad.ts` | Fuerza de la contraseña, dispositivos de confianza y caducidad de la sesión |
+| `mysql/` | El esquema y la lógica de MariaDB (`esquema.sql`, `logica.sql`) y sus pruebas |
+| `supabase/migrations/` | El esquema de Postgres con RLS, `0001`–`0022`. **Historia** desde el corte a MariaDB |
 
 ## Decisiones que conviene conocer
 
@@ -77,33 +106,35 @@ menos que se puede romper sin que nadie lo note.
 **Los roles viven en su propia tabla,** no en el perfil: si el usuario pudiera
 actualizar su propia fila de perfil, podría autoasignarse `admin`.
 
-**El puntaje de sostenibilidad lo escribe un trigger,** no el proveedor. Las
+**El puntaje y el nivel los escribe la base,** no el proveedor. Las
 certificaciones suman con tope, para que un taller pequeño sin plata para
 certificarse pueda llegar a Raíz por prácticas reales, y para que una
 certificación comprada no baste sola.
 
+**Las reglas de acceso viven junto a los datos, no en las páginas.** Con
+Supabase eran políticas RLS de Postgres; en MariaDB, que no las tiene, la capa
+de `src/lib/mysql/` las aplica en cada consulta y falla cerrada si no puede
+comprobar una. Las páginas no repiten esos controles: si uno faltara, la base
+igual no devolvería la fila.
+
 ## Qué falta
 
-Estado real, sin adornos:
+En grandes rasgos; el detalle, quién puede hacer cada cosa y el orden están en
+[`docs/ESTADO.md`](docs/ESTADO.md):
 
-- [ ] **Proyecto de Supabase.** El esquema está escrito y con RLS, pero no se ha
-      ejecutado contra ninguna base. Al crearlo: aplicar la migración, cargar
-      `src/data/` como semilla y reemplazar el cuerpo de `src/lib/repo.ts` por
-      consultas reales. Las firmas ya son async, así que ninguna página cambia.
-- [ ] **Autenticación y paneles.** Sin Supabase no hay auth. Faltan el panel de
-      proveedor (gestionar ofertas y órdenes) y el de administración (aprobar
-      proveedores, revisar evidencia, confirmar pagos).
-- [ ] **Pagos con Wompi.** Implementar `WompiGateway` con la interfaz de
-      `src/lib/payments.ts` y el webhook de confirmación.
-- [ ] **Cupos e inventario transaccionales.** El checkout todavía no descuenta
-      cupo de experiencias ni stock. Necesita una transacción de base de datos
-      para evitar sobreventa.
-- [ ] **Imágenes.** Los proveedores aún no suben fotos; mientras tanto se dibuja
-      un tapiz derivado del título (`src/components/listing-media.tsx`).
-- [ ] **Persistencia de órdenes y postulaciones.** Hoy viven en memoria del
-      servidor (`src/lib/orders.ts`, `src/app/vender/actions.ts`) y se pierden al
-      reiniciar.
-- [ ] **Reseñas.** La tabla y su política existen; falta la interfaz.
+- [ ] **Encender el pago en línea.** BOLD está implementado (`src/lib/payments.ts`
+      y su webhook); faltan sus llaves y los datos de cobro (`PAGO_*`) en
+      producción. Hasta entonces, el pedido se paga por Bre-B o transferencia y
+      el equipo lo confirma a mano.
+- [ ] **Terminar el panel del proveedor** (Bloque 4 de `docs/BETA.md`) y la
+      pantalla de evaluaciones del equipo.
+- [ ] **Fechas con cupo de las experiencias** desde el panel (hoy, por script).
+- [ ] **Correos:** repasar el formato de todos y crear los que faltan
+      ([`docs/CORREOS.md`](docs/CORREOS.md), parte C).
+- [ ] **Primer lote real de proveedores**, reemplazando los de demostración.
+- [ ] **Retirar Supabase:** pausar y luego eliminar el proyecto (con un respaldo
+      final), y después quitar el modo Supabase del código.
+- [ ] **Repensar el impacto ambiental:** cómo se mide y cómo se presenta.
 
 ## Trabajar en este repo
 
@@ -113,11 +144,20 @@ Proyecto colaborativo entre **Ivan Duarte** (`UniqueColombia`) y **Jesús Seiler
 | Ruta | Qué es |
 |---|---|
 | `CLAUDE.md` | Orquestador: quién trabaja aquí, dónde está cada cosa, qué skill cargar |
-| `.claude/skills/` | Habilidades del proyecto (`flujo-git`, `dominio-regenera`, `supabase-schema`, `nueva-integracion`, `registrar-hito`, `prospeccion-proveedores`…) |
+| `.claude/skills/` | Habilidades del proyecto (`entrega-directa`, `desplegar-hostinger`, `dominio-regenera`, `acceso-y-registro`, `registrar-hito`, `prospeccion-proveedores`…) |
 | `.claude/agents/` | Subagentes con encargo propio (`prospector-proveedores`) |
 | `.claude/hitos/` | Trazabilidad: un archivo por hito, append-only |
+| `docs/ESTADO.md` | Dónde estamos hoy y qué falta |
 | `docs/ROADMAP.md` | Fases del producto con criterio de salida |
-| `docs/DEPLOY.md` | Stack de despliegue: GitHub + Vercel + Supabase, y por qué |
+| `docs/DEPLOY.md` | Stack de despliegue (Hostinger) y por qué se eligió |
+| `docs/MODO-MYSQL.md` | La base de producción: cómo está armada, cómo se prueba y las copias de seguridad |
+| `docs/VARIABLES.md` | Las variables de entorno: nombre, para qué sirve y de dónde sale (nunca el valor) |
+
+**Cómo se entrega:** rama de trabajo `<tipo>/<iniciales>-<slug>` → merge a
+`staging` → merge a `main`, sin PR (skill `entrega-directa`). Un cambio
+importante lleva además tag y despliegue (skill `desplegar-hostinger`). Los
+únicos PRs son los de **Dependabot** (`.github/dependabot.yml`), que vigila las
+dependencias; cómo se tratan, en la misma skill.
 
 ### Conseguir proveedores
 
@@ -141,10 +181,6 @@ de empresas identificables y este repositorio es público. El porqué de cada
 fuente —y por qué LinkedIn no es una de ellas— está en la skill
 `prospeccion-proveedores`.
 
-Ramas: `main` es **producción** y no recibe commits directos; `staging` es
-integración; el trabajo va en `feat/<iniciales>-<slug>` y entra por PR contra
-`staging`. El detalle está en la skill `flujo-git`.
-
 ## Verificación
 
 En este orden — `next build` genera los tipos de rutas (`PageProps`,
@@ -155,8 +191,10 @@ previo falla con `TS2304` en cada `page.tsx`:
 npm run build        # compila y genera tipos de rutas
 npx tsc --noEmit     # tipos
 npx eslint .         # lint
+npm test             # reglas de src/lib
+npm run test:mysql   # la capa de MariaDB, contra un MariaDB propio (el CI levanta uno)
+npm run test:base    # las migraciones de Postgres (historia del modo Supabase)
 ```
 
-Los datos de `src/data/` son de demostración: proveedores ficticios construidos
-sobre los quince productos del prototipo original. Se reemplazan por proveedores
-reales en cuanto entre el primer lote de onboarding.
+El CI (`.github/workflows/ci.yml`) corre todo esto en cada push a `staging` y
+`main`, más un control de que ningún `.env` ni ninguna clave entre al repo.
