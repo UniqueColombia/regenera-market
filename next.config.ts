@@ -161,6 +161,14 @@ const nextConfig: NextConfig = {
      * medio mega: 2 MB sobra.
      */
     proxyClientMaxBodySize: "2mb",
+    /**
+     * Cuántos procesos usa `next build` para recoger los datos de las páginas.
+     * Por defecto, uno por CPU que ve la máquina, y el servidor compartido de
+     * Hostinger le muestra 57: el 2026-10-20 un build murió con «OS can't spawn
+     * worker thread» porque la cuenta tiene un tope de hilos. Con 4 sobra para
+     * este sitio, y en el PC y el CI no cambia nada que se note.
+     */
+    cpus: 4,
   },
 
   async headers() {

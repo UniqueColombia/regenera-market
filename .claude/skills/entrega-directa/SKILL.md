@@ -82,3 +82,19 @@ Identidad: `Jesus Seiler <ichbinseiler@gmail.com>`.
 - **PR o release con aviso:** solo si lo pide, y solo para esa entrega se sigue
   `flujo-git`. Terminada, se vuelve a esta skill: el permiso no queda concedido
   para la siguiente.
+
+## PRs de Dependabot
+
+Desde el 2026-10-20 (pedido de Jesús) Dependabot abre PRs contra `staging`
+(`.github/dependabot.yml`), y los de seguridad contra `main`. Son la única
+excepción a «sin PR»: los abre GitHub, no nosotros, y el correo es el aviso que
+se quiere.
+
+- **Uno de versión (contra `staging`):** esperar el CI en verde, leer qué
+  cambia (las mayores van solas y son las que rompen), mergearlo en GitHub y
+  seguir el camino de siempre: `staging` → `main` con esta skill. Si el CI falla,
+  se arregla en una rama de trabajo como cualquier cambio.
+- **Uno de seguridad (contra `main`):** es una corrección de seguridad, así que
+  lleva tag y despliegue (`desplegar-hostinger`). Después, `main` → `staging`
+  para que no se separen.
+- El agente no mergea un PR de Dependabot sin que Jesús o Ivan lo pidan.
