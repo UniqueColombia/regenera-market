@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-10-20
 - **Autor:** Jesús Seiler (`seiler18`)
-- **Rama / PR:** `fix/js-endurecer-guarda-y-dependencias` y `feat/js-copias-cifradas-y-monitor` → `staging` → `main` (entrega directa), tag `v0.12.4` (**sin desplegar**: se despliega desde el PC con la llave SSH)
+- **Rama / PR:** `fix/js-endurecer-guarda-y-dependencias`, `feat/js-copias-cifradas-y-monitor`, `chore/js-dependencias-dependabot` y `fix/js-latido-cdn` → `staging` → `main` (entrega directa), tags `v0.12.4` y `v0.12.5`, **las dos desplegadas el 2026-10-20**
 - **Fase del roadmap:** — (vía B-2: después del corte)
 - **Sigue a:** [2026-10-17-pendientes-de-la-auditoria-y-copias.md](2026-10-17-pendientes-de-la-auditoria-y-copias.md)
 
@@ -33,6 +33,33 @@ Jesús la puso el mismo día. **Corrección a la auditoría:** en el modo MySQL 
 cookie que firma (`sgr_actividad`) se escribe pero no se lee —la inactividad la
 decide la tabla `sesiones` en el servidor—, así que su falta no era explotable
 en producción; solo cuenta si se vuelve a Supabase.
+
+## El mismo día, después
+
+- **El build de Hostinger murió tres veces** («Collecting page data using 57
+  workers» → «OS can't spawn worker thread»), primero sobre `v0.12.3` al poner
+  `SESION_SECRETO`. No lo causaron las variables. `v0.12.4` lo arregla
+  (`experimental.cpus: 4`); se probó antes compilando el zip del tag en una
+  carpeta limpia. Si alguna vez hay que recompilar una versión sin ese ajuste,
+  la variable `CIRCLE_NODE_TOTAL=5` en la Web App hace lo mismo (Next la usa
+  para contar CPUs).
+- **Despliegue desde la oficina sin `HOSTINGER_API_KEY`:** el zip
+  (`git archive` del tag, como `desplegar.mts`) se subió por `scp` con la llave
+  SSH nueva de ese PC y el build se lanzó con el MCP. `v0.12.4` y luego `v0.12.5`
+  (Next 16.4.2, React 19.3 y diez dependencias menores más). Comprobado: rutas
+  en 200, `/auth/callback` al dominio, sin `X-Powered-By`, y
+  `[configuracion] producción completa` en el registro.
+- **Dependabot abrió 7 PRs en la primera hora.** Aplicados en local y
+  verificados (los mismos commits, por `staging`): `actions/checkout` y
+  `actions/setup-node` v7, y el grupo de 12 menores. Cerrados con motivo:
+  ESLint 10 (rompe `eslint-plugin-react` de `eslint-config-next`) y
+  TypeScript 7 (`typescript-eslint` no lo soporta); volverán con la próxima
+  versión. `@types/node` y `embedded-postgres` en mayor quedan ignorados en
+  `dependabot.yml`: siguen a Node 22 y al Postgres 17 de Supabase.
+- **El primer latido contra `seregenera.com` falló con 403:** la CDN de
+  Hostinger responde con un desafío anti-bots al user-agent de `curl` desde las
+  IP de GitHub. Con user-agent de navegador pasa (200); si el desafío vuelve, el
+  job lo deja como aviso, no como caída.
 
 ## Por qué así
 
