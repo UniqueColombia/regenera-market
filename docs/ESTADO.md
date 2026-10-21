@@ -11,10 +11,11 @@ qué hacer, empieza aquí y no en el ROADMAP.
   desplegado **por tag** (hoy `v0.12.5`, desde el 2026-10-20) con la skill `desplegar-hostinger`;
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
   2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
-  el primer recuadro). Supabase quedó congelado con los datos de ese día, con
-  todas las migraciones aplicadas (también la `0021` y la `0022`, comprobado
-  el 2026-10-17), y es la vuelta atrás. `https://regenera-market.vercel.app`
-  sigue encendido, pero contra Supabase: ya no es un respaldo de producción.
+  el primer recuadro). **Supabase y Vercel ya no son parte de producción**
+  (Jesús, 2026-10-21: retiró Supabase y borró las variables; el repo no puede
+  comprobarlo, y `https://regenera-market.vercel.app` responde 500 porque
+  perdió las suyas). Ya no hay vuelta atrás a Supabase: el respaldo son las
+  copias diarias de MariaDB. Queda quitar el modo Supabase del código.
 
 > ## 🟠 Pendiente para el PC de la casa (2026-10-20): copias cifradas y lo que queda de la auditoría
 >
@@ -91,10 +92,11 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   **copias de seguridad diarias** de la base y las fotos en `~/respaldos`
 >   (03:15 UTC, 14 días), con el simulacro de restauración hecho y cuadrado.
 >   Cómo se usan: `docs/MODO-MYSQL.md`, «Copias de seguridad».
-> - **Falta, Jesús, dejado a propósito para después:** apagar el Vercel de
->   respaldo y apuntar `latido.yml` a `seregenera.com`; y **pausar Supabase
->   hacia el 2026-10-31**, tras dos semanas estables. Hasta entonces Supabase es
->   la vuelta atrás.
+> - ~~**Falta, Jesús, dejado a propósito para después:** apagar el Vercel de
+>   respaldo y apuntar `latido.yml` a `seregenera.com`; y pausar Supabase hacia
+>   el 2026-10-31.~~ **Resuelto antes de esa fecha:** `latido.yml` ya vigila
+>   `seregenera.com` (2026-10-20) y Jesús retiró Supabase y Vercel (dicho el
+>   2026-10-21; ver «Lo que sigue», punto 4).
 > - **Nunca copiar `~/seregenera-archivos` sin conservar las fechas** de los
 >   archivos: desde `v0.12.3` son la versión de cada foto, y sin ellas todas dan
 >   404. Para restaurar, `tar -xzf` de la copia, que las conserva.
@@ -1119,16 +1121,15 @@ enseñarle ese panel.
 > abajo es el análisis de la vía A (VPS), que sigue valiendo si algún día se
 > elige esa.
 >
-> **Lo que queda: retirar Supabase** (decisión de Jesús, 2026-10-20: todo vive
-> en Hostinger). Producción ya no tiene sus variables desde ese día. En orden:
+> **Retirar Supabase** (decisión de Jesús, 2026-10-20: todo vive en Hostinger).
+> Producción no tiene sus variables desde ese día. **El 2026-10-21 Jesús dijo
+> que ya lo retiró y que borró también las variables** (pausar, respaldo final
+> y eliminar el proyecto): el repo no puede comprobarlo, así que si algo de eso
+> se saltó, el respaldo final de *Database → Backups* es la única copia de cómo
+> estaba todo el 2026-10-17. Lo que sí hay que confirmar:
 >
-> - [ ] **Pausar** el proyecto en el panel de Supabase (reversible).
-> - [ ] **Respaldo final** antes de borrarlo: *Database → Backups* o un
->       `pg_dump`, guardado cifrado fuera del repo. Es la única copia de cómo
->       estaba todo el 2026-10-17.
-> - [ ] **Eliminar** el proyecto (irreversible; lo hace quien sea su dueño en
->       Supabase) y rotar o revocar `SUPABASE_ACCESS_TOKEN` en las cuentas.
-> - [ ] Después, sin prisa: quitar del código el modo Supabase
+> - [ ] Que `SUPABASE_ACCESS_TOKEN` esté rotado o revocado en las cuentas.
+> - [ ] Sin prisa: quitar del código el modo Supabase
 >       (`src/lib/supabase/`, `@supabase/*`, `supabase/pruebas`, el job `base`
 >       del CI) y dejar `supabase/migrations/` como historia. Es un cambio
 >       grande: hoy no estorba, porque sin sus variables no se usa.
