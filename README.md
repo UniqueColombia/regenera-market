@@ -132,8 +132,9 @@ En grandes rasgos; el detalle, quién puede hacer cada cosa y el orden están en
 - [ ] **Correos:** repasar el formato de todos y crear los que faltan
       ([`docs/CORREOS.md`](docs/CORREOS.md), parte C).
 - [ ] **Primer lote real de proveedores**, reemplazando los de demostración.
-- [ ] **Retirar Supabase:** pausar y luego eliminar el proyecto (con un respaldo
-      final), y después quitar el modo Supabase del código.
+- [ ] **Quitar el modo Supabase del código.** El proyecto de Supabase ya se
+      retiró (Jesús, 2026-10-21); queda `src/lib/supabase/`, `@supabase/*` y el
+      job `base` del CI, que hoy no estorban. Detalle en `docs/ESTADO.md`.
 - [ ] **Repensar el impacto ambiental:** cómo se mide y cómo se presenta.
 
 ## Trabajar en este repo
