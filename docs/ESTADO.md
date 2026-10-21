@@ -12,9 +12,10 @@ qué hacer, empieza aquí y no en el ROADMAP.
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
   2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
   el primer recuadro). **Supabase y Vercel ya no son parte de producción**
-  (Jesús, 2026-10-21: retiró Supabase y borró las variables; el repo no puede
-  comprobarlo, y `https://regenera-market.vercel.app` responde 500 porque
-  perdió las suyas). Ya no hay vuelta atrás a Supabase: el respaldo son las
+  (Jesús, 2026-10-21: **eliminó el proyecto de Supabase con su base de datos**
+  y borró las variables; `https://regenera-market.vercel.app` responde 500
+  porque perdió las suyas). Seregenera corre solo sobre MariaDB y Hostinger,
+  en el mismo hosting. Ya no hay vuelta atrás a Supabase: el respaldo son las
   copias diarias de MariaDB. Queda quitar el modo Supabase del código.
 
 > ## 🟠 Pendiente para el PC de la casa (2026-10-20): copias cifradas y lo que queda de la auditoría
@@ -1122,11 +1123,10 @@ enseñarle ese panel.
 > elige esa.
 >
 > **Retirar Supabase** (decisión de Jesús, 2026-10-20: todo vive en Hostinger).
-> Producción no tiene sus variables desde ese día. **El 2026-10-21 Jesús dijo
-> que ya lo retiró y que borró también las variables** (pausar, respaldo final
-> y eliminar el proyecto): el repo no puede comprobarlo, así que si algo de eso
-> se saltó, el respaldo final de *Database → Backups* es la única copia de cómo
-> estaba todo el 2026-10-17. Lo que sí hay que confirmar:
+> Producción no tiene sus variables desde ese día. **El 2026-10-21 Jesús confirmó
+> que eliminó el proyecto de Supabase con su base de datos** y borró también
+> las variables. Ya no existe esa copia de cómo estaba todo el 2026-10-17: las
+> copias diarias de MariaDB son el único respaldo. Lo que falta confirmar:
 >
 > - [ ] Que `SUPABASE_ACCESS_TOKEN` esté rotado o revocado en las cuentas.
 > - [ ] Sin prisa: quitar del código el modo Supabase
