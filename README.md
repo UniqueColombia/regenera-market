@@ -26,7 +26,8 @@ sobre cada venta.
 
 **Supabase fue la base hasta el 2026-10-17** y ya no se usa: producción no tiene
 sus variables. En el código sigue el «modo Supabase» (`supabase/migrations/`,
-`src/lib/supabase/`) como historia y vuelta atrás; retirarlo es un pendiente de
+`src/lib/supabase/`) solo como historia, sin vuelta atrás (el proyecto de
+Supabase se eliminó el 2026-10-21); quitarlo es un pendiente de
 `docs/ESTADO.md`. Vercel, el hosting anterior, tampoco se usa.
 
 ## Arranque
@@ -132,8 +133,8 @@ En grandes rasgos; el detalle, quién puede hacer cada cosa y el orden están en
 - [ ] **Correos:** repasar el formato de todos y crear los que faltan
       ([`docs/CORREOS.md`](docs/CORREOS.md), parte C).
 - [ ] **Primer lote real de proveedores**, reemplazando los de demostración.
-- [ ] **Quitar el modo Supabase del código.** El proyecto de Supabase ya se
-      retiró (Jesús, 2026-10-21); queda `src/lib/supabase/`, `@supabase/*` y el
+- [ ] **Quitar el modo Supabase del código.** El proyecto de Supabase se
+      eliminó con su base de datos (Jesús, 2026-10-21); queda `src/lib/supabase/`, `@supabase/*` y el
       job `base` del CI, que hoy no estorban. Detalle en `docs/ESTADO.md`.
 - [ ] **Repensar el impacto ambiental:** cómo se mide y cómo se presenta.
 
