@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Calendar, Globe, Mail, MapPin, Phone } from "lucide-react";
+import { BadgeCheck, Calendar, Globe, Mail, MapPin, Phone } from "lucide-react";
 import { DatosDeMiga, DatosDeProveedor } from "@/components/datos-estructurados";
 import { ListingCard } from "@/components/listing-card";
 import { HeroBanner } from "@/components/hero-banner";
@@ -92,6 +92,17 @@ export default async function ProveedorPage(
         fondo="luciernagas"
       >
         <p className="mt-2 text-lg text-brand-100">{provider.tagline}</p>
+
+        {/* Desde el 2026-10-22: el documento tributario lo comprueba el equipo,
+            como las tiendas oficiales de MercadoLibre. Publicar no lo espera. */}
+        {provider.documentoVerificado ? (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white ring-1 ring-white/20">
+            <BadgeCheck className="size-4" />
+            Empresa verificada por Seregenera
+          </p>
+        ) : (
+          <p className="mt-3 text-sm text-brand-200">Datos de la empresa sin verificar todavía.</p>
+        )}
 
         <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand-200 [&_a]:break-all">
           <li className="flex items-center gap-1.5">

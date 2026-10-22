@@ -111,3 +111,31 @@ describe("AlmacenDisco", () => {
     await expect(almacen.borrarCarpeta("logos", "..")).resolves.toBeUndefined();
   });
 });
+
+describe("cuota de fotos por empresa (2026-10-22)", () => {
+  it("al tope borra las huérfanas viejas, respeta las que se usan y las recién subidas", async () => {
+    const { mkdir, writeFile, utimes } = await import("node:fs/promises");
+    const { CUOTA } = await import("./almacen-disco");
+    const otra = "22222222-3333-4444-8555-666666666666";
+    const dir = join(carpeta, "logos", otra);
+    await mkdir(dir, { recursive: true });
+    const viejo = (Date.now() - 2 * 24 * 3600 * 1000) / 1000;
+    for (let i = 0; i < CUOTA.fotosPorEmpresa; i++) {
+      const nombre = join(dir, `oferta-${i}.webp`);
+      await writeFile(nombre, "x");
+      // Las diez primeras son viejas; la 0 la usa una oferta.
+      if (i < 10) await utimes(nombre, viejo, viejo);
+    }
+    const r = await almacen.hayLugarParaOferta(otra, new Set(["oferta-0.webp"]));
+    expect(r.ok).toBe(true);
+    const quedan = await readdir(dir);
+    expect(quedan).toContain("oferta-0.webp");
+    expect(quedan).not.toContain("oferta-1.webp");
+    expect(quedan).toHaveLength(CUOTA.fotosPorEmpresa - 9);
+
+    // Sin huérfanas viejas que borrar, al tope dice que no.
+    for (let i = 0; i < 9; i++) await writeFile(join(dir, `oferta-nueva-${i}.webp`), "x");
+    const lleno = await almacen.hayLugarParaOferta(otra, new Set(["oferta-0.webp"]));
+    expect(lleno.ok).toBe(false);
+  });
+});

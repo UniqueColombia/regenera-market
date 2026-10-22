@@ -15,6 +15,7 @@
 -- cuentas de verdad aquí, solo las de las pruebas de `mysql/pruebas/`.
 
 set foreign_key_checks = 0;
+drop table if exists intentos_fallidos;
 drop table if exists sesiones;
 drop table if exists codigos;
 drop table if exists usuarios;
@@ -58,4 +59,16 @@ create table codigos (
   intentos    int not null default 0,
   usado_at    datetime(6),
   key codigos_correo (email, proposito, creado_at)
+) engine = innodb default charset = utf8mb4 collate = utf8mb4_uca1400_ai_ci;
+
+-- Intentos de acceso fallidos, por correo (desde el 2026-10-22). Antes los
+-- topes vivían en la memoria de cada proceso: se perdían al reiniciar y no se
+-- sumaban entre procesos. Se cuentan **solo los fallos** —una contraseña bien
+-- escrita no acerca a nadie al bloqueo— y se borran a los dos días
+-- (`limpiarCuentas()`). `clave` es `clave:<correo>` o `codigo:<correo>`.
+create table intentos_fallidos (
+  id        bigint not null auto_increment primary key,
+  clave     varchar(400) collate utf8mb4_bin not null,
+  creado_at datetime(6) not null default current_timestamp(6),
+  key intentos_fallidos_clave (clave, creado_at)
 ) engine = innodb default charset = utf8mb4 collate = utf8mb4_uca1400_ai_ci;

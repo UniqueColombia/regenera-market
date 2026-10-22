@@ -26,7 +26,9 @@ export default async function ComunidadPage() {
   // vacío por RLS igualmente, y es un viaje a la base por nada.
   const [posts, empresas] = await Promise.all([
     getCommunityPosts(30),
-    sesion ? getEmpresasQueGestiono() : Promise.resolve([]),
+    // Solo las verificadas: firmar a nombre de una empresa exige que el equipo
+    // haya comprobado su documento (`empresa-sin-verificar` en la base).
+    sesion ? getEmpresasQueGestiono().then((es) => es.filter((e) => e.verificada)) : Promise.resolve([]),
   ]);
 
   return (

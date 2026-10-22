@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomInt, scrypt, timingSafeEqual } from "node:crypto";
 import { compare as compararBcrypt } from "bcryptjs";
 import { sql, type Kysely } from "kysely";
 import { INACTIVIDAD_HORAS, REFRESCO_ACTIVIDAD_SEGUNDOS, VIDA_MAXIMA_DIAS } from "../inactividad";
@@ -182,6 +182,7 @@ export async function limpiarCuentas(db: Kysely<BaseMysql>): Promise<void> {
      where vista_at < now(6) - interval ${INACTIVIDAD_HORAS} hour
         or creada_at < now(6) - interval ${VIDA_MAXIMA_DIAS} day`.execute(db);
   await sql`delete from trusted_devices where last_seen_at < now(6) - interval 1 year`.execute(db);
+  await sql`delete from intentos_fallidos where creado_at < now(6) - interval 2 day`.execute(db);
   await sql`
     delete from usuarios
      where correo_confirmado_at is null
@@ -189,6 +190,39 @@ export async function limpiarCuentas(db: Kysely<BaseMysql>): Promise<void> {
        and creado_at < now(6) - interval 7 day
        and not exists (select 1 from provider_members m where m.user_id = usuarios.id)
        and not exists (select 1 from user_roles r where r.user_id = usuarios.id and r.role <> 'buyer')`.execute(db);
+}
+
+/**
+ * Topes de intentos fallidos por correo, guardados en la base (auditoría del
+ * 2026-10-22). Como Google o MercadoLibre: se frena la cuenta atacada, no el
+ * sitio, y solo cuentan los fallos.
+ *
+ * - **Contraseña**: 10 fallos en 15 minutos bloquean ese correo 15 minutos. Antes
+ *   el tope (en memoria) contaba también los aciertos, y ocho peticiones cada
+ *   cuarto de hora dejaban a cualquiera sin poder entrar.
+ * - **Código**: 10 fallos en un día bloquean los códigos de ese correo hasta el
+ *   día siguiente. Junto a los 5 intentos por código, deja la fuerza bruta
+ *   repartida entre muchas cuentas en una probabilidad despreciable.
+ */
+export const FALLOS = {
+  clave: { tope: 10, minutos: 15 },
+  codigo: { tope: 10, minutos: 24 * 60 },
+} as const;
+
+export async function demasiadosFallos(
+  db: Kysely<BaseMysql>,
+  tipo: keyof typeof FALLOS,
+  correo: string,
+): Promise<boolean> {
+  const { tope, minutos } = FALLOS[tipo];
+  const r = await sql<{ n: number }>`
+    select count(*) as n from intentos_fallidos
+     where clave = ${`${tipo}:${normalizarCorreo(correo)}`} and creado_at > now(6) - interval ${minutos} minute`.execute(db);
+  return Number(r.rows[0]?.n ?? 0) >= tope;
+}
+
+export async function anotarFallo(db: Kysely<BaseMysql>, tipo: keyof typeof FALLOS, correo: string): Promise<void> {
+  await sql`insert into intentos_fallidos (clave) values (${`${tipo}:${normalizarCorreo(correo)}`})`.execute(db);
 }
 
 /**
@@ -344,17 +378,76 @@ export async function borrarCodigos(db: Kysely<BaseMysql>, correo: string): Prom
 }
 
 /**
- * El enlace del correo (`/auth/callback?token_hash=…`) trae el id del código y el
- * código: `<id>.<código>`. Vale lo mismo que escribirlo, con las mismas reglas.
+ * La llave del enlace del correo: el id del código firmado con `SESION_SECRETO`.
+ *
+ * Hasta el 2026-10-22 el enlace llevaba `<id>.<código>`: los seis dígitos
+ * quedaban en el registro de acceso del servidor y en el historial. Ahora lleva
+ * una firma de 256 bits que no sirve para nada más que para ese enlace, y que no
+ * se puede fabricar sin el secreto. Sin secreto (desarrollo) vuelve al código.
+ */
+export function llaveDeEnlace(id: string): string | null {
+  const secreto = process.env.SESION_SECRETO;
+  if (!secreto || secreto.length < 16) return null;
+  return createHmac("sha256", secreto).update(`enlace:${id}`).digest("base64url");
+}
+
+/**
+ * El enlace del correo: `<id>.<llave>`. Vale lo mismo que el código —una vez,
+ * una hora, solo el último que se pidió— pero sin escribirlo.
+ *
+ * Desde el 2026-10-22 no se canjea al abrir el enlace sino con un botón
+ * (`/entrar/enlace` → POST a `/auth/callback`): el escáner de enlaces de un
+ * correo corporativo solo hace GET y ya no lo gasta.
  */
 export async function verificarEnlace(
   db: Kysely<BaseMysql>,
   tokenHash: string,
 ): ReturnType<typeof verificarCodigo> {
-  const [id, codigo] = tokenHash.split(".");
-  const fila = id && codigo
-    ? await db.selectFrom("codigos").select("email").where("id", "=", id).executeTakeFirst()
-    : undefined;
+  const [id, llave] = tokenHash.split(".");
+  if (!id || !llave) return { ok: false, motivo: "invalido" };
+  const esperada = llaveDeEnlace(id);
+  if (!esperada) return verificarEnlaceConCodigo(db, id, llave);
+  if (!iguales(llave, esperada)) return { ok: false, motivo: "invalido" };
+
+  return db.transaction().execute(async (trx) => {
+    const fila = await trx
+      .selectFrom("codigos")
+      .select(["id", "email", "proposito", "intentos", "usado_at", sql<number>`vence_at < now(6)`.as("vencido")])
+      .where("id", "=", id)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!fila || fila.usado_at) return { ok: false, motivo: "invalido" } as const;
+    // Un enlace de un correo anterior no vale: solo el último código pedido.
+    const ultimo = await trx
+      .selectFrom("codigos")
+      .select("id")
+      .where("email", "=", fila.email)
+      .orderBy("creado_at", "desc")
+      .limit(1)
+      .executeTakeFirst();
+    if (ultimo?.id !== id) return { ok: false, motivo: "invalido" } as const;
+    if (Number(fila.vencido)) return { ok: false, motivo: "vencido" } as const;
+    if (fila.intentos >= INTENTOS_POR_CODIGO) return { ok: false, motivo: "agotado" } as const;
+
+    await trx.updateTable("codigos").set({ usado_at: sql`now(6)` }).where("id", "=", id).execute();
+    const cuenta = await trx.selectFrom("usuarios").select("id").where("email", "=", fila.email).executeTakeFirst();
+    if (!cuenta) return { ok: false, motivo: "invalido" } as const;
+    await trx
+      .updateTable("usuarios")
+      .set({ correo_confirmado_at: sql`coalesce(correo_confirmado_at, now(6))` })
+      .where("id", "=", cuenta.id)
+      .execute();
+    return { ok: true, usuarioId: cuenta.id, proposito: fila.proposito } as const;
+  });
+}
+
+/** El enlace de antes, `<id>.<código>`: solo sin `SESION_SECRETO`. */
+async function verificarEnlaceConCodigo(
+  db: Kysely<BaseMysql>,
+  id: string,
+  codigo: string,
+): ReturnType<typeof verificarCodigo> {
+  const fila = await db.selectFrom("codigos").select("email").where("id", "=", id).executeTakeFirst();
   if (!fila) return { ok: false, motivo: "invalido" };
   // Un enlace de un correo anterior (o el que abre un antivirus al revisar el
   // correo) no gasta uno de los intentos del código vigente: si no es el último
@@ -389,7 +482,8 @@ export async function verificarCodigo(
 > {
   const email = normalizarCorreo(correo);
   const limpio = codigo.replace(/\s+/g, "");
-  return db.transaction().execute(async (trx) => {
+  if (await demasiadosFallos(db, "codigo", email)) return { ok: false, motivo: "agotado" };
+  const r = await db.transaction().execute(async (trx) => {
     const fila = await trx
       .selectFrom("codigos")
       .select(["id", "codigo_hash", "proposito", "intentos", "usado_at", sql<number>`vence_at < now(6)`.as("vencido")])
@@ -417,6 +511,8 @@ export async function verificarCodigo(
       .execute();
     return { ok: true, usuarioId: cuenta.id, proposito: fila.proposito } as const;
   });
+  if (!r.ok && r.motivo !== "vencido") await anotarFallo(db, "codigo", email);
+  return r;
 }
 
 // ---------------------------------------------------------------------------

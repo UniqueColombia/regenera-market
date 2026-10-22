@@ -80,6 +80,21 @@ function esFecha(v: string): boolean {
   return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
 }
 
+/**
+ * Cuánto puede apartar una cuenta con pedidos sin pagar (auditoría del
+ * 2026-10-22). El plazo de pago sigue en 72 horas, como el de los pagos en
+ * efectivo de MercadoLibre, porque la transferencia la confirma una persona y un
+ * pago del viernes se confirma el lunes.
+ */
+export const RESERVAS = {
+  /** Pedidos sin pagar a la vez. */
+  pedidosSinPagar: 3,
+  /** Ofertas distintas apartadas entre todos ellos. */
+  ofertasApartadas: 15,
+  /** Hasta aquí se compra cualquier cantidad; por encima, no más de la mitad de lo que queda. */
+  unidadesLibres: 20,
+} as const;
+
 /** `comision_para_nivel()`. Es dinero: misma tabla que la función de Postgres. */
 function comisionParaNivel(tier: string): number {
   return tier === "raiz" ? 0.1 : tier === "bosque" ? 0.08 : 0.12;
@@ -405,11 +420,27 @@ export const RPCS: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
     if (Number((await uno<{ n: number }>(c, "select count(*) as n from orders where buyer_id = ? and created_at > now(6) - interval 10 minute", [uid])).n) >= 5) {
       throw new ErrorPg("demasiados-pedidos");
     }
-    if (Number((await uno<{ n: number }>(c, "select count(*) as n from orders where buyer_id = ? and status = 'pending_payment'", [uid])).n) >= 10) {
+    // Reservar sin pagar tiene tope (auditoría del 2026-10-22): un pedido sin
+    // pagar aparta stock y cupos 72 horas, y sin límites una cuenta gratuita
+    // dejaba agotado el catálogo entero. Como el límite por cliente de Amazon o
+    // las compras pendientes de MercadoLibre: pocas a la vez, y lo grande por
+    // cotización. Las constantes están en `RESERVAS`.
+    if (Number((await uno<{ n: number }>(c, "select count(*) as n from orders where buyer_id = ? and status = 'pending_payment'", [uid])).n) >= RESERVAS.pedidosSinPagar) {
       throw new ErrorPg("demasiados-pendientes");
     }
     const lineas = a._lineas;
     if (!Array.isArray(lineas) || lineas.length === 0 || lineas.length > 50) throw new ErrorPg("cesta-invalida");
+    const ofertasNuevas = new Set(
+      (lineas as Args[]).map((l) => String(l?.listing_id ?? "").toLowerCase()).filter((id) => UUID.test(id)),
+    );
+    const apartadas = await q<{ listing_id: string }>(
+      c,
+      `select distinct oi.listing_id from order_items oi join orders o on o.id = oi.order_id
+        where o.buyer_id = ? and o.status = 'pending_payment' and oi.listing_id is not null`,
+      [uid],
+    );
+    for (const f of apartadas) ofertasNuevas.add(String(f.listing_id).toLowerCase());
+    if (ofertasNuevas.size > RESERVAS.ofertasApartadas) throw new ErrorPg("demasiadas-reservas");
 
     const correo = (await uno<{ email: string }>(c, "select email from usuarios where id = ?", [uid]))?.email ?? "";
     let empresa: string | null;
@@ -491,19 +522,39 @@ export const RPCS: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
 
       let conStock = false;
       if (l.stock !== null) {
-        const r = await w(c, "update listings set stock = stock - ? where id = ? and stock >= ?", [qty, l.id, qty]);
-        if (r.filas === 0) throw new ErrorPg("sin-stock", { hint: l.title as string });
+        // La condición va dentro del `update` (invariante 25): más de
+        // `RESERVAS.unidadesLibres` unidades solo si no pasan de la mitad de lo
+        // que queda.
+        const r = await w(
+          c,
+          "update listings set stock = stock - ? where id = ? and stock >= ? and (? <= ? or ? * 2 <= stock)",
+          [qty, l.id, qty, qty, RESERVAS.unidadesLibres, qty],
+        );
+        if (r.filas === 0) {
+          const ahora = await uno<{ stock: number }>(c, "select stock from listings where id = ?", [l.id]);
+          throw new ErrorPg(ahora && Number(ahora.stock) >= qty ? "cantidad-maxima" : "sin-stock", { hint: l.title as string });
+        }
         conStock = true;
       }
       let conCupo = false;
       if (l.kind === "experience" && (await uno(c, "select 1 as x from listing_availability where listing_id = ? limit 1", [l.id]))) {
         if (!fechaLinea) throw new ErrorPg("falta-fecha", { hint: l.title as string });
+        // Un grupo grande cabe si la experiencia declara su máximo de personas:
+        // lo decidió quien la organiza. Sin máximo, la misma regla que el stock.
+        const conMaximo = l.max_people !== null;
         const r = await w(
           c,
-          "update listing_availability set slots_taken = slots_taken + ? where listing_id = ? and `date` = ? and slots_taken + ? <= slots_total",
-          [qty, l.id, fechaLinea, qty],
+          "update listing_availability set slots_taken = slots_taken + ? where listing_id = ? and `date` = ? and slots_taken + ? <= slots_total and (? or ? <= ? or ? * 2 <= slots_total - slots_taken)",
+          [qty, l.id, fechaLinea, qty, conMaximo, qty, RESERVAS.unidadesLibres, qty],
         );
-        if (r.filas === 0) throw new ErrorPg("sin-cupo", { hint: l.title as string });
+        if (r.filas === 0) {
+          const cupo = await uno<{ libres: number }>(
+            c,
+            "select slots_total - slots_taken as libres from listing_availability where listing_id = ? and `date` = ?",
+            [l.id, fechaLinea],
+          );
+          throw new ErrorPg(cupo && Number(cupo.libres) >= qty ? "cantidad-maxima" : "sin-cupo", { hint: l.title as string });
+        }
         conCupo = true;
       }
 

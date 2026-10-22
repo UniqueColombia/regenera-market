@@ -47,7 +47,7 @@ export const CONTACTO = {
  * política nombra la dirección de entrega y las reseñas, y los términos
  * describen el envío, el pago y cuándo se le paga al proveedor.
  */
-export const VIGENCIA_TERMINOS = "2026-10-17";
+export const VIGENCIA_TERMINOS = "2026-10-22";
 export const VIGENCIA_PRIVACIDAD = "2026-10-22";
 
 /**

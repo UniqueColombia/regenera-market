@@ -26,7 +26,7 @@ export const COLUMNAS_LISTING_BASE = `
 export const COLUMNAS_PROVIDER_BASE = `
   id, slug, name, legal_name, tax_id, tagline, description, logo_url, cover_url,
   department, city, website, email, phone, status, sustainability_score, tier,
-  experience_points, sustainability_verified_at, founded_year, traits, created_at,
+  experience_points, sustainability_verified_at, documento_verificado_at, founded_year, traits, created_at,
   provider_certifications(certification_code)
 `;
 
