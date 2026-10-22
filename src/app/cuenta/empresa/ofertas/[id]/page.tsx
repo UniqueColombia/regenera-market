@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { guardarOfertaDeEmpresa, subirImagenDeOferta } from "../actions";
+import { guardarFechasDeEmpresa, guardarOfertaDeEmpresa, subirImagenDeOferta } from "../actions";
+import { FechasDeExperiencia } from "@/components/fechas-de-experiencia";
 import { FondoBotanico } from "@/components/fondo-botanico";
 import { FormularioOferta } from "@/components/formulario-oferta";
 import { requireUser } from "@/lib/auth";
 import {
   enviosPorZonaDisponible,
+  getFechasDeOferta,
   getMiEmpresa,
   getOfertaDeEmpresa,
   logisticaDisponible,
@@ -50,8 +52,9 @@ export default async function EditarOfertaDeEmpresaPage(
       <h1 className="mt-3 font-display text-3xl text-ink sm:text-4xl">{oferta.title}</h1>
       {oferta.status === "approved" && (
         <p className="mt-2 max-w-2xl text-sm text-muted">
-          Está publicada. Si cambias algo, sale del catálogo hasta que lo
-          revisemos: lo que aprobamos fue esta versión.
+          Está publicada. Si cambias algo del formulario, sale del catálogo
+          hasta que lo revisemos: lo que aprobamos fue esta versión. Las fechas
+          y los cupos no.
         </p>
       )}
 
@@ -65,6 +68,14 @@ export default async function EditarOfertaDeEmpresaPage(
         destino="/cuenta/empresa/ofertas"
         verificada={empresa.evaluacionVerificada}
       />
+
+      {oferta.kind === "experience" && (
+        <FechasDeExperiencia
+          esEmpresa
+          inicial={await getFechasDeOferta(oferta.id)}
+          guardar={guardarFechasDeEmpresa.bind(null, oferta.id)}
+        />
+      )}
     </div>
     </div>
   );

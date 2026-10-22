@@ -12,6 +12,8 @@ import {
   DE_LA_0017_LISTING,
 } from "./columnas-ofertas";
 import { esReaccion, leerConteos, type ReaccionId } from "./comunidad";
+import { hoyEnBogota } from "./envios";
+import type { FechasDeOferta } from "./fechas";
 import type { Encaje, EstadoProspecto, Prospecto } from "./prospectos";
 import type {
   AdminUsuario,
@@ -262,6 +264,7 @@ function soloFecha(v: string): string {
 
 function aListing(f: FilaListing): Listing {
   const cupos = f.listing_availability ?? [];
+  const hoy = hoyEnBogota();
   return {
     id: f.id,
     slug: f.slug,
@@ -309,12 +312,15 @@ function aListing(f: FilaListing): Listing {
             // El dominio habla de "cupos que quedan"; la base guarda total y
             // vendidos, que es lo único con lo que se puede impedir sobreventa
             // en una transacción. La resta se hace aquí.
+            // Las pasadas no se ofrecen: `crear_orden()` tampoco las vende.
             availability: cupos
               .map((c) => ({
                 date: soloFecha(c.date),
                 slotsLeft: c.slots_total - c.slots_taken,
               }))
+              .filter((c) => c.date >= hoy)
               .sort((a, b) => a.date.localeCompare(b.date)),
+            fechasPropias: cupos.length > 0,
           }
         : undefined,
     service:
@@ -836,6 +842,32 @@ export async function getOfertasParaAdmin(
     providerStatus: fila.providers?.status ?? "draft",
   }));
   return { filas, total, pagina, porPagina, paginas, porEstado };
+}
+
+/**
+ * Las fechas de una experiencia para su editor: el modo y las de hoy en
+ * adelante, con el cupo total y lo ya reservado. Ver `src/lib/fechas.ts`.
+ *
+ * `availability_read` deja leer a cualquiera; quién puede **escribirlas** lo
+ * deciden la acción y las políticas.
+ */
+export async function getFechasDeOferta(listingId: string): Promise<FechasDeOferta> {
+  if (!UUID.test(listingId)) return { modo: "cliente", fechas: [] };
+  const db = await createClient();
+  const { data, error } = await db
+    .from("listing_availability")
+    .select("date, slots_total, slots_taken")
+    .eq("listing_id", listingId)
+    .order("date", { ascending: true });
+  if (error) throw new Error(`getFechasDeOferta: ${error.message}`);
+  const filas = (data ?? []) as FilaDisponibilidad[];
+  const hoy = hoyEnBogota();
+  return {
+    modo: filas.length > 0 ? "proveedor" : "cliente",
+    fechas: filas
+      .map((f) => ({ date: soloFecha(f.date), total: f.slots_total, tomados: f.slots_taken }))
+      .filter((f) => f.date >= hoy),
+  };
 }
 
 /** Una oferta por id, en cualquier estado. Para el formulario de edición. */
