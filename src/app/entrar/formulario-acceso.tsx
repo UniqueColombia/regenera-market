@@ -7,6 +7,7 @@ import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { entrarConClave, pedirCodigo } from "./actions";
 import { CampoClave } from "@/components/campo-clave";
 import { PasoCodigo } from "@/components/paso-codigo";
+import { useHidratado } from "@/components/use-hidratado";
 import { rutaPropia } from "@/lib/ruta-propia";
 
 /**
@@ -26,6 +27,14 @@ import { rutaPropia } from "@/lib/ruta-propia";
  * «olvidé mi clave» a propósito: usar la misma plantilla de correo que ya
  * funciona es un camino menos que se puede romper sin que nadie lo note. La
  * razón larga está en `actions.ts`.
+ *
+ * **`method="post"` en los dos `<form>`, aunque los maneje `onSubmit`.** Si
+ * alguien envía antes de que React tome la página —el navegador autocompleta y
+ * se aprieta Entrar mientras el JavaScript todavía carga—, el navegador manda el
+ * formulario él solo, y sin `method` lo manda por GET: correo y contraseña en la
+ * URL, en el historial y en el registro del servidor. Pasó el 2026-10-22. Todo
+ * formulario de la app que maneja `onSubmit` lleva lo mismo; el `proxy` además
+ * limpia esos campos de cualquier URL (`src/lib/url-sensible.ts`).
  */
 export function FormularioAcceso({ volver }: { volver?: string }) {
   const router = useRouter();
@@ -34,6 +43,7 @@ export function FormularioAcceso({ volver }: { volver?: string }) {
   const [aparatoNuevo, setAparatoNuevo] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pendiente, iniciar] = useTransition();
+  const hidratado = useHidratado();
 
   const destino = rutaPropia(volver) ?? "/";
 
@@ -102,7 +112,7 @@ export function FormularioAcceso({ volver }: { volver?: string }) {
 
   if (paso === "correo") {
     return (
-      <form onSubmit={mandarCodigo} className="mt-8">
+      <form method="post" onSubmit={mandarCodigo} className="mt-8">
         <p className="rounded-xl bg-sand p-4 text-sm text-muted ring-1 ring-hairline">
           Te mandamos un código al correo y entras sin contraseña. Si tu cuenta
           no tiene una, después te pediremos que la crees.
@@ -131,7 +141,7 @@ export function FormularioAcceso({ volver }: { volver?: string }) {
 
         <button
           type="submit"
-          disabled={pendiente}
+          disabled={pendiente || !hidratado}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:bg-muted"
         >
           {pendiente && <Loader2 className="size-4 animate-spin" />}
@@ -153,7 +163,7 @@ export function FormularioAcceso({ volver }: { volver?: string }) {
   }
 
   return (
-    <form onSubmit={entrar} className="mt-8">
+    <form method="post" onSubmit={entrar} className="mt-8">
       <fieldset className="space-y-3" disabled={pendiente}>
         <legend className="sr-only">Acceso con correo y contraseña</legend>
 
@@ -191,7 +201,7 @@ export function FormularioAcceso({ volver }: { volver?: string }) {
 
       <button
         type="submit"
-        disabled={pendiente}
+        disabled={pendiente || !hidratado}
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:bg-muted"
       >
         {pendiente && <Loader2 className="size-4 animate-spin" />}

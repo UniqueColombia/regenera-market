@@ -11,6 +11,7 @@ import {
   sellarActividad,
   tocaRefrescar,
 } from "@/lib/inactividad";
+import { busquedaSinCamposSensibles } from "@/lib/url-sensible";
 
 /**
  * Refresco de la sesión en cada petición, y su caducidad por inactividad.
@@ -60,6 +61,9 @@ function cookiesDeSesion(request: NextRequest): string[] {
 }
 
 export async function proxy(request: NextRequest) {
+  const canonica = redireccionCanonica(request);
+  if (canonica) return canonica;
+
   // Modo MySQL (`src/lib/modo.ts`): sin token que refrescar; la sesión la valida la base.
   if (modoMysql()) return proxyMysql(request);
   const config = getSupabaseConfig();
@@ -136,6 +140,39 @@ export async function proxy(request: NextRequest) {
   }
 
   return response;
+}
+
+/**
+ * Dos redirecciones que van antes que nada, las dos por la URL:
+ *
+ * 1. **Una contraseña o un código en la URL** (un formulario enviado por GET
+ *    antes de que React tomara la página): fuera, antes de pintar nada. Ver
+ *    `src/lib/url-sensible.ts`. 303 y sin caché, para que nada guarde la URL.
+ * 2. **`www.` al dominio sin `www`.** Hasta el 2026-10-22 `www.seregenera.com`
+ *    servía el sitio entero: otra copia con sus propias cookies, donde la
+ *    sesión de `seregenera.com` no vale y los redirects del acceso —que van a
+ *    `NEXT_PUBLIC_SITE_URL`— cambian de dominio a mitad del flujo. Solo GET y
+ *    HEAD: una acción de servidor que ya está en `www` no se corta.
+ *
+ * El destino se arma sobre `NEXT_PUBLIC_SITE_URL` y no sobre `request.url`,
+ * por lo mismo que en `cerrarPorInactividad()`: en Hostinger la petición llega
+ * como `0.0.0.0:3000`. El host de la petición solo se compara, nunca se copia
+ * al destino: así una cabecera `Host` inventada no lo convierte en un
+ * redirector abierto.
+ */
+function redireccionCanonica(request: NextRequest): NextResponse | null {
+  const lectura = request.method === "GET" || request.method === "HEAD";
+  const limpia = lectura ? busquedaSinCamposSensibles(request.nextUrl.search) : null;
+  const publico = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? request.url);
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const conWww = lectura && host === `www.${publico.host}`;
+  if (limpia === null && !conWww) return null;
+
+  publico.pathname = request.nextUrl.pathname;
+  publico.search = limpia ?? request.nextUrl.search;
+  const salida = NextResponse.redirect(publico, limpia !== null ? 303 : 308);
+  if (limpia !== null) salida.headers.set("cache-control", "no-store");
+  return salida;
 }
 
 function opcionesActividad(request: NextRequest) {

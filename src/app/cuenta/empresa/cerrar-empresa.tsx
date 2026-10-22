@@ -54,7 +54,7 @@ export function CerrarEmpresa({ nombre }: { nombre: string }) {
           </button>
         </>
       ) : (
-        <form onSubmit={enviar} className="mt-3 space-y-4 text-left">
+        <form method="post" onSubmit={enviar} className="mt-3 space-y-4 text-left">
           <div className="rounded-lg bg-sand p-4 text-sm text-ink">
             <p className="font-medium">Si la cierras:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">

@@ -112,7 +112,7 @@ export function FormularioResena({
   }
 
   return (
-    <form onSubmit={enviar} className="mt-2 rounded-lg bg-sand p-3">
+    <form method="post" onSubmit={enviar} className="mt-2 rounded-lg bg-sand p-3">
       <fieldset disabled={pendiente}>
         <legend className="text-xs font-medium text-muted">
           {previa ? "Corrige tu reseña" : "¿Qué tal te pareció?"}
