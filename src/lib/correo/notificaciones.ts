@@ -116,13 +116,17 @@ export async function avisarCambioDeOrden(
 
     const { data: items } = await db
       .from("order_items")
-      .select("provider_id, title_snapshot, qty")
+      .select("provider_id, title_snapshot, qty, date")
       .eq("order_id", orderId);
 
-    const porEmpresa = new Map<string, { titulo: string; qty: number }[]>();
+    const porEmpresa = new Map<string, { titulo: string; qty: number; fecha?: string }[]>();
     for (const i of items ?? []) {
       const lista = porEmpresa.get(i.provider_id) ?? [];
-      lista.push({ titulo: i.title_snapshot, qty: i.qty });
+      lista.push({
+        titulo: i.title_snapshot,
+        qty: i.qty,
+        fecha: i.date ? String(i.date).slice(0, 10) : undefined,
+      });
       porEmpresa.set(i.provider_id, lista);
     }
 

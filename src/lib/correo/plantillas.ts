@@ -1,4 +1,5 @@
 import { plazoDeEntrega } from "../envios";
+import { longDate } from "../format";
 import { CONTACTO, redesActivas } from "../legal";
 import type { Mensaje } from "./tipos";
 
@@ -382,8 +383,11 @@ export function correoPedidoRecibido(d: {
   correo: string;
   referencia: string;
   totalCop: number;
-  /** `diasMin`/`diasMax`: el plazo que declaró el vendedor, si lo declaró. */
-  lineas: { titulo: string; qty: number; diasMin?: number; diasMax?: number }[];
+  /**
+   * `diasMin`/`diasMax`: el plazo que declaró el vendedor, si lo declaró.
+   * `fecha`: el día de una experiencia (AAAA-MM-DD), si lo tiene.
+   */
+  lineas: { titulo: string; qty: number; diasMin?: number; diasMax?: number; fecha?: string }[];
 }): Mensaje {
   const url = sitio();
   const pesos = new Intl.NumberFormat("es-CO", {
@@ -400,6 +404,7 @@ export function correoPedidoRecibido(d: {
     .map(
       (l) =>
         `${l.qty} × ${escapar(l.titulo)}` +
+        (l.fecha ? ` <span style="color:${APAGADO};">· el ${longDate(l.fecha)}</span>` : "") +
         (l.plazo ? ` <span style="color:${APAGADO};">· llega ${escapar(l.plazo)}</span>` : ""),
     )
     .join("<br>");
@@ -436,7 +441,10 @@ export function correoPedidoRecibido(d: {
       `Referencia: ${d.referencia}`,
       `Total: ${pesos}`,
       "",
-      ...conPlazo.map((l) => `${l.qty} × ${l.titulo}${l.plazo ? ` · llega ${l.plazo}` : ""}`),
+      ...conPlazo.map(
+        (l) =>
+          `${l.qty} × ${l.titulo}${l.fecha ? ` · el ${longDate(l.fecha)}` : ""}${l.plazo ? ` · llega ${l.plazo}` : ""}`,
+      ),
       ...(hayPlazos ? ["Los días hábiles se cuentan desde que confirmamos tu pago."] : []),
       "",
       `Ver el pedido y cómo pagar: ${url}/orden/${d.referencia}`,
@@ -898,26 +906,38 @@ export function correoPedidoDespachado(d: {
  * nada que preparar, y avisar de una orden sin pagar invita a despachar algo
  * que puede cancelarse. Lleva solo lo que es de esa empresa y ningún importe: las
  * cifras las calcula la base (invariantes 1 y 2) y el correo no las repite.
+ *
+ * **Una experiencia lleva su día** (desde el 2026-10-22), en negrita: es lo
+ * que la empresa necesita para organizarse, sobre todo cuando el día lo eligió
+ * quien reservó (`src/lib/fechas.ts`) y no es una de las fechas que ella abrió.
  */
 export function correoPedidoPagadoProveedor(d: {
   nombre: string;
   correo: string;
   empresa: string;
   referencia: string;
-  lineas: { titulo: string; qty: number }[];
+  /** `fecha`: el día de una experiencia (AAAA-MM-DD), si lo tiene. */
+  lineas: { titulo: string; qty: number; fecha?: string }[];
 }): Mensaje {
   const url = sitio();
   const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
-  const lista = d.lineas.map((l) => `${l.qty} × ${escapar(l.titulo)}`).join("<br>");
+  const lista = d.lineas
+    .map(
+      (l) =>
+        `${l.qty} × ${escapar(l.titulo)}` +
+        (l.fecha ? ` · <strong style="color:${TINTA};">para el ${longDate(l.fecha)}</strong>` : ""),
+    )
+    .join("<br>");
+  const hayFechas = d.lineas.some((l) => l.fecha);
 
   const cuerpo =
     seccion(
       h1("Tienes un pedido pagado") +
         p(
-          `${nombre}, el pedido <strong style="color:${TINTA};">${escapar(d.referencia)}</strong> ya está pagado y incluye productos de ${escapar(d.empresa)}:`,
+          `${nombre}, el pedido <strong style="color:${TINTA};">${escapar(d.referencia)}</strong> ya está pagado y incluye lo que vende ${escapar(d.empresa)}:`,
         ) +
         p(lista),
-    ) + boton(`${url}/cuenta/empresa/pedidos`, "Ver qué despachar");
+    ) + boton(`${url}/cuenta/empresa/pedidos`, hayFechas ? "Ver el pedido" : "Ver qué despachar");
 
   return {
     para: d.correo,
@@ -930,10 +950,10 @@ export function correoPedidoPagadoProveedor(d: {
     texto: [
       "Tienes un pedido pagado",
       "",
-      `El pedido ${d.referencia} ya está pagado y incluye productos de ${d.empresa}:`,
-      ...d.lineas.map((l) => `${l.qty} × ${l.titulo}`),
+      `El pedido ${d.referencia} ya está pagado y incluye lo que vende ${d.empresa}:`,
+      ...d.lineas.map((l) => `${l.qty} × ${l.titulo}${l.fecha ? ` · para el ${longDate(l.fecha)}` : ""}`),
       "",
-      `Qué despachar: ${url}/cuenta/empresa/pedidos`,
+      `${hayFechas ? "Ver el pedido" : "Qué despachar"}: ${url}/cuenta/empresa/pedidos`,
       "",
       "— Seregenera",
     ].join("\n"),
