@@ -8,6 +8,7 @@ import { registrarse } from "../entrar/actions";
 import { CampoClave } from "@/components/campo-clave";
 import { CampoTelefono } from "@/components/campo-telefono";
 import { PasoCodigo } from "@/components/paso-codigo";
+import { useHidratado } from "@/components/use-hidratado";
 import { rutaPropia } from "@/lib/ruta-propia";
 
 /**
@@ -31,6 +32,7 @@ export function FormularioRegistro({ volver }: { volver?: string }) {
   const [apellido, setApellido] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pendiente, iniciar] = useTransition();
+  const hidratado = useHidratado();
 
   const destino = rutaPropia(volver) ?? "/";
 
@@ -75,7 +77,7 @@ export function FormularioRegistro({ volver }: { volver?: string }) {
   }
 
   return (
-    <form onSubmit={enviar} className="mt-8">
+    <form method="post" onSubmit={enviar} className="mt-8">
       <fieldset className="space-y-4" disabled={pendiente}>
         <legend className="sr-only">Datos de la cuenta</legend>
 
@@ -184,7 +186,7 @@ export function FormularioRegistro({ volver }: { volver?: string }) {
 
       <button
         type="submit"
-        disabled={pendiente}
+        disabled={pendiente || !hidratado}
         className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-brand-700 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:bg-muted"
       >
         {pendiente && <Loader2 className="size-4 animate-spin" />}

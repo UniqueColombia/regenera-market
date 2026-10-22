@@ -44,7 +44,7 @@ export function NuevoProspecto() {
         <Plus className="size-5 text-brand-600" aria-hidden />
         Agregar uno a mano
       </summary>
-      <form ref={formulario} onSubmit={enviar} className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+      <form method="post" ref={formulario} onSubmit={enviar} className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         {CAMPOS.map(([nombre, etiqueta, obligatorio]) => (
           <label key={nombre} className="block">
             <span className="mb-1 block text-xs font-medium text-muted">{etiqueta}</span>

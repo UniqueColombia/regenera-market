@@ -66,7 +66,7 @@ export function AccionesDespacho({
   return (
     <div className="mt-3 space-y-2">
       {estado === "pendiente" && (
-        <form onSubmit={enviar} className="flex flex-wrap items-end gap-2">
+        <form method="post" onSubmit={enviar} className="flex flex-wrap items-end gap-2">
           {porTransportadora && (
             <>
               <label className="min-w-0 flex-1 basis-40">

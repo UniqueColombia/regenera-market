@@ -80,6 +80,7 @@ export function FormularioPublicacion({
 
   return (
     <form
+      method="post"
       ref={formRef}
       onSubmit={enviar}
       className="rounded-xl bg-white p-6 ring-1 ring-hairline"
