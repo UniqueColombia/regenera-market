@@ -66,7 +66,7 @@ export function EliminarCuenta({ esAdmin, conEmpresa }: { esAdmin: boolean; conE
           y después podrás eliminar tu cuenta desde aquí.
         </p>
       ) : (
-        <form onSubmit={enviar} className="mt-3 space-y-4 text-left">
+        <form method="post" onSubmit={enviar} className="mt-3 space-y-4 text-left">
           <div className="rounded-lg bg-sand p-4 text-sm text-ink">
             <p className="font-medium">Si la eliminas:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">

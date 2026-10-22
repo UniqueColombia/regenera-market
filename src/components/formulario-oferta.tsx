@@ -270,6 +270,7 @@ export function FormularioOferta({
 
   return (
     <form
+      method="post"
       ref={formulario}
       onSubmit={enviar}
       // Un `type="number"` con el foco cambia de valor con la rueda del mouse.

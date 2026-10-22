@@ -561,6 +561,7 @@ function CheckoutPanel({
 
   return (
     <form
+      method="post"
       onSubmit={onSubmit}
       className="overflow-hidden rounded-xl bg-white ring-1 ring-hairline"
     >

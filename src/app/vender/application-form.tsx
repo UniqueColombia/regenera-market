@@ -205,6 +205,7 @@ export function ApplicationForm({
 
   return (
     <form
+      method="post"
       ref={formRef}
       onSubmit={onSubmit}
       noValidate

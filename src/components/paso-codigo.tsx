@@ -90,7 +90,7 @@ export function PasoCodigo({
   }
 
   return (
-    <form onSubmit={enviar} className="mt-8">
+    <form method="post" onSubmit={enviar} className="mt-8">
       <div className="flex items-start gap-3 rounded-xl bg-brand-50 p-4 ring-1 ring-brand-100">
         <MailCheck className="mt-0.5 size-5 shrink-0 text-brand-700" />
         <p className="text-sm text-brand-800">
