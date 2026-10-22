@@ -67,15 +67,17 @@ export default async function EditarOfertaDeEmpresaPage(
         zonas={await enviosPorZonaDisponible()}
         destino="/cuenta/empresa/ofertas"
         verificada={empresa.evaluacionVerificada}
+        fechas={
+          oferta.kind === "experience" ? (
+            <FechasDeExperiencia
+              className="order-3"
+              esEmpresa
+              inicial={await getFechasDeOferta(oferta.id)}
+              guardar={guardarFechasDeEmpresa.bind(null, oferta.id)}
+            />
+          ) : undefined
+        }
       />
-
-      {oferta.kind === "experience" && (
-        <FechasDeExperiencia
-          esEmpresa
-          inicial={await getFechasDeOferta(oferta.id)}
-          guardar={guardarFechasDeEmpresa.bind(null, oferta.id)}
-        />
-      )}
     </div>
     </div>
   );

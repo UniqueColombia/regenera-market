@@ -118,6 +118,7 @@ export function FormularioOferta({
   subirImagen,
   logistica = false,
   zonas = false,
+  fechas,
 }: {
   modo?: "admin" | "empresa";
   proveedores?: ProveedorOpcion[];
@@ -134,6 +135,12 @@ export function FormularioOferta({
   logistica?: boolean;
   /** ¿Está la 0017? Entonces dice también la tarifa local, la de cada unidad, peso y medidas. */
   zonas?: boolean;
+  /**
+   * El editor de fechas y cupos de una experiencia ya guardada
+   * (`FechasDeExperiencia`). Va junto al precio, pero se guarda con su propio
+   * botón y no pasa por `guardar`: ver la cabecera de ese componente.
+   */
+  fechas?: React.ReactNode;
 }) {
   const formulario = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -646,6 +653,8 @@ export function FormularioOferta({
             </fieldset>
           </Tarjeta>
 
+          {kind === "experience" && fechas}
+
           {kind === "product" && logistica && (
             <Tarjeta i={3} className="order-4">
               <fieldset className="space-y-4" disabled={pendiente}>
@@ -909,24 +918,13 @@ export function FormularioOferta({
                   />
                 </Campo>
 
-                <p className="rounded-xl bg-clay-100 p-3 text-sm text-clay-700">
-                  {oferta?.kind === "experience" ? (
-                    <>
-                      Las <strong className="font-semibold">fechas y los cupos</strong>{" "}
-                      se eligen{" "}
-                      <a href="#fechas" className="font-medium underline underline-offset-2">
-                        más abajo
-                      </a>
-                      , con su propio botón de guardar.
-                    </>
-                  ) : (
-                    <>
-                      Cuando la guardes, eliges quién pone la fecha: abres tú
-                      fechas con cupo, o cada persona elige el día que la
-                      necesita.
-                    </>
-                  )}
-                </p>
+                {!fechas && (
+                  <p className="rounded-xl bg-clay-100 p-3 text-sm text-clay-700">
+                    Cuando la guardes, eliges quién pone la fecha: abres tú
+                    fechas con cupo, o cada persona elige el día que la
+                    necesita.
+                  </p>
+                )}
               </fieldset>
             </Tarjeta>
           )}
