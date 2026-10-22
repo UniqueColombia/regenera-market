@@ -8,7 +8,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
   correo, y **el 2026-10-17** en correos, legales, envíos, pagos y la base de
   datos (los tres primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.13.1`, desde el 2026-10-22) con la skill `desplegar-hostinger`;
+  desplegado **por tag** (hoy `v0.13.3`, desde el 2026-10-22) con la skill `desplegar-hostinger`;
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
   2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
   el primer recuadro). **Supabase y Vercel ya no son parte de producción**
@@ -1098,7 +1098,7 @@ La plataforma ya hace lo que tenía que hacer. El siguiente paso no es código:
 - ~~**Las fechas con cupo de una experiencia** (`listing_availability`) solo se
   siembran con el script. Una experiencia creada desde el panel se puede comprar
   sin fecha.~~ **Resuelto el 2026-10-22 (`v0.13.0`):** la empresa y el panel
-  eligen, debajo del formulario, entre fechas fijas con cupo o que quien
+  eligen, junto al precio de la oferta, entre fechas fijas con cupo o que quien
   reserva elija el día ([hito](../.claude/hitos/2026-10-22-fechas-de-experiencias.md)).
 - **Subir imágenes**: el formulario pide direcciones de texto. Estaba fuera de la
   beta a propósito, pero es lo primero que va a pedir un proveedor real.
