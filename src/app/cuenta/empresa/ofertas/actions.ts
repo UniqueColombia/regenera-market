@@ -13,8 +13,11 @@ import {
   filaDeOferta,
   reglasDeOferta,
 } from "@/lib/ofertas";
+import { hoyEnBogota } from "@/lib/envios";
+import { escribirFechas, revisarPlan, type ResultadoGuardarFechas } from "@/lib/fechas";
 import {
   enviosPorZonaDisponible,
+  getFechasDeOferta,
   getMiEmpresa,
   getOfertaDeEmpresa,
   logisticaDisponible,
@@ -232,6 +235,44 @@ export async function retirarOferta(
   revalidatePath(`/proveedor/${empresa.slug}`);
   revalidatePath("/catalogo");
   return { ok: true };
+}
+
+/**
+ * Las fechas y los cupos de una experiencia de la empresa (`src/lib/fechas.ts`).
+ *
+ * **No la devuelve a revisión**: escribe en `listing_availability`, no en
+ * `listings`, y lo que el equipo aprobó fue el contenido de la oferta, no su
+ * calendario. La empresa sale de la sesión, como en `guardarOfertaDeEmpresa()`,
+ * y la política `availability_write` lo vuelve a exigir en la base.
+ */
+export async function guardarFechasDeEmpresa(
+  listingId: string,
+  plan: unknown,
+): Promise<ResultadoGuardarFechas> {
+  const empresa = await getMiEmpresa();
+  if (!empresa) return { ok: false, errores: ["Tu cuenta todavía no gestiona ninguna empresa."] };
+  const oferta = typeof listingId === "string" ? await getOfertaDeEmpresa(empresa.id, listingId) : undefined;
+  if (!oferta) return { ok: false, errores: ["Esa oferta no es de tu empresa."] };
+  if (oferta.kind !== "experience") {
+    return { ok: false, errores: ["Solo las experiencias tienen fechas. Guarda primero el tipo."] };
+  }
+  if (!dentroDelRitmo(`fechas:${empresa.id}`, 60, 3600)) {
+    return { ok: false, errores: ["Guardaste muchas veces seguidas. Espera un rato y vuelve a intentarlo."] };
+  }
+
+  const hoy = hoyEnBogota();
+  const revisado = revisarPlan(plan, hoy);
+  if (!revisado.ok) return revisado;
+
+  try {
+    const r = await escribirFechas(await createClient(), oferta.id, revisado.plan, hoy);
+    revalidatePath(`/oferta/${oferta.slug}`);
+    revalidatePath(`/cuenta/empresa/ofertas/${oferta.id}`);
+    return { ...r, fechas: await getFechasDeOferta(oferta.id) };
+  } catch (e) {
+    const codigo = registrarFallo("fechas-empresa", e);
+    return { ok: false, errores: [mensajeDeFallo(codigo)] };
+  }
 }
 
 /**

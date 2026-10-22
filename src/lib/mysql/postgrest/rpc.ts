@@ -73,6 +73,13 @@ function hoyEnColombia(): string {
   return new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
+/** AAAA-MM-DD de un día que existe. Gemela de `esFecha()` de `src/lib/fechas.ts`. */
+function esFecha(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const t = Date.parse(`${v}T12:00:00Z`);
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
+}
+
 /** `comision_para_nivel()`. Es dinero: misma tabla que la función de Postgres. */
 function comisionParaNivel(tier: string): number {
   return tier === "raiz" ? 0.1 : tier === "bosque" ? 0.08 : 0.12;
@@ -464,6 +471,7 @@ export const RPCS: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
       if (qtyTexto === null || !Number.isInteger(qtyTexto) || qtyTexto < 1 || qtyTexto > 10000) throw new ErrorPg("cantidad-invalida");
       const qty = qtyTexto;
       const fechaLinea = linea.date ? String(linea.date).slice(0, 10) : null;
+      if (fechaLinea !== null && !esFecha(fechaLinea)) throw new ErrorPg("cesta-invalida");
       if (typeof linea.listing_id !== "string" || !UUID.test(linea.listing_id)) {
         throw new ErrorPg(`invalid input syntax for type uuid: "${String(linea.listing_id)}"`, { code: "22P02" });
       }
@@ -475,6 +483,11 @@ export const RPCS: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
       );
       if (!l || l.quote_only) continue;
       if (await gestiona(c, l.provider_id as string)) throw new ErrorPg("compra-propia", { hint: l.title as string });
+      // La fecha de una experiencia, la abra quien la organiza o la elija quien
+      // compra (`src/lib/fechas.ts`), no puede haber pasado.
+      if (l.kind === "experience" && fechaLinea !== null && fechaLinea < hoyEnColombia()) {
+        throw new ErrorPg("fecha-pasada", { hint: l.title as string });
+      }
 
       let conStock = false;
       if (l.stock !== null) {

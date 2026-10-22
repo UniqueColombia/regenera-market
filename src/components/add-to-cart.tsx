@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { Check, Minus, Plus, ShoppingBasket } from "lucide-react";
 import { addLine } from "./cart";
 import { soltarHojas } from "@/lib/hojas";
+import { hoyEnBogota } from "@/lib/envios";
+import { DIAS_HACIA_ADELANTE, sumarDias } from "@/lib/fechas";
 import { money, shortDate } from "@/lib/format";
 import type { Cotizacion } from "@/lib/tipo-de-cambio";
 import type { Listing } from "@/lib/types";
@@ -36,16 +38,22 @@ export function AddToCart({
   const router = useRouter();
   const [qty, setQty] = useState(listing.experience?.minPeople ?? 1);
   const [date, setDate] = useState(
-    listing.experience?.availability[0]?.date ?? "",
+    listing.experience?.availability.find((a) => a.slotsLeft > 0)?.date ?? "",
   );
   const [added, setAdded] = useState(false);
 
   const isExperience = listing.kind === "experience";
   const fechas = listing.experience?.availability ?? [];
-  // Una experiencia sin cupos cargados se reserva sin fecha: es lo que acepta
-  // `crear_orden()` y lo que el formulario le promete a quien la publica. Pedir
-  // fecha de una lista vacía dejaba el botón apagado para siempre.
-  const pideFecha = isExperience && fechas.length > 0;
+  // Los dos modos de `src/lib/fechas.ts`. Con fechas propias se elige una de
+  // la lista, y si no queda ninguna abierta no se puede reservar: es lo que
+  // decidió quien la organiza. Sin ellas, la persona elige el día, desde
+  // mañana, para que quien la organiza tenga al menos un día para prepararla.
+  const fechasPropias = listing.experience?.fechasPropias ?? fechas.length > 0;
+  const pideFecha = isExperience && fechasPropias;
+  const fechaLibre = isExperience && !fechasPropias;
+  const manana = sumarDias(hoyEnBogota(), 1);
+  const ultimoDia = sumarDias(hoyEnBogota(), DIAS_HACIA_ADELANTE);
+  const fechaLibreValida = date >= manana && date <= ultimoDia;
   const slot = fechas.find((a) => a.date === date);
   const grupoMinimo = listing.experience?.minPeople;
 
@@ -62,7 +70,10 @@ export function AddToCart({
   const maxQty = pideFecha ? Math.min(tope, slot?.slotsLeft ?? 0) : tope;
 
   const minQty = grupoMinimo ?? 1;
-  const canAdd = qty >= minQty && qty <= maxQty && (!pideFecha || !!slot);
+  const canAdd =
+    qty >= minQty &&
+    qty <= maxQty &&
+    (pideFecha ? !!slot : fechaLibre ? fechaLibreValida : true);
 
   // El aviso "Agregado a la cesta" se apaga solo. El temporizador vive en un
   // efecto y no dentro de handleAdd porque "Comprar ahora" agrega y navega en el
@@ -75,7 +86,7 @@ export function AddToCart({
   }, [added]);
 
   function handleAdd() {
-    addLine({ listingId: listing.id, qty, date: pideFecha ? date : undefined });
+    addLine({ listingId: listing.id, qty, date: isExperience ? date : undefined });
     setAdded(true);
   }
 
@@ -106,14 +117,35 @@ export function AddToCart({
         </p>
       )}
 
-      {isExperience && !pideFecha && (
+      {fechaLibre && (
+        <div className="mt-5">
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-ink">
+              ¿Qué día la quieres?
+            </span>
+            <input
+              type="date"
+              min={manana}
+              max={ultimoDia}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full rounded-lg border border-control bg-white px-3 py-2 text-base outline-none transition focus:border-brand-500 sm:text-sm"
+            />
+          </label>
+          <p className="mt-2 text-xs text-muted">
+            Quien la organiza recibe tu reserva con este día y te escribe para
+            acordar los detalles.
+          </p>
+        </div>
+      )}
+
+      {pideFecha && fechas.length === 0 && (
         <p className="mt-5 rounded-lg bg-sand px-3 py-2 text-sm text-muted">
-          La fecha la acuerdas con quien la organiza después de confirmar tu
-          reserva.
+          Por ahora no hay fechas abiertas. Vuelve en unos días.
         </p>
       )}
 
-      {pideFecha && (
+      {pideFecha && fechas.length > 0 && (
         <fieldset className="mt-5">
           <legend className="mb-2 text-sm font-medium text-ink">
             Elige la fecha
