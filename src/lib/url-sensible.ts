@@ -18,13 +18,27 @@
  * `token_hash` ni `type`: los usa el enlace de los correos de acceso
  * (`/auth/callback`) y tienen que llegar.
  */
-export const CAMPOS_SENSIBLES = ["password", "password2", "actual", "clave", "token"] as const;
+export const CAMPOS_SENSIBLES = [
+  "password",
+  "password2",
+  "actual",
+  "clave",
+  "token",
+  // Datos personales de la cesta y de `/vender` (auditoría del 2026-10-22): un
+  // documento, un teléfono o una dirección en una URL acaban igual en el
+  // historial y en el registro del servidor.
+  "documento",
+  "taxid",
+  "phone",
+  "telefono",
+  "direccion",
+] as const;
 
 /**
  * Lo que se borra junto con ellos: datos personales que solo llegan a una URL
  * por el mismo error. Sueltos (`/entrar?email=…` escrito a mano) no se tocan.
  */
-const ACOMPANANTES = ["email", "nombre", "apellido", "acepto"];
+const ACOMPANANTES = ["email", "nombre", "apellido", "acepto", "name", "company", "ciudad", "indicaciones", "contactname"];
 
 /**
  * La búsqueda (`?a=1&b=2`) sin los campos sensibles, o `null` si no traía

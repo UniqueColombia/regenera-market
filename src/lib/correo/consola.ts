@@ -1,4 +1,5 @@
 import type { EnviadorCorreo, Mensaje, ResultadoEnvio } from "./tipos";
+import { enmascarar } from "../enmascarar";
 
 /**
  * El enviador de respaldo: escribe en la consola del servidor y devuelve `ok`.
@@ -29,7 +30,9 @@ export class EnviadorConsola implements EnviadorCorreo {
         "[correo] SIN SMTP CONFIGURADO — el mensaje no salió a ninguna parte.",
         "         Llena SMTP_HOST, SMTP_USER y SMTP_PASSWORD en .env.local.",
         "─".repeat(72),
-        `Para:   ${mensaje.para}`,
+        // En producción, enmascarado: este enviador solo actúa allí si faltan las
+        // `SMTP_*`, y el registro del servidor no es sitio para direcciones.
+        `Para:   ${process.env.NODE_ENV === "production" ? enmascarar(mensaje.para) : mensaje.para}`,
         `Asunto: ${mensaje.asunto}`,
         "",
         // En producción el cuerpo no va al registro: un correo de acceso lleva el

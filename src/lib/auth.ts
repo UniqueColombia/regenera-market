@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "./supabase/config";
 import { createClient } from "./supabase/server";
 import type { Role } from "./types";
+import { PASE_RECUPERACION, tienePase } from "./pase";
 
 /**
  * Comprobaciones de sesión y rol, en un solo sitio.
@@ -93,6 +94,17 @@ export const getSesion = cache(async (): Promise<Sesion | null> => {
  */
 export function necesitaClave(user: User): boolean {
   return user.user_metadata?.tiene_clave !== true;
+}
+
+/**
+ * ¿Trae esta petición un pase de recuperación vigente de este usuario? Lo mira
+ * `/cuenta/clave` para no pedir la contraseña actual (`src/lib/pase.ts`). **No
+ * obliga a nada**: quien abre en el teléfono el enlace de un código que pidió en
+ * el computador también llega así, y cambiar la clave no le da más seguridad que
+ * la sesión que ya tiene. Se le ofrece, no se le impone.
+ */
+export async function enRecuperacion(userId: string): Promise<boolean> {
+  return tienePase(PASE_RECUPERACION, userId);
 }
 
 /**

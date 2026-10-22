@@ -13,6 +13,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Solo lectura: ningún job escribe en el repositorio. Si una acción o una
+# dependencia se ve comprometida, el token no le sirve para nada más
+# (auditoría del 2026-10-22).
+permissions:
+  contents: read
+
 jobs:
   verificar:
     runs-on: ubuntu-latest

@@ -1,3 +1,5 @@
+import { sinCorreos } from "./enmascarar";
+
 /**
  * Cuando algo falla sin que nadie lo espere.
  *
@@ -58,12 +60,18 @@ export function registrarFallo(
 ): string {
   const codigo = codigoDeIncidencia();
 
-  const detalle =
+  // De un error que no es `Error` (los de la base llegan como objeto) se
+  // escriben el código, el mensaje y la pista, **no `details`**: en el modo MySQL
+  // ahí viaja el mensaje crudo de MariaDB, que repite el valor que chocó
+  // («Duplicate entry 'ana@x.com'»). Y las direcciones que queden, enmascaradas
+  // (auditoría del 2026-10-22).
+  const detalle = sinCorreos(
     error instanceof Error
       ? `${error.name}: ${error.message}`
       : typeof error === "object" && error !== null
-        ? JSON.stringify(error)
-        : String(error);
+        ? JSON.stringify(soloLoUtil(error as Record<string, unknown>))
+        : String(error),
+  );
 
   const extra = datos
     ? " " +
@@ -82,6 +90,11 @@ export function registrarFallo(
   }
 
   return codigo;
+}
+
+function soloLoUtil(error: Record<string, unknown>): Record<string, unknown> {
+  const { code, message, hint, status, name } = error;
+  return { code, message, hint, status, name };
 }
 
 /**

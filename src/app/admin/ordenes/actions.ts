@@ -7,6 +7,7 @@ import { avisarCambioDeOrden } from "@/lib/correo/notificaciones";
 import { createClient } from "@/lib/supabase/server";
 import { ETIQUETA_ESTADO, TRANSICIONES } from "@/lib/order-status";
 import type { OrderStatus } from "@/lib/types";
+import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 
 /**
  * Mover una orden de estado. Hoy eso es, sobre todo, **confirmar un pago a
@@ -51,7 +52,7 @@ export async function cambiarEstadoOrden(datos: unknown): Promise<ResultadoOrden
     .eq("id", parsed.data.orderId)
     .maybeSingle();
 
-  if (errorLectura) return { ok: false, error: errorLectura.message };
+  if (errorLectura) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ordenes", errorLectura)) };
   if (!actual) {
     return {
       ok: false,
@@ -95,7 +96,7 @@ export async function cambiarEstadoOrden(datos: unknown): Promise<ResultadoOrden
     if (error.message.includes("transicion-invalida")) {
       return { ok: false, error: "La orden cambió mientras la mirabas. Recarga para ver cómo quedó." };
     }
-    return { ok: false, error: error.message };
+    return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ordenes", error)) };
   }
   if (!data || data.length === 0) {
     // O RLS lo negó (cero filas, sin error), o la orden ya no estaba como se
@@ -106,7 +107,7 @@ export async function cambiarEstadoOrden(datos: unknown): Promise<ResultadoOrden
       .eq("id", parsed.data.orderId)
       .maybeSingle();
     // Una relectura fallida no es «ya no eres administrador»: se dice lo que pasó.
-    if (errorAhora) return { ok: false, error: errorAhora.message };
+    if (errorAhora) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ordenes", errorAhora)) };
     if (ahora?.status === parsed.data.estado) return { ok: true };
     if (ahora) {
       return {

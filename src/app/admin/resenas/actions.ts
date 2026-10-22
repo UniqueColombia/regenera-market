@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 
 /**
  * Ocultar o volver a mostrar una reseña.
@@ -40,7 +41,7 @@ export async function moderarResena(
     .eq("id", parsed.data.id)
     .select("id");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-resenas", error)) };
   if (!data || data.length === 0) {
     return { ok: false, error: "No se pudo actualizar. ¿Sigues siendo administrador?" };
   }
