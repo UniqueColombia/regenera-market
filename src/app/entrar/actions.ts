@@ -19,6 +19,7 @@ import { enviarCorreo } from "@/lib/correo";
 import { correoBienvenida } from "@/lib/correo/plantillas";
 import { registrarFallo } from "@/lib/incidencias";
 import { avisarAlVolver } from "@/lib/avisos";
+import { PASE_CLAVE, cerrarPasoDelCodigo, darPase } from "@/lib/pase";
 
 /**
  * Acceso, registro y recuperación.
@@ -87,9 +88,17 @@ const CorreoSchema = z.object({
   email: z.email("Revisa el correo"),
 });
 
+/**
+ * Tope de largo de una contraseña. scrypt resume la entrada antes de trabajar,
+ * pero cada comprobación ocupa uno de los pocos hilos de cripto del servidor y no
+ * hay razón para aceptar un megabyte. Lo usan también `src/app/cuenta/actions.ts`.
+ */
+const MAX_CLAVE = 256;
+const DEMASIADO_LARGA = "La contraseña es demasiado larga";
+
 const AccesoSchema = z.object({
   email: z.email("Revisa el correo"),
-  password: z.string().min(1, "Escribe tu contraseña"),
+  password: z.string().min(1, "Escribe tu contraseña").max(MAX_CLAVE, DEMASIADO_LARGA),
 });
 
 const RegistroSchema = z
@@ -99,8 +108,8 @@ const RegistroSchema = z
     email: z.email("Revisa el correo"),
     pais: z.string().trim().min(2, "Elige el país de tu teléfono"),
     telefono: z.string().trim().min(1, "Escribe tu teléfono"),
-    password: z.string().min(1, "Escribe una contraseña"),
-    password2: z.string().min(1, "Repite la contraseña"),
+    password: z.string().min(1, "Escribe una contraseña").max(MAX_CLAVE, DEMASIADO_LARGA),
+    password2: z.string().min(1, "Repite la contraseña").max(MAX_CLAVE, DEMASIADO_LARGA),
     // Casilla de términos. Llega como "on" del formulario o ausente.
     acepto: z.string().optional(),
   })
@@ -124,7 +133,8 @@ export type ResultadoAcceso =
 
 /** Lo que devuelve verificar un código. */
 export type ResultadoCodigo =
-  | { ok: true; necesitaClave: boolean }
+  /** `recuperacion`: entró solo con el código a una cuenta con contraseña (`src/lib/pase.ts`). */
+  | { ok: true; necesitaClave: boolean; recuperacion?: boolean }
   | { ok: false; errors: Record<string, string> };
 
 function errores(e: z.ZodError): Record<string, string> {
@@ -274,6 +284,16 @@ export async function registrarse(datos: unknown): Promise<ResultadoAcceso> {
     };
   }
 
+  // Si la contraseña que escribió es la que tiene la cuenta, el código que
+  // viene es solo la confirmación del correo. Si no lo es —el correo ya tenía
+  // cuenta, o alguien lo registró antes con otra clave y nunca confirmó—, el
+  // código será una recuperación y la persona se pondrá la suya
+  // (`src/lib/pase.ts`). Sin esto, quien registraba primero el correo de otro le
+  // dejaba su propia contraseña puesta.
+  // La cookie sale siempre, válida o señuelo: si solo saliera con la clave
+  // correcta, registrarse con un correo ajeno serviría para adivinar su clave.
+  await darPase(PASE_CLAVE, d.email, await esLaClaveDeLaCuenta(d.email, d.password));
+
   // Correo ya registrado: ver el comentario de arriba.
   if (data.user && (data.user.identities?.length ?? 0) === 0) {
     const eco = await createClient();
@@ -399,6 +419,9 @@ export async function entrarConClave(datos: unknown): Promise<ResultadoAcceso> {
     };
   }
 
+  // Ya demostró la contraseña: el código que viene es el segundo factor, no una
+  // recuperación. Ver `src/lib/pase.ts`.
+  await darPase(PASE_CLAVE, parsed.data.email);
   return { ok: true, requiereCodigo: true };
 }
 
@@ -424,11 +447,14 @@ export async function pedirCodigo(datos: unknown): Promise<Resultado> {
     options: { shouldCreateUser: false },
   });
 
-  if (error) {
+  // Un correo sin cuenta responde lo mismo que uno con cuenta: «te mandamos el
+  // código». Hasta el 2026-10-22 decía «si aún no tienes cuenta, regístrate», y
+  // eso convertía el formulario en un detector de qué correos están registrados.
+  if (error && error.code !== "otp_disabled") {
     return {
       ok: false,
       errors: {
-        form: "No pudimos enviar el código. Si aún no tienes cuenta, regístrate.",
+        form: "No pudimos enviar el código. Espera un minuto y vuelve a intentarlo.",
       },
     };
   }
@@ -488,7 +514,26 @@ export async function verificarCodigo(datos: unknown): Promise<ResultadoCodigo> 
   await darLaBienvenida(supabase, data.user);
   await avisarAlVolver("entrada");
 
-  return { ok: true, necesitaClave: !tieneClave(data.user.user_metadata) };
+  // Una cuenta con contraseña que entró solo con el código: es una recuperación,
+  // y lo que sigue es ponerse una contraseña nueva (`src/lib/pase.ts`).
+  const recuperacion = await cerrarPasoDelCodigo(data.user);
+  return { ok: true, necesitaClave: recuperacion || !tieneClave(data.user.user_metadata), recuperacion };
+}
+
+/**
+ * ¿`clave` es la contraseña de la cuenta de `email`? Se pregunta con el
+ * cliente efímero, que no escribe cookies, y la sesión que abra se cierra en el
+ * acto. Una cuenta sin confirmar responde `email_not_confirmed` solo si la clave
+ * es la suya (`comprobarClave()` mira la clave antes que la confirmación).
+ */
+async function esLaClaveDeLaCuenta(email: string, clave: string): Promise<boolean> {
+  const efimero = createEphemeralClient();
+  const { data, error } = await efimero.auth.signInWithPassword({ email, password: clave });
+  if (data.session) {
+    await efimero.auth.signOut({ scope: "local" });
+    return true;
+  }
+  return error?.code === "email_not_confirmed";
 }
 
 /**

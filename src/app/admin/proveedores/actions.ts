@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { ReviewStatus } from "@/lib/types";
+import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 
 /**
  * Decisiones del administrador sobre un proveedor.
@@ -65,7 +66,7 @@ export async function decidirProveedor(
         "La cerró su dueña. No se aprueba desde aquí: volvería al catálogo sin nadie que la gestione. Vuelve sola cuando ella (u otra persona que apruebes con su documento) la da de alta otra vez.",
     };
   }
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-proveedores", error)) };
   // RLS no devuelve error cuando niega: devuelve cero filas afectadas. Sin esta
   // comprobación, un intento denegado se vería como un éxito silencioso.
   if (!data || data.length === 0) {

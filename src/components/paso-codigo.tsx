@@ -64,6 +64,14 @@ export function PasoCodigo({
       // sin esto seguiría diciendo "Entrar" con la sesión ya abierta.
       router.refresh();
 
+      // Una recuperación va a la contraseña nueva venga de donde venga: también
+      // desde el registro, cuando el correo ya tenía cuenta con otra clave
+      // (`src/lib/pase.ts`).
+      if (r.recuperacion) {
+        router.push(`/cuenta/clave?volver=${encodeURIComponent(destino)}`);
+        return;
+      }
+
       if (origen === "registro") {
         // `necesitaClave` se ignora a propósito: quien viene del registro acaba
         // de ponerla. Si la marca `tiene_clave` no llegó a los metadatos, el

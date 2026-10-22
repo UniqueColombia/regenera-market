@@ -602,7 +602,16 @@ export const RPCS: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
 
   async invitacion_de_prospecto(c, a) {
     const token = uuid(a._token);
-    return q(c, "select nombre, nit, correo, telefono, sitio_web, ciudad, departamento from prospectos where token = ? and estado <> 'descartado'", [token]);
+    // El enlace rellena el formulario con el NIT, el correo y el teléfono, y se
+    // reenvía (correo, WhatsApp, `?volver=`). Deja de valer cuando la persona se
+    // dio de baja y a los 90 días del último envío (auditoría del 2026-10-22).
+    return q(
+      c,
+      `select nombre, nit, correo, telefono, sitio_web, ciudad, departamento from prospectos
+        where token = ? and estado <> 'descartado' and baja_at is null
+          and coalesce(ultimo_envio_at, created_at) > now(6) - interval 90 day`,
+      [token],
+    );
   },
 
   async postular_proveedor(c, a) {

@@ -3,6 +3,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { abrirVentanaDeActividad } from "@/lib/sesion";
 import { avisarAlVolver } from "@/lib/avisos";
+import { cerrarPasoDelCodigo } from "@/lib/pase";
 
 /**
  * Canjea por sesión lo que traiga el enlace del correo.
@@ -109,6 +110,12 @@ export async function GET(request: NextRequest) {
   }
   await abrirVentanaDeActividad(usuario.id);
   await avisarAlVolver("entrada");
+
+  // El enlace es un código como el del formulario: si la cuenta tiene contraseña
+  // y no se demostró antes, es una recuperación (`src/lib/pase.ts`).
+  if (await cerrarPasoDelCodigo(usuario)) {
+    return NextResponse.redirect(`${origin}/cuenta/clave?volver=${encodeURIComponent(destino)}`);
+  }
 
   return NextResponse.redirect(`${origin}${destino}`);
 }

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { ReviewStatus } from "@/lib/types";
+import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 
 /**
  * Moderar el muro de la Comunidad.
@@ -106,7 +107,7 @@ export async function eliminarPublicacionAdmin(
     .eq("id", parsed.data.postId)
     .select("id");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-comunidad", error)) };
   if (!data || data.length === 0) {
     return { ok: false, error: "No se pudo eliminar. ¿Sigues teniendo permiso de administrador?" };
   }
@@ -128,7 +129,7 @@ async function escribir(
     .eq("id", postId)
     .select("id");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-comunidad", error)) };
   // RLS no devuelve error cuando niega: devuelve cero filas. Sin esto, un
   // intento denegado se vería como un éxito silencioso.
   if (!data || data.length === 0) {

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { slugLibre } from "@/lib/slug";
+import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 
 /**
  * Decisiones sobre una postulación de `/vender`.
@@ -65,7 +66,7 @@ export async function decidirPostulacion(
     .eq("id", parsed.data.id)
     .maybeSingle();
 
-  if (errorLectura) return { ok: false, error: errorLectura.message };
+  if (errorLectura) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-postulaciones", errorLectura)) };
   // RLS no da error cuando niega: devuelve cero filas. Sin esta comprobación,
   // un intento denegado se vería como «esa postulación no existe».
   if (!postulacion) {
@@ -91,7 +92,7 @@ export async function decidirPostulacion(
       .is("provider_id", null)
       .select("id");
 
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-postulaciones", error)) };
     if (!data || data.length === 0) {
       return {
         ok: false,
@@ -146,7 +147,7 @@ export async function decidirPostulacion(
     };
   }
   if (errorRpc.code !== "PGRST202" && errorRpc.code !== "42883") {
-    return { ok: false, error: errorRpc.message };
+    return { ok: false, error: mensajeDeFallo(registrarFallo("admin-postulaciones", errorRpc)) };
   }
 
   // Sin la 0014: el camino de antes, en pasos sueltos. Si ya se aprobó antes,
@@ -188,7 +189,7 @@ export async function decidirPostulacion(
     .select("id, slug")
     .single();
 
-  if (errorProveedor) return { ok: false, error: errorProveedor.message };
+  if (errorProveedor) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-postulaciones", errorProveedor)) };
 
   let aviso: string | undefined;
 
@@ -230,7 +231,7 @@ export async function decidirPostulacion(
     })
     .eq("id", parsed.data.id);
 
-  if (errorCierre) return { ok: false, error: errorCierre.message };
+  if (errorCierre) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-postulaciones", errorCierre)) };
 
   // El proveedor aprobado aparece en la lista pública y en las cifras del home.
   revalidatePath("/", "layout");

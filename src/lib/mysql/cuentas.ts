@@ -173,6 +173,15 @@ export async function demasiadosRegistros(db: Kysely<BaseMysql>): Promise<boolea
  */
 export async function limpiarCuentas(db: Kysely<BaseMysql>): Promise<void> {
   await sql`delete from codigos where creado_at < now(6) - interval 2 day`.execute(db);
+  // Sesiones que ya no valen (las mismas condiciones que `leerSesion()`) y
+  // aparatos de confianza sin usar en un año, que es lo que dura su cookie. Antes
+  // solo se borraban si alguien volvía a presentar la cookie, y guardan el
+  // navegador de cada persona (auditoría del 2026-10-22).
+  await sql`
+    delete from sesiones
+     where vista_at < now(6) - interval ${INACTIVIDAD_HORAS} hour
+        or creada_at < now(6) - interval ${VIDA_MAXIMA_DIAS} day`.execute(db);
+  await sql`delete from trusted_devices where last_seen_at < now(6) - interval 1 year`.execute(db);
   await sql`
     delete from usuarios
      where correo_confirmado_at is null

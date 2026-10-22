@@ -18,6 +18,11 @@ describe("busquedaSinCamposSensibles", () => {
     expect(busquedaSinCamposSensibles("?PASSWORD=x")).toBe("");
   });
 
+  it("cubre los datos personales de la cesta y de /vender", () => {
+    expect(busquedaSinCamposSensibles("?name=Ana&phone=300&documento=123&direccion=Calle%201&ciudad=Tunja")).toBe("");
+    expect(busquedaSinCamposSensibles("?taxId=900&contactName=Ana&email=a")).toBe("");
+  });
+
   it("sin campos sensibles no toca nada, ni siquiera un correo suelto", () => {
     expect(busquedaSinCamposSensibles("")).toBeNull();
     expect(busquedaSinCamposSensibles("?q=cacao&tipo=experience")).toBeNull();

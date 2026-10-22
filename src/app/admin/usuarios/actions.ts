@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 
 /**
  * Roles y vínculos con empresas, desde la interfaz.
@@ -67,7 +68,7 @@ export async function cambiarRol(datos: unknown): Promise<ResultadoRol> {
     // Si el conteo falla, `count` es null y la comprobación de abajo diría
     // «es el único administrador», que es falso. Se informa el error real; el
     // trigger `user_roles_ultimo_admin` sigue siendo la barrera de verdad.
-    if (errorConteo) return { ok: false, error: errorConteo.message };
+    if (errorConteo) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-usuarios", errorConteo)) };
 
     if ((count ?? 0) <= 1) {
       return {
@@ -81,7 +82,7 @@ export async function cambiarRol(datos: unknown): Promise<ResultadoRol> {
     const { error } = await supabase
       .from("user_roles")
       .upsert({ user_id: userId, role }, { onConflict: "user_id,role", ignoreDuplicates: true });
-    if (error) return { ok: false, error: error.message };
+    if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-usuarios", error)) };
   } else {
     const { data, error } = await supabase
       .from("user_roles")
@@ -99,7 +100,7 @@ export async function cambiarRol(datos: unknown): Promise<ResultadoRol> {
           error: "Es el único administrador que queda. Nombra a otro antes de quitárselo.",
         };
       }
-      return { ok: false, error: error.message };
+      return { ok: false, error: mensajeDeFallo(registrarFallo("admin-usuarios", error)) };
     }
     // RLS no da error cuando niega: devuelve cero filas.
     if (!data || data.length === 0) {
@@ -145,7 +146,7 @@ export async function enlazarProveedor(datos: unknown): Promise<ResultadoRol> {
       { provider_id: parsed.data.providerId, user_id: parsed.data.userId, is_owner: true },
       { onConflict: "provider_id,user_id", ignoreDuplicates: true },
     );
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-usuarios", error)) };
 
   const { error: errorRol } = await supabase
     .from("user_roles")
@@ -153,7 +154,7 @@ export async function enlazarProveedor(datos: unknown): Promise<ResultadoRol> {
       { user_id: parsed.data.userId, role: "provider" },
       { onConflict: "user_id,role", ignoreDuplicates: true },
     );
-  if (errorRol) return { ok: false, error: errorRol.message };
+  if (errorRol) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-usuarios", errorRol)) };
 
   revalidatePath("/admin/usuarios");
   return { ok: true };
@@ -176,7 +177,7 @@ export async function desenlazarProveedor(datos: unknown): Promise<ResultadoRol>
     .eq("user_id", parsed.data.userId)
     .select("user_id");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-usuarios", error)) };
   if (!data || data.length === 0) {
     return { ok: false, error: "Ese vínculo ya no existía." };
   }

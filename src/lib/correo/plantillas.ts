@@ -367,6 +367,60 @@ export function correoBienvenida(d: { nombre: string; correo: string }): Mensaje
   };
 }
 
+/**
+ * La contraseña de la cuenta cambió (desde el 2026-10-22).
+ *
+ * Es la única señal que tiene el dueño si otro se la cambió: quien entra con el
+ * código de su correo puede ponerse una contraseña nueva sin saber la anterior
+ * (`src/lib/pase.ts`). Dice cuándo y desde qué aparato, y qué hacer si no fue él.
+ */
+export function correoClaveCambiada(d: {
+  nombre: string;
+  correo: string;
+  /** Lo que `describirDispositivo()` sabe del aparato: «Chrome en Windows». */
+  aparato: string;
+}): Mensaje {
+  const url = sitio();
+  const nombre = escapar(d.nombre.split(" ")[0] || d.nombre);
+  const cuando = new Intl.DateTimeFormat("es-CO", {
+    dateStyle: "long",
+    timeStyle: "short",
+    timeZone: "America/Bogota",
+  }).format(new Date());
+
+  const cuerpo =
+    seccion(
+      h1("Tu contraseña cambió") +
+        p(
+          `${nombre}, la contraseña de tu cuenta en Seregenera se cambió el ${escapar(cuando)} (hora de Colombia) desde ${escapar(d.aparato)}.`,
+        ) +
+        p("Cerramos las demás sesiones abiertas, y los otros dispositivos te volverán a pedir el código."),
+    ) +
+    separador() +
+    seccion(
+      p(
+        `Si no fuiste tú, entra con «Olvidé mi contraseña · Entrar con código», ponte una nueva y escríbenos a <a href="mailto:${CONTACTO.correo}" style="color:${VERDE};">${CONTACTO.correo}</a>.`,
+      ),
+    ) +
+    boton(`${url}/entrar`, "Ir a entrar");
+
+  return {
+    para: d.correo,
+    asunto: "Tu contraseña de Seregenera cambió",
+    html: envolver({ titulo: "Tu contraseña cambió", preencabezado: `Se cambió el ${cuando}`, cuerpo }),
+    texto: [
+      "Tu contraseña cambió",
+      "",
+      `La contraseña de tu cuenta en Seregenera se cambió el ${cuando} (hora de Colombia) desde ${d.aparato}.`,
+      "Cerramos las demás sesiones abiertas, y los otros dispositivos te volverán a pedir el código.",
+      "",
+      `Si no fuiste tú, entra con «Olvidé mi contraseña · Entrar con código» en ${url}/entrar, ponte una nueva y escríbenos a ${CONTACTO.correo}.`,
+      "",
+      "— Seregenera",
+    ].join("\n"),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Pedido recibido
 // ---------------------------------------------------------------------------

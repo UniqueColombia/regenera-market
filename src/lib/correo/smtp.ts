@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import type { EnviadorCorreo, Mensaje, ResultadoEnvio } from "./tipos";
+import { enmascarar, sinCorreos } from "../enmascarar";
 
 /**
  * Envío por SMTP.
@@ -102,16 +103,12 @@ export class EnviadorSmtp implements EnviadorCorreo {
       // Se registra el motivo y **nunca el mensaje**: lleva el nombre, el correo
       // y el teléfono de una persona, y los registros de Vercel los lee más
       // gente y viven más tiempo que la postulación.
-      const error = e instanceof Error ? e.message : String(e);
+      // El texto del servidor SMTP suele repetir la dirección («<ana@x.com>:
+      // Recipient address rejected»). Se enmascara aquí, que es de donde sale
+      // hacia los registros de quien lo reciba (auditoría del 2026-10-22).
+      const error = sinCorreos(e instanceof Error ? e.message : String(e));
       console.error(`[correo] envío fallido a ${enmascarar(mensaje.para)}: ${error}`);
       return { ok: false, via: this.nombre, error };
     }
   }
-}
-
-/** `alguien@dominio.com` → `al***@dominio.com`. Para poder buscar en el registro sin publicar la dirección. */
-function enmascarar(correo: string): string {
-  const [usuario, dominio] = correo.split("@");
-  if (!dominio) return "***";
-  return `${usuario.slice(0, 2)}***@${dominio}`;
 }
