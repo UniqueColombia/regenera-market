@@ -34,8 +34,10 @@ export default async function AdminLayout({
 }) {
   await requireAdmin();
 
+  // `translate="no"`: el traductor de Google manda a sus servidores el texto
+  // que traduce, y aquí hay correos, teléfonos y pedidos de otras personas.
   return (
-    <div className="container-page py-10">
+    <div translate="no" className="container-page py-10">
       <header>
         <p className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-brand-600">
           <ShieldCheck className="size-4" />

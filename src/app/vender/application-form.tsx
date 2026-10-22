@@ -303,7 +303,7 @@ export function ApplicationForm({
             type="email"
             autoComplete="email"
             defaultValue={conocidos.email}
-            ayuda="Al que le llegan los pedidos. Puede ser distinto del de tu cuenta."
+            ayuda="Al que le llegan los pedidos. Se muestra en la ficha pública de tu empresa: si no quieres publicar el tuyo, usa uno de la empresa."
             error={errors.email}
             required
           />
@@ -317,6 +317,7 @@ export function ApplicationForm({
             type="tel"
             autoComplete="tel"
             defaultValue={conocidos.phone}
+            ayuda="Se muestra en la ficha pública de tu empresa."
             error={errors.phone}
             required
           />

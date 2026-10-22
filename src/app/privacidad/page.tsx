@@ -228,15 +228,14 @@ export default function PrivacidadPage() {
         </li>
         <li>
           <strong>Supabase</strong> — guardó la base de datos, las cuentas y las
-          imágenes hasta el 17 de octubre de 2026, y conserva una copia de ese
-          día mientras la mantengamos como respaldo. Lo que hagas desde
-          entonces ya no llega ahí.
+          imágenes hasta el 17 de octubre de 2026. El 21 de octubre de 2026 se
+          borró ese proyecto con todo lo que tenía: ya no conserva nada tuyo.
         </li>
         <li>
-          <strong>Vercel</strong> — solo mientras mantengamos la copia de
-          respaldo del sitio en <code>regenera-market.vercel.app</code>, que
-          trabaja con esa copia de Supabase y no con el sitio principal. Si
-          entras por ahí, tus datos pasan por sus servidores.
+          <strong>Google</strong>, solo si eliges otro idioma en el selector de
+          la cabecera: el texto de la página que estás viendo se manda a Google
+          Translate para traducirlo. Tu cuenta, tus pedidos y los datos de tu
+          empresa no se traducen, para que no salgan por ahí.
         </li>
         <li>
           <strong>La transportadora</strong> que elija el proveedor para
@@ -365,6 +364,17 @@ export default function PrivacidadPage() {
               código de seis dígitos
             </td>
             <td>Un año, o hasta que lo retires desde tu cuenta</td>
+          </tr>
+          <tr>
+            <td>
+              <code>sgr_clave_ok</code>, <code>sgr_recuperacion</code>
+            </td>
+            <td>
+              Saber si el código que vas a escribir confirma tu contraseña o si
+              entraste solo con el código porque la olvidaste, para dejarte poner
+              una nueva
+            </td>
+            <td>20 y 30 minutos</td>
           </tr>
           <tr>
             <td>

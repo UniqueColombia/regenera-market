@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getUser, requireUser } from "@/lib/auth";
+import { enRecuperacion, getUser, requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getAlmacen, revisarImagen } from "@/lib/almacenamiento";
 import type { ResultadoImagenUI } from "@/components/selector-imagen";
@@ -12,11 +12,18 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { avisarAlVolver } from "@/lib/avisos";
 import { enviarCorreo } from "@/lib/correo";
-import { correoCuentaEliminada } from "@/lib/correo/plantillas";
+import { correoClaveCambiada, correoCuentaEliminada } from "@/lib/correo/plantillas";
 import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 import { cerrarVentanaDeActividad } from "@/lib/sesion";
 import { validarClave } from "@/lib/password";
-import { asegurarIdDispositivo, describirDispositivo, recordarDispositivo } from "@/lib/dispositivos";
+import {
+  asegurarIdDispositivo,
+  describirDispositivo,
+  hashDispositivo,
+  recordarDispositivo,
+} from "@/lib/dispositivos";
+import { PASE_RECUPERACION, quitarPase } from "@/lib/pase";
+import { dentroDelRitmo } from "@/lib/ritmo";
 
 /**
  * Lo que una persona puede hacer con su propia cuenta.
@@ -25,11 +32,25 @@ import { asegurarIdDispositivo, describirDispositivo, recordarDispositivo } from
  * poner o quitar su foto de perfil.
  */
 
+/** El mismo tope que `src/app/entrar/actions.ts`. */
+const MAX_CLAVE = 256;
+const DEMASIADO_LARGA = "La contraseña es demasiado larga";
+
+/**
+ * Cuántas veces se puede probar la contraseña actual con la sesión abierta:
+ * al cambiarla y al borrar la cuenta. Sin tope, quien encuentra una sesión
+ * abierta en un computador ajeno podía probar contraseñas sin fin, y cada prueba
+ * es un scrypt de 32 MB (auditoría del 2026-10-22).
+ */
+const PRUEBAS_DE_CLAVE = 5;
+const CUARTO_DE_HORA = 900;
+const DEMASIADAS_PRUEBAS = "Probaste la contraseña demasiadas veces. Espera un cuarto de hora.";
+
 const ClaveSchema = z
   .object({
-    actual: z.string().optional(),
-    password: z.string().min(1, "Escribe una contraseña"),
-    password2: z.string().min(1, "Repite la contraseña"),
+    actual: z.string().max(MAX_CLAVE, DEMASIADO_LARGA).optional(),
+    password: z.string().min(1, "Escribe una contraseña").max(MAX_CLAVE, DEMASIADO_LARGA),
+    password2: z.string().min(1, "Repite la contraseña").max(MAX_CLAVE, DEMASIADO_LARGA),
   })
   .refine((d) => d.password === d.password2, {
     path: ["password2"],
@@ -50,6 +71,15 @@ export type ResultadoClave =
  * —las cuentas viejas por código y las que crea un administrador— no tiene nada
  * que demostrar más allá de la sesión que acaba de abrir con el código.
  *
+ * **Salvo en una recuperación**: quien entró solo con el código de su correo a
+ * una cuenta con contraseña (la olvidó) trae un pase firmado que lo demuestra
+ * (`src/lib/pase.ts`) y se pone una nueva sin la actual. Hasta el 2026-10-22 no
+ * había forma de hacerlo.
+ *
+ * **Al guardarla** se cierran las demás sesiones (lo hace `updateUser`), se
+ * retira la confianza de los demás aparatos —que vuelven a pedir el código— y
+ * se avisa por correo. Si no fue el dueño, ese correo es su única señal.
+ *
  * `tiene_clave` en los metadatos es lo que después permite saber si hay
  * contraseña: Supabase no lo dice por ninguna otra vía. Ver `entrar/actions.ts`.
  */
@@ -67,8 +97,12 @@ export async function definirClave(datos: unknown): Promise<ResultadoClave> {
   }
 
   const yaTenia = user.user_metadata?.tiene_clave === true;
+  const recuperacion = yaTenia && (await enRecuperacion(user.id));
 
-  if (yaTenia) {
+  if (yaTenia && !recuperacion) {
+    if (!dentroDelRitmo(`clave-actual:${user.id}`, PRUEBAS_DE_CLAVE, CUARTO_DE_HORA)) {
+      return { ok: false, errors: { actual: DEMASIADAS_PRUEBAS } };
+    }
     if (!parsed.data.actual) {
       return { ok: false, errors: { actual: "Escribe tu contraseña actual" } };
     }
@@ -113,12 +147,30 @@ export async function definirClave(datos: unknown): Promise<ResultadoClave> {
 
   // El aparato desde el que alguien acaba de ponerse contraseña es, por
   // definición, uno en el que ya confía: llegó hasta aquí pasando el código.
-  await recordarDispositivo(
-    supabase,
-    user.id,
-    await asegurarIdDispositivo(),
-    await describirDispositivo(),
-  );
+  // Los demás dejan de serlo: si otro tenía la contraseña vieja y un aparato de
+  // confianza, ahora le vuelven a pedir el código.
+  const aparato = await asegurarIdDispositivo();
+  const etiqueta = await describirDispositivo();
+  await recordarDispositivo(supabase, user.id, aparato, etiqueta);
+  const { error: errorAparatos } = await supabase
+    .from("trusted_devices")
+    .delete()
+    .eq("user_id", user.id)
+    .neq("device_hash", hashDispositivo(aparato));
+  if (errorAparatos) registrarFallo("clave-aparatos", errorAparatos);
+  await quitarPase(PASE_RECUPERACION);
+
+  // Fuera del camino crítico, como el resto de correos: la clave ya cambió.
+  if (yaTenia && user.email) {
+    const correo = user.email;
+    const meta = user.user_metadata as { full_name?: string } | undefined;
+    after(async () => {
+      const envio = await enviarCorreo(
+        correoClaveCambiada({ nombre: meta?.full_name || correo.split("@")[0], correo, aparato: etiqueta }),
+      );
+      if (!envio.ok) console.error(`[clave-correo] no enviado (${envio.via})`);
+    });
+  }
 
   revalidatePath("/cuenta");
   return { ok: true };
@@ -240,7 +292,7 @@ async function escribirAvatar(
 }
 
 const BajaSchema = z.object({
-  clave: z.string().min(1, "Escribe tu contraseña"),
+  clave: z.string().min(1, "Escribe tu contraseña").max(MAX_CLAVE, DEMASIADO_LARGA),
   entiendo: z.literal("on", { error: "Marca la casilla para confirmar que entiendes lo que pasa" }),
 });
 
@@ -296,6 +348,9 @@ export async function eliminarMiCuenta(
     return { ok: false, errors };
   }
 
+  if (!dentroDelRitmo(`clave-actual:${user.id}`, PRUEBAS_DE_CLAVE, CUARTO_DE_HORA)) {
+    return { ok: false, errors: { clave: DEMASIADAS_PRUEBAS } };
+  }
   const efimero = createEphemeralClient();
   const { error: errorClave } = await efimero.auth.signInWithPassword({
     email: user.email,

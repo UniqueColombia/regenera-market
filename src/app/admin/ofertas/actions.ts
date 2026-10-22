@@ -190,7 +190,7 @@ export async function cambiarEstadoOferta(datos: unknown): Promise<
   if (version !== undefined) consulta = consulta.eq("version", version);
   const { data, error } = await consulta.select("id");
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ofertas", error)) };
   if (!data || data.length === 0) {
     const { data: actual, error: errorActual } = await supabase
       .from("listings")
@@ -198,7 +198,7 @@ export async function cambiarEstadoOferta(datos: unknown): Promise<
       .eq("id", id)
       .maybeSingle();
     // Una lectura fallida no es «ya no eres administrador»: se dice lo que pasó.
-    if (errorActual) return { ok: false, error: errorActual.message };
+    if (errorActual) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ofertas", errorActual)) };
     if (!actual) {
       return { ok: false, error: "No se pudo actualizar. ¿Sigues siendo administrador?" };
     }

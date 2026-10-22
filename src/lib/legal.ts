@@ -48,7 +48,7 @@ export const CONTACTO = {
  * describen el envío, el pago y cuándo se le paga al proveedor.
  */
 export const VIGENCIA_TERMINOS = "2026-10-17";
-export const VIGENCIA_PRIVACIDAD = "2026-10-17";
+export const VIGENCIA_PRIVACIDAD = "2026-10-22";
 
 /**
  * Cuántos días hábiles tiene quien compró, desde que el pedido queda
