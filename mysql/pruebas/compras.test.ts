@@ -117,6 +117,29 @@ describe.skipIf(!HAY_MYSQL)("comprar en el modo MySQL", () => {
     expect((await comprar(await crearPersona(), [{ listing_id: oferta.id, qty: 1 }])).error?.message).toBe("falta-fecha");
   });
 
+  it("sin fechas abiertas, quien compra elige el día; nunca uno pasado (2026-10-22)", async () => {
+    const oferta = await crearOferta(await crearEmpresa(), { kind: "experience" });
+    const dia = (n: number) => new Date(Date.now() - 5 * 3600000 + n * 86400000).toISOString().slice(0, 10);
+    const sinDestino = { _departamento: null, _ciudad: null, _direccion: null };
+    const ok = await comprar(await crearPersona(), [{ listing_id: oferta.id, qty: 3, date: dia(20) }], sinDestino);
+    expect(ok.error).toBeNull();
+    const orden = await ordenPorReferencia((ok.data as { reference: string }).reference);
+    expect(String(orden.order_items[0].date).slice(0, 10)).toBe(dia(20));
+    expect(orden.order_items[0].cupo_descontado).toBeFalsy();
+
+    const pasada = await comprar(await crearPersona(), [{ listing_id: oferta.id, qty: 1, date: dia(-1) }], sinDestino);
+    expect(pasada.error).toMatchObject({ message: "fecha-pasada", hint: oferta.title });
+    const rara = await comprar(await crearPersona(), [{ listing_id: oferta.id, qty: 1, date: "2026-02-30" }], sinDestino);
+    expect(rara.error?.message).toBe("cesta-invalida");
+
+    // Con fechas abiertas, una que ya pasó tampoco se vende aunque le quede cupo.
+    const fija = await crearOferta(await crearEmpresa(), { kind: "experience" });
+    await servicio().from("listing_availability").insert({ listing_id: fija.id, date: dia(-2), slots_total: 5 });
+    const vieja = await comprar(await crearPersona(), [{ listing_id: fija.id, qty: 1, date: dia(-2) }], sinDestino);
+    expect(vieja.error?.message).toBe("fecha-pasada");
+    expect((await servicio().from("listing_availability").select("slots_taken").eq("listing_id", fija.id).single()).data).toEqual({ slots_taken: 0 });
+  });
+
   it("cancelar devuelve el stock; reabrir lo vuelve a tomar; y no se salta de estado", async () => {
     const oferta = await crearOferta(await crearEmpresa(), { stock: 4 });
     const r = await comprar(await crearPersona(), [{ listing_id: oferta.id, qty: 3 }]);

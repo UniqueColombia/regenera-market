@@ -15,7 +15,15 @@ import {
   filaDeOferta,
   reglasDeOferta,
 } from "@/lib/ofertas";
-import { enviosPorZonaDisponible, logisticaDisponible } from "@/lib/repo";
+import { hoyEnBogota } from "@/lib/envios";
+import { escribirFechas, revisarPlan, type ResultadoGuardarFechas } from "@/lib/fechas";
+import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
+import {
+  enviosPorZonaDisponible,
+  getFechasDeOferta,
+  getListingByIdForAdmin,
+  logisticaDisponible,
+} from "@/lib/repo";
 
 /**
  * Crear y editar ofertas: el CRUD que convierte esto en algo operable.
@@ -213,6 +221,36 @@ export async function cambiarEstadoOferta(datos: unknown): Promise<
   }
 
   return { ok: true };
+}
+
+/**
+ * Las fechas y los cupos de una experiencia, desde el panel. Es la misma
+ * escritura que `guardarFechasDeEmpresa()`; aquí autoriza `availability_admin`.
+ */
+export async function guardarFechas(
+  listingId: string,
+  plan: unknown,
+): Promise<ResultadoGuardarFechas> {
+  await requireAdmin();
+  const oferta = typeof listingId === "string" ? await getListingByIdForAdmin(listingId) : undefined;
+  if (!oferta) return { ok: false, errores: ["No encontramos esa oferta."] };
+  if (oferta.kind !== "experience") {
+    return { ok: false, errores: ["Solo las experiencias tienen fechas. Guarda primero el tipo."] };
+  }
+
+  const hoy = hoyEnBogota();
+  const revisado = revisarPlan(plan, hoy);
+  if (!revisado.ok) return revisado;
+
+  try {
+    const r = await escribirFechas(await createClient(), oferta.id, revisado.plan, hoy);
+    revalidatePath(`/oferta/${oferta.slug}`);
+    revalidatePath(`/admin/ofertas/${oferta.id}`);
+    return { ...r, fechas: await getFechasDeOferta(oferta.id) };
+  } catch (e) {
+    const codigo = registrarFallo("fechas-admin", e);
+    return { ok: false, errores: [mensajeDeFallo(codigo)] };
+  }
 }
 
 /**

@@ -1095,9 +1095,11 @@ La plataforma ya hace lo que tenía que hacer. El siguiente paso no es código:
 - **`/admin/evaluaciones`** — la quinta pantalla de `docs/BETA.md`. Las
   evaluaciones de sostenibilidad se siguen aprobando por SQL. No bloquea la beta
   mientras ningún proveedor haya llenado el cuestionario, que es hoy.
-- **Las fechas con cupo de una experiencia** (`listing_availability`) solo se
+- ~~**Las fechas con cupo de una experiencia** (`listing_availability`) solo se
   siembran con el script. Una experiencia creada desde el panel se puede comprar
-  sin fecha.
+  sin fecha.~~ **Resuelto el 2026-10-22 (`v0.13.0`):** la empresa y el panel
+  eligen, debajo del formulario, entre fechas fijas con cupo o que quien
+  reserva elija el día ([hito](../.claude/hitos/2026-10-22-fechas-de-experiencias.md)).
 - **Subir imágenes**: el formulario pide direcciones de texto. Estaba fuera de la
   beta a propósito, pero es lo primero que va a pedir un proveedor real.
 - **Los dos secretos del latido** (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) los tiene

@@ -157,10 +157,16 @@ export interface Listing {
     meetingPoint?: string;
     includes: string[];
     /**
-     * Fechas ISO con cupo disponible. Vacía = se reserva sin fecha, que es lo
-     * que acepta `crear_orden()` mientras no haya cupos cargados.
+     * Fechas ISO abiertas, de hoy en adelante, con lo que queda de cupo.
      */
     availability: { date: string; slotsLeft: number }[];
+    /**
+     * ¿Las fechas las abre quien la organiza? Si no, la persona elige el día.
+     * Ver `src/lib/fechas.ts`. Puede ser `true` con `availability` vacía: las
+     * fechas abiertas ya pasaron y todavía no hay nuevas. Sin el dato (la
+     * semilla de `src/data/`), lo dice `availability`.
+     */
+    fechasPropias?: boolean;
   };
 
   /** Solo para kind === "service" */

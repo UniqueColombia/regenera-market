@@ -145,6 +145,10 @@ function explicar(motivo: MotivoRechazo, oferta?: string): Record<string, string
       return { form: `No quedan unidades suficientes de ${cual}. Baja la cantidad o escríbenos.` };
     case "falta-fecha":
       return { form: `Elige una fecha para ${cual} antes de confirmar.` };
+    case "fecha-pasada":
+      return {
+        form: `La fecha que elegiste para ${cual} ya pasó. Quítala de la cesta y elige otra en su ficha.`,
+      };
     case "nada-comprable":
       return { form: "No hay nada comprable en la cesta." };
     case "empresa-ajena":

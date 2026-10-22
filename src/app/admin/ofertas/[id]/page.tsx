@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import { guardarOferta, subirImagenDeOfertaAdmin } from "../actions";
+import { guardarFechas, guardarOferta, subirImagenDeOfertaAdmin } from "../actions";
+import { FechasDeExperiencia } from "@/components/fechas-de-experiencia";
 import { FormularioOferta } from "@/components/formulario-oferta";
 import {
   enviosPorZonaDisponible,
+  getFechasDeOferta,
   getListingByIdForAdmin,
   getProvidersForReview,
   logisticaDisponible,
@@ -65,6 +67,13 @@ export default async function EditarOfertaPage(
           aprobado: p.status === "approved",
         }))}
       />
+
+      {oferta.kind === "experience" && (
+        <FechasDeExperiencia
+          inicial={await getFechasDeOferta(oferta.id)}
+          guardar={guardarFechas.bind(null, oferta.id)}
+        />
+      )}
     </div>
   );
 }

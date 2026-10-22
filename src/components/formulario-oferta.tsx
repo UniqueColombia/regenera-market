@@ -909,20 +909,20 @@ export function FormularioOferta({
                 </Campo>
 
                 <p className="rounded-xl bg-clay-100 p-3 text-sm text-clay-700">
-                  {esEmpresa ? (
+                  {oferta?.kind === "experience" ? (
                     <>
-                      Las <strong className="font-semibold">fechas con cupo</strong>{" "}
-                      las cargamos nosotros al revisar tu experiencia: escríbenos cuáles
-                      quieres abrir y para cuántas personas. Hasta entonces se puede
-                      reservar sin fecha.
+                      Las <strong className="font-semibold">fechas y los cupos</strong>{" "}
+                      se eligen{" "}
+                      <a href="#fechas" className="font-medium underline underline-offset-2">
+                        más abajo
+                      </a>
+                      , con su propio botón de guardar.
                     </>
                   ) : (
                     <>
-                      Las <strong className="font-semibold">fechas con cupo</strong>{" "}
-                      todavía no se editan desde aquí: viven en la tabla{" "}
-                      <code>listing_availability</code> y hoy se siembran con el script.
-                      Mientras no exista esa pantalla, una experiencia nueva se puede
-                      comprar sin fecha.
+                      Cuando la guardes, eliges quién pone la fecha: abres tú
+                      fechas con cupo, o cada persona elige el día que la
+                      necesita.
                     </>
                   )}
                 </p>
