@@ -26,7 +26,7 @@ razones de cada decisión están en los hitos `2026-10-17-experimento-mysql-*`,
 | `src/lib/mysql/postgrest/rpc.ts` | Las 17 funciones de Postgres que llama la app, traducidas de plpgsql | A mano, **gemelas de Postgres** |
 | `src/lib/mysql/cuentas.ts` | Cuentas, contraseñas, códigos y sesiones | A mano |
 | `src/lib/almacen-disco.ts` y `src/app/archivos/[...ruta]/route.ts` | Las fotos en disco, servidas por `/archivos/…` | A mano |
-| `mysql/cuentas.sql` | `usuarios`, `sesiones`, `codigos` | A mano |
+| `mysql/cuentas.sql` | `usuarios`, `sesiones`, `codigos` e `intentos_fallidos` (desde el 2026-10-22) | A mano |
 | `mysql/esquema.sql` y `src/lib/mysql/modelo.ts` | Las 25 tablas, sus llaves y las 58 políticas, traducidas | **Generados** por `scripts/mysql/generar-esquema.mts`; no se tocan |
 | `mysql/logica.sql` | Las funciones y los 25 triggers de Postgres, traducidos | A mano, **gemelos de Postgres** |
 | `scripts/mysql/copiar-datos.mts` | Copia todo de Supabase a MySQL (sin tocar Supabase) | — |
@@ -167,8 +167,10 @@ gestor a `~/.ssh/` (o a las rutas de `RESPALDOS_LLAVE` y
 copias hechas con la anterior solo las abre la anterior.
 
 `probar` es el simulacro: conviene correrlo una vez al mes y antes de cualquier
-cambio grande. Descifra en el servidor con la llave mandada por SSH a un
-temporal que se borra al terminar. `bajar`, cada semana: las del servidor
+cambio grande. Desde el 2026-10-22 **descifra en el PC**: baja las dos copias
+cifradas, las abre aquí y manda al servidor solo el SQL, por la entrada
+estándar, a una base temporal; la llave privada no sale del PC (antes viajaba a
+un temporal del servidor). `bajar`, cada semana: las del servidor
 sirven contra un error, no contra perder la cuenta de hosting. La salida del
 cron la da la API (`hosting_cron-jobs_output`); sin certificado, `respaldar.sh`
 se niega en vez de dejar una copia en claro.
@@ -238,6 +240,24 @@ con el mismo `mariadb` de arriba. `scripts/crear-admin.mts` habla con Supabase.
   un error. La app hoy no lo ofrece.
 - **Los enlaces PKCE de Supabase** (`?code=`) no sirven; los correos de este modo
   traen `token_hash`, como las plantillas.
+
+## Cambiar el esquema de producción
+
+Desde el 2026-10-22 hay un camino escrito:
+
+1. El cambio va en `mysql/esquema.sql` o `mysql/cuentas.sql` (para una base
+   nueva y para las pruebas), a mano también en `src/lib/mysql/modelo.ts` si es
+   una columna, y en un archivo **idempotente** de `mysql/cambios/` para la base
+   que ya existe (`add column if not exists`, `create table if not exists`).
+2. Si toca funciones o triggers, en `mysql/logica.sql`.
+3. `npm run test:mysql` en el CI, en verde.
+4. **Antes de desplegar el código que lo usa**: subir por `scp` el cambio,
+   `logica.sql` y `scripts/servidor/aplicar-sql.mjs` a una carpeta temporal
+   fuera de `domains/`, y en el servidor
+   `node aplicar-sql.mjs <carpeta de la app con node_modules> cambio.sql logica.sql`.
+   Lista los DEFINER al final: tienen que ser todos el usuario de la app. Borrar
+   la carpeta temporal.
+5. Desplegar.
 
 ## Mientras convivan los dos
 

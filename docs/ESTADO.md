@@ -8,7 +8,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
   correo, y **el 2026-10-17** en correos, legales, envíos, pagos y la base de
   datos (los tres primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.13.4`, desde el 2026-10-22) con la skill `desplegar-hostinger`;
+  desplegado **por tag** (hoy `v0.14.0`, desde el 2026-10-22) con la skill `desplegar-hostinger`;
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
   2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
   el primer recuadro). **Supabase y Vercel ya no son parte de producción**
@@ -28,12 +28,14 @@ qué hacer, empieza aquí y no en el ROADMAP.
 > recuperación de contraseña, el aviso al cambiarla, topes, el traductor fuera
 > de las páginas privadas y la política de privacidad al día.
 >
-> **Queda abierto**, con el detalle en `outputs/auditoria-2026-10-22.md` (fuera
-> de git: el repo es público), por prioridad: reservas de pedidos sin pago,
-> límites de acceso guardados en la base, verificación de empresas, envíos de
-> correo a terceros, cuota de disco, autobeneficio con cuentas propias, CSP con
-> nonce, las copias de seguridad (`probar` y copias viejas) y el enlace del
-> correo. Los primeros necesitan una decisión de producto.
+> **Los nueve pendientes, resueltos en `v0.14.0`**
+> ([hito](../.claude/hitos/2026-10-22-auditoria-pendientes-resueltos.md)),
+> tomando como referencia a MercadoLibre, Amazon, Shopify y Slack: topes a lo
+> que se aparta sin pagar, bloqueos de acceso guardados en la base, empresas
+> verificadas por el equipo, correos solo a direcciones verificadas, cuota de
+> fotos, puntos solo de compradores que cuentan, CSP con nonce, copias que se
+> descifran en el PC y enlaces del correo con botón. Quedan dos mejoras
+> anotadas en el hito (captcha, `img-src`). El token de Supabase ya se revocó.
 
 > ## 🟠 Pendiente para el PC de la casa (2026-10-20): copias cifradas y lo que queda de la auditoría
 >

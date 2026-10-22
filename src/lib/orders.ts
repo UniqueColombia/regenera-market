@@ -218,7 +218,11 @@ export type MotivoRechazo =
   /** Desde la 0016: una de las ofertas es de una empresa que gestiona quien compra. */
   | "compra-propia"
   /** Desde el 2026-10-22: la fecha de una experiencia ya pasó. */
-  | "fecha-pasada";
+  | "fecha-pasada"
+  /** Desde el 2026-10-22: más de la mitad de lo que queda, y más de 20 unidades. */
+  | "cantidad-maxima"
+  /** Desde el 2026-10-22: demasiadas ofertas apartadas en pedidos sin pagar. */
+  | "demasiadas-reservas";
 
 const MOTIVOS: readonly MotivoRechazo[] = [
   "sin-sesion",
@@ -236,6 +240,8 @@ const MOTIVOS: readonly MotivoRechazo[] = [
   "falta-destino",
   "compra-propia",
   "fecha-pasada",
+  "cantidad-maxima",
+  "demasiadas-reservas",
 ];
 
 export type ResultadoCrearOrden =

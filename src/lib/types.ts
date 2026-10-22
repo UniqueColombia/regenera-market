@@ -75,6 +75,13 @@ export interface Provider {
   experiencePoints: number;
   /** ¿Pasó la evaluación de sostenibilidad? Es un sello aparte del nivel. */
   evaluacionVerificada: boolean;
+  /**
+   * ¿Comprobó el equipo su documento tributario? Desde el 2026-10-22, como las
+   * tiendas oficiales de MercadoLibre: publicar es inmediato, pero el sello de
+   * «empresa verificada» y firmar en la Comunidad a su nombre llegan después de
+   * comprobarlo. Sin el dato (la semilla de `src/data/`), sin verificar.
+   */
+  documentoVerificado?: boolean;
   /** Códigos de certificaciones reconocidas y verificadas por un admin */
   certifications: string[];
   foundedYear?: number;

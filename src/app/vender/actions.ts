@@ -410,14 +410,22 @@ async function postular(form: unknown): Promise<ResultadoPostulacion> {
    */
   // Una postulación repetida ya mandó su correo con el primer envío: se
   // responde como si hubiera salido, que es lo que pasó.
+  //
+  // **Va al correo de la cuenta, nunca al que se escribió en el formulario**
+  // (auditoría del 2026-10-22). Antes salía a `d.email`, cualquier dirección,
+  // con el nombre de empresa y de contacto que escribiera quien llenaba el
+  // formulario: un guion lo usaba para mandar texto suyo desde
+  // info@seregenera.com a quien quisiera. Como MercadoLibre o Airbnb, los
+  // correos automáticos solo van a una dirección verificada. Sin cuenta no sale
+  // ninguno, y la pantalla no lo promete (`correoEnviado`).
   let correoEnviado = Boolean(resultado.repetida);
-  if (!resultado.repetida) {
+  if (!resultado.repetida && usuario?.email) {
     try {
       const envio = await enviarCorreo(
         correoPostulacionRecibida({
           empresa: d.name,
           contacto: d.contactName,
-          correo: d.email,
+          correo: usuario.email,
           activada,
           slug: resultado.provider_slug,
         }),

@@ -64,18 +64,52 @@ function origenPublico(request: NextRequest): string {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? request.nextUrl.origin).replace(/\/$/, "");
 }
 
+/**
+ * Abrir el enlace **no** abre la sesión: lleva a `/entrar/enlace`, que muestra un
+ * botón «Entrar» que hace POST aquí (desde el 2026-10-22).
+ *
+ * Como los enlaces mágicos de Slack o de Notion, por dos razones:
+ *
+ * - El escáner de enlaces de un correo corporativo o de un antivirus abre cada
+ *   enlace por GET. Con el canje en el GET, gastaba el enlace —la persona
+ *   llegaba a «enlace vencido»— o se quedaba él con la sesión.
+ * - Un enlace de **otra** persona, mandado a propósito, metía a quien lo abría en
+ *   la cuenta ajena sin que se diera cuenta (login CSRF). El POST exige que el
+ *   formulario venga de este mismo sitio.
+ */
 export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
   const origin = origenPublico(request);
-  const next = searchParams.get("next") ?? "/";
+  const { searchParams } = request.nextUrl;
+  if (!searchParams.get("token_hash") && !searchParams.get("code")) {
+    return NextResponse.redirect(`${origin}/entrar?error=sin-codigo`, 303);
+  }
+  return NextResponse.redirect(`${origin}/entrar/enlace?${searchParams.toString()}`, 303);
+}
+
+export async function POST(request: NextRequest) {
+  const origin = origenPublico(request);
+
+  // Solo un formulario de este sitio. Las acciones de servidor traen esta
+  // comprobación de Next; una ruta propia la tiene que hacer ella.
+  const origen = request.headers.get("origin");
+  if (!origen || origen.replace(/\/$/, "") !== origin) {
+    return NextResponse.redirect(`${origin}/entrar?error=codigo-invalido`, 303);
+  }
+
+  const form = await request.formData();
+  const leer = (k: string) => {
+    const v = form.get(k);
+    return typeof v === "string" && v ? v : null;
+  };
+  const next = leer("next") ?? "/";
   const destino = next.startsWith("/") && !next.startsWith("//") ? next : "/";
 
-  const tokenHash = searchParams.get("token_hash");
-  const tipo = searchParams.get("type");
-  const code = searchParams.get("code");
+  const tokenHash = leer("token_hash");
+  const tipo = leer("type");
+  const code = leer("code");
 
   if (!tokenHash && !code) {
-    return NextResponse.redirect(`${origin}/entrar?error=sin-codigo`);
+    return NextResponse.redirect(`${origin}/entrar?error=sin-codigo`, 303);
   }
 
   const supabase = await createClient();
@@ -92,7 +126,7 @@ export async function GET(request: NextRequest) {
     : await supabase.auth.exchangeCodeForSession(code!);
 
   if (error) {
-    return NextResponse.redirect(`${origin}/entrar?error=codigo-invalido`);
+    return NextResponse.redirect(`${origin}/entrar?error=codigo-invalido`, 303);
   }
 
   // Aquí acaba de nacer una sesión, así que arranca su reloj de inactividad. Es
@@ -106,7 +140,7 @@ export async function GET(request: NextRequest) {
   // escribe nada y el corte hace su trabajo.
   const usuario = data.user ?? data.session?.user;
   if (!usuario) {
-    return NextResponse.redirect(`${origin}/entrar?error=codigo-invalido`);
+    return NextResponse.redirect(`${origin}/entrar?error=codigo-invalido`, 303);
   }
   await abrirVentanaDeActividad(usuario.id);
   await avisarAlVolver("entrada");
@@ -114,8 +148,9 @@ export async function GET(request: NextRequest) {
   // El enlace es un código como el del formulario: si la cuenta tiene contraseña
   // y no se demostró antes, es una recuperación (`src/lib/pase.ts`).
   if (await cerrarPasoDelCodigo(usuario)) {
-    return NextResponse.redirect(`${origin}/cuenta/clave?volver=${encodeURIComponent(destino)}`);
+    return NextResponse.redirect(`${origin}/cuenta/clave?volver=${encodeURIComponent(destino)}`, 303);
   }
 
-  return NextResponse.redirect(`${origin}${destino}`);
+  // 303 y no 307: después de un POST, el navegador pide el destino por GET.
+  return NextResponse.redirect(`${origin}${destino}`, 303);
 }

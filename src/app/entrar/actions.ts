@@ -335,8 +335,12 @@ export async function entrarConClave(datos: unknown): Promise<ResultadoAcceso> {
   const parsed = AccesoSchema.safeParse(datos);
   if (!parsed.success) return { ok: false, errors: errores(parsed.error) };
 
+  // Por buzón solo cuenta la base, y solo los fallos (`FALLOS` de
+  // `src/lib/mysql/cuentas.ts`): aquí el tope por buzón contaba también los
+  // aciertos, y ocho peticiones cada cuarto de hora dejaban a cualquiera sin
+  // poder entrar (auditoría del 2026-10-22). Aquí queda el de la IP.
   if (!(await cabeUnIntento(
-    "clave", parsed.data.email, INTENTOS_POR_IP, INTENTOS_POR_BUZON, CUARTO_DE_HORA))) {
+    "clave", parsed.data.email, INTENTOS_POR_IP, Number.MAX_SAFE_INTEGER, CUARTO_DE_HORA))) {
     return { ok: false, errors: DEMASIADOS };
   }
 
@@ -345,6 +349,13 @@ export async function entrarConClave(datos: unknown): Promise<ResultadoAcceso> {
     email: parsed.data.email,
     password: parsed.data.password,
   });
+
+  if (error?.status === 429) {
+    return {
+      ok: false,
+      errors: { form: "Demasiados intentos fallidos con ese correo. Espera un cuarto de hora o entra con código." },
+    };
+  }
 
   if (error || !data.session || !data.user) {
     // Un solo mensaje para «no existe» y «clave equivocada». Decir cuál de las

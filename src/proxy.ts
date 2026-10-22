@@ -12,6 +12,10 @@ import {
   tocaRefrescar,
 } from "@/lib/inactividad";
 import { busquedaSinCamposSensibles } from "@/lib/url-sensible";
+import { conNonce, nonceNuevo, politicaDeContenido } from "@/lib/csp";
+
+/** Le pone a las cabeceras de una petición el nonce de la CSP (`src/lib/csp.ts`). */
+type ConNonce = (cabeceras: Headers) => Headers;
 
 /**
  * Refresco de la sesión en cada petición, y su caducidad por inactividad.
@@ -64,14 +68,24 @@ export async function proxy(request: NextRequest) {
   const canonica = redireccionCanonica(request);
   if (canonica) return canonica;
 
+  // La CSP con nonce (`src/lib/csp.ts`): uno nuevo por petición, en la
+  // petición —de ahí lo saca Next para sus scripts— y en la respuesta.
+  const nonce = nonceNuevo();
+  const politica = politicaDeContenido({ nonce, produccion: process.env.NODE_ENV === "production" });
+  const respuesta = await atender(request, (cabeceras) => conNonce(cabeceras, nonce, politica));
+  respuesta.headers.set("Content-Security-Policy", politica);
+  return respuesta;
+}
+
+async function atender(request: NextRequest, cabeceras: ConNonce): Promise<NextResponse> {
   // Modo MySQL (`src/lib/modo.ts`): sin token que refrescar; la sesión la valida la base.
-  if (modoMysql()) return proxyMysql(request);
+  if (modoMysql()) return proxyMysql(request, cabeceras);
   const config = getSupabaseConfig();
-  if (!config) return NextResponse.next();
+  if (!config) return NextResponse.next({ request: { headers: cabeceras(request.headers) } });
 
   const sesion = cookiesDeSesion(request);
 
-  let response = NextResponse.next({ request: { headers: request.headers } });
+  let response = NextResponse.next({ request: { headers: cabeceras(request.headers) } });
 
   const supabase = createServerClient(config.url, config.anonKey, {
     cookies: {
@@ -82,7 +96,7 @@ export async function proxy(request: NextRequest) {
         for (const { name, value } of cookiesToSet) {
           request.cookies.set(name, value);
         }
-        response = NextResponse.next({ request: { headers: request.headers } });
+        response = NextResponse.next({ request: { headers: cabeceras(request.headers) } });
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
         }
@@ -102,7 +116,7 @@ export async function proxy(request: NextRequest) {
   let actividad: Actividad | null = null;
   if (sesion.length > 0) {
     actividad = await leerActividad(request.cookies.get(COOKIE_ACTIVIDAD)?.value);
-    if (!actividad) return cerrarPorInactividad(request, config);
+    if (!actividad) return cerrarPorInactividad(request, config, cabeceras);
   }
 
   // Entre crear el cliente y este getUser() no va NADA que pueda retornar antes.
@@ -125,7 +139,7 @@ export async function proxy(request: NextRequest) {
     // Si `getUser()` no devuelve usuario no se compara nada: no hay sesión que
     // proteger, y cerrar aquí solo serviría para dar una vuelta de más.
     if (user && user.id !== actividad.sujeto) {
-      return cerrarPorInactividad(request, config);
+      return cerrarPorInactividad(request, config, cabeceras);
     }
 
     // Se reescribe con holgura, no en cada petición: una respuesta con
@@ -215,6 +229,7 @@ function opcionesActividad(request: NextRequest) {
 function cerrarPorInactividad(
   request: NextRequest,
   config: { url: string; anonKey: string },
+  cabeceras: ConNonce,
 ): Promise<NextResponse> {
   // Se vuelven a leer aquí y no se reciben de fuera: entre la comprobación y
   // esta llamada puede haber corrido un refresco de token, que reescribe las
@@ -249,7 +264,7 @@ function cerrarPorInactividad(
 
   const salida = navegando
     ? NextResponse.redirect(destino)
-    : NextResponse.next({ request: { headers: request.headers } });
+    : NextResponse.next({ request: { headers: cabeceras(request.headers) } });
 
   // `maxAge: 0` y no `delete()`: las cookies de Supabase se escribieron con
   // `path: "/"`, y un borrado sin ruta no siempre alcanza a la misma cookie.

@@ -40,9 +40,10 @@
  */
 import { spawnSync } from "node:child_process";
 import { randomInt } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
-import { homedir } from "node:os";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 
 const DOMINIO = "seregenera.com";
 const API = "https://developers.hostinger.com/api/hosting/v1";
@@ -179,53 +180,98 @@ async function instalar(usuario: string): Promise<number> {
   return 0;
 }
 
+/** Solo nombres que este script escribe: nada de `/`, `..` ni espacios (auditoría del 2026-10-22). */
+const NOMBRE_DE_COPIA = /^(base|fotos)-\d{4}-\d{2}-\d{2}\.(sql|tar)\.gz\.cms$/;
+
+/** Baja por scp un archivo de `~/respaldos` a `carpeta`, conservando la fecha. */
+function bajarArchivo(usuario: string, nombre: string, carpeta: string): boolean {
+  const r = spawnSync(
+    "scp",
+    [
+      "-p",
+      "-P", process.env.HOSTINGER_SSH_PORT ?? "65002",
+      "-i", process.env.HOSTINGER_SSH_KEY ?? join(homedir(), ".ssh", "seregenera_hostinger"),
+      "-o", "BatchMode=yes",
+      `${usuario}@${process.env.HOSTINGER_SSH_HOST}:respaldos/${nombre}`,
+      nombre,
+    ],
+    { cwd: carpeta, stdio: "inherit" },
+  );
+  return r.status === 0;
+}
+
 /**
  * Restaura la última copia en una base temporal creada para esto, compara las
  * filas con producción y borra la base. Los conteos pueden diferir en lo que se
  * escribió después de la copia (las visitas de `page_views`, sobre todo): lo que
  * se prueba es que la copia **se restaura entera** —tablas, filas, rutinas,
  * triggers y vistas—, no que coincida al segundo.
+ *
+ * **La llave privada no sale de este PC** (desde el 2026-10-22). Antes viajaba
+ * al servidor en un temporal que solo se borraba si la conexión no se cortaba, y
+ * eso rompía la promesa de `respaldar.sh`: en el servidor solo está el
+ * certificado. Ahora las copias cifradas bajan, se descifran aquí, y al servidor
+ * llega el SQL ya en claro por la entrada estándar, directo a la base temporal.
+ * Los descifrados del PC se borran al terminar, pase lo que pase.
  */
 async function probar(usuario: string): Promise<number> {
   const problema = comprobarPareja();
   if (problema) return fallo(problema);
-  const pem = readFileSync(LLAVE, "utf8").replace(/\r\n/g, "\n").trim();
+
+  const lista = ssh(usuario, "cd ~/respaldos && ls -1");
+  const nombres = lista.salida.split("\n").map((l) => l.trim()).filter((n) => NOMBRE_DE_COPIA.test(n)).sort();
+  const base = nombres.filter((n) => n.startsWith("base-")).at(-1);
+  const fotos = nombres.filter((n) => n.startsWith("fotos-")).at(-1);
+  if (!base || !fotos) return fallo("no hay copias cifradas en ~/respaldos: corre primero «instalar»");
 
   const nombre = `${usuario}_restauracion`;
   const grupos = ["ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghijkmnopqrstuvwxyz", "23456789"];
   const c = grupos.map((g) => g[randomInt(g.length)]);
   while (c.length < 28) c.push(grupos.join("")[randomInt(grupos.join("").length)]);
   const clave = c.sort(() => randomInt(3) - 1).join("");
+  const temporal = mkdtempSync(join(tmpdir(), "seregenera-probar-"));
+
+  paso(`Bajando ${base} y ${fotos}`);
+  if (!bajarArchivo(usuario, base, temporal) || !bajarArchivo(usuario, fotos, temporal)) {
+    rmSync(temporal, { recursive: true, force: true });
+    return fallo("no bajaron las copias");
+  }
 
   paso(`Base temporal ${nombre}`);
   const creada = await api(`/accounts/${usuario}/databases`, {
     method: "POST",
     body: JSON.stringify({ name: nombre, user: nombre, password: clave, website_domain: DOMINIO }),
   });
-  if (creada.status >= 300) return fallo(`no se pudo crear (${creada.status}): ${JSON.stringify(creada.cuerpo).replaceAll(clave, "***").slice(0, 300)}`);
+  if (creada.status >= 300) {
+    rmSync(temporal, { recursive: true, force: true });
+    return fallo(`no se pudo crear (${creada.status}): ${JSON.stringify(creada.cuerpo).replaceAll(clave, "***").slice(0, 300)}`);
+  }
 
   try {
-    paso("Descifrando y restaurando la última copia, y comparando");
-    // Todo por la entrada estándar: ni la clave temporal ni la llave privada
-    // aparecen en ninguna línea de comando. La llave se escribe en un temporal
-    // con permisos 600 que el `trap` borra pase lo que pase. Las cláusulas
-    // DEFINER se quitan porque la base temporal tiene otro usuario; restaurando
-    // en producción, con su propio usuario, no hace falta.
+    paso("Descifrando aquí, restaurando allá y comparando");
+    const sqlGz = join(temporal, "base.sql.gz");
+    const tarGz = join(temporal, "fotos.tar.gz");
+    for (const [entra, sale] of [[join(temporal, base), sqlGz], [join(temporal, fotos), tarGz]]) {
+      const r = ossl(["cms", "-decrypt", "-binary", "-inform", "DER", "-inkey", LLAVE, "-in", entra, "-out", sale]);
+      if (!r.ok) return fallo(r.salida);
+    }
+    // Las cláusulas DEFINER se quitan porque la base temporal tiene otro
+    // usuario; restaurando en producción, con su propio usuario, no hace falta.
+    const volcado = gunzipSync(readFileSync(sqlGz)).toString("utf8").replace(/DEFINER=`[^`]*`@`[^`]*`/g, "");
+    // La clave va en la primera línea de la entrada, no en la línea de comando.
+    const restaurada = ssh(
+      usuario,
+      `read -r TMP_PWD; MYSQL_PWD="$TMP_PWD" mariadb -h 127.0.0.1 -u '${nombre}' '${nombre}'`,
+      `${clave}\n${volcado}`,
+    );
+    if (!restaurada.ok) return fallo(restaurada.salida.replaceAll(clave, "***"));
+    const enLaCopia = spawnSync("tar", ["-tzf", tarGz], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+    const fotosEnLaCopia = (enLaCopia.stdout ?? "").split("\n").filter((l) => l && !l.endsWith("/")).length;
+
     const guion = `
 set -euo pipefail
-umask 077
-LLAVE=$(mktemp ~/respaldos/.llave.XXXXXX)
-trap 'rm -f "$LLAVE"' EXIT
-cat > "$LLAVE" <<'FIN_DE_LA_LLAVE'
-${pem}
-FIN_DE_LA_LLAVE
-abrir() { openssl cms -decrypt -binary -inform DER -inkey "$LLAVE" -in "$1"; }
 leer() { local v; v=$(grep -E "^$1=" "${ENV_APP}" | head -n1 | cut -d= -f2-); v=\${v%$'\\r'}; case "$v" in \\'*\\' | \\"*\\") v=\${v:1:\${#v}-2} ;; esac; printf '%s' "$v"; }
-ULTIMA=$(ls -1 ~/respaldos/base-*.sql.gz.cms | sort | tail -n 1)
-FOTOS=$(ls -1 ~/respaldos/fotos-*.tar.gz.cms | sort | tail -n 1)
-echo "  copia: $(basename "$ULTIMA") y $(basename "$FOTOS")"
 TMP_PWD='${clave}'
-abrir "$ULTIMA" | zcat | sed -E 's/DEFINER=\`[^\`]*\`@\`[^\`]*\`//g' | MYSQL_PWD="$TMP_PWD" mariadb -h 127.0.0.1 -u '${nombre}' '${nombre}'
 en() { MYSQL_PWD="$TMP_PWD" mariadb -N -B -h 127.0.0.1 -u '${nombre}' '${nombre}' -e "$1"; }
 prod() { MYSQL_PWD="$(leer MYSQL_PASSWORD)" mariadb -N -B -h 127.0.0.1 -u "$(leer MYSQL_USER)" "$(leer MYSQL_DATABASE)" -e "$1"; }
 # Pocas conexiones: con dos por tabla, una tras otra, el MariaDB compartido
@@ -243,7 +289,7 @@ while IFS=$'\\t' read -r t a; do
   if [ "$a" = "$b" ]; then m="✓"; else m="≠"; fi
   printf '  %s %-28s copia %6s · hoy %6s\\n' "$m" "$t" "$a" "$b"
 done <<< "$COPIA"
-echo "  fotos en la copia: $(abrir "$FOTOS" | tar -tz | grep -vc '/$') · hoy en disco: $(find "$(leer ALMACEN_CARPETA)" -type f | wc -l)"
+echo "  fotos en la copia: ${fotosEnLaCopia} · hoy en disco: $(find "$(leer ALMACEN_CARPETA)" -type f | wc -l)"
 `;
     const r = ssh(usuario, "bash -s", guion);
     console.log(r.salida.replaceAll(clave, "***"));
@@ -251,12 +297,13 @@ echo "  fotos en la copia: $(abrir "$FOTOS" | tar -tz | grep -vc '/$') · hoy en
     console.log("\n  ≠ solo en tablas que cambian solas (page_views, sesiones, codigos) es lo esperado: se escribió después de la copia.");
     return 0;
   } finally {
+    rmSync(temporal, { recursive: true, force: true });
     paso(`Borrando ${nombre}`);
     const borrada = await api(`/accounts/${usuario}/databases/${nombre}`, { method: "DELETE" });
     const quedan = await api(`/accounts/${usuario}/databases?per_page=100`);
     const sigue = (quedan.cuerpo.data as { name: string }[] | undefined)?.some((d) => d.name === nombre);
     console.log(sigue ? `  ⚠️ sigue existiendo (${borrada.status}): bórrala en hPanel → Bases de datos` : "  borrada");
-    // Por si el guion se cortó antes de su `trap` (una caída de la conexión).
+    // Las llaves que pudo dejar la versión anterior de este comando.
     ssh(usuario, "rm -f ~/respaldos/.llave.*");
   }
 }
@@ -266,7 +313,7 @@ async function bajar(usuario: string): Promise<number> {
   paso("Última copia del servidor");
   const lista = ssh(usuario, "cd ~/respaldos && ls -1 | grep -E '^(base|fotos)-.*\\.cms$' | sort");
   if (!lista.ok) return fallo(lista.salida || "no hay copias cifradas en ~/respaldos: corre primero «instalar»");
-  const nombres = lista.salida.split("\n").map((l) => l.trim()).filter(Boolean);
+  const nombres = lista.salida.split("\n").map((l) => l.trim()).filter((n) => NOMBRE_DE_COPIA.test(n));
   const ultimas = [nombres.filter((n) => n.startsWith("base-")).at(-1), nombres.filter((n) => n.startsWith("fotos-")).at(-1)].filter(Boolean) as string[];
   if (ultimas.length < 2) return fallo("no hay copias cifradas en ~/respaldos: corre primero «instalar»");
   const destino = join(raiz, "outputs", "respaldos");

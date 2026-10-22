@@ -156,13 +156,36 @@ function esperarCombo(): Promise<HTMLSelectElement | null> {
   });
 }
 
+/** ¿Ya está la página en ese idioma? Google lo marca en `<html>` y en la cookie. */
+function traducidaA(codigo: string): boolean {
+  return (
+    document.documentElement.classList.contains("translated-ltr") ||
+    document.documentElement.classList.contains("translated-rtl")
+  ) && idiomaDeCookie() === codigo;
+}
+
+/**
+ * Le pide el idioma al motor **y comprueba que lo tomó**.
+ *
+ * Hasta el 2026-10-22 se cambiaba el `<select>` una vez y se daba por hecho. Pero
+ * el combo aparece —incluso con sus opciones— antes de que Google le ponga su
+ * escucha, y ese primer `change` se perdía: había que elegir el idioma dos o tres
+ * veces. Ahora se repite el aviso hasta que la página sale traducida (unos
+ * segundos como mucho), que es lo único que dice de verdad que funcionó.
+ */
 async function aplicar(codigo: string): Promise<boolean> {
   await cargarMotor();
   const combo = await esperarCombo();
   if (!combo) return false;
-  combo.value = codigo;
-  combo.dispatchEvent(new Event("change"));
-  return true;
+  for (let intento = 0; intento < 8; intento++) {
+    combo.value = codigo;
+    combo.dispatchEvent(new Event("change"));
+    for (let espera = 0; espera < 10; espera++) {
+      await new Promise((r) => setTimeout(r, 100));
+      if (traducidaA(codigo)) return true;
+    }
+  }
+  return traducidaA(codigo);
 }
 
 export function SelectorIdioma() {

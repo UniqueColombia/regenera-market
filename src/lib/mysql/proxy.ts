@@ -11,10 +11,15 @@ import { COOKIE_SESION } from "./postgrest/auth";
  * sesión muerta se borra**, y quien navegaba va a `/entrar?caducada=1`, igual que
  * hoy (`cerrarPorInactividad` en `src/proxy.ts`).
  */
-export async function proxyMysql(request: NextRequest): Promise<NextResponse> {
+export async function proxyMysql(
+  request: NextRequest,
+  /** Las cabeceras de la petición con el nonce de la CSP (`src/lib/csp.ts`). */
+  cabeceras: (h: Headers) => Headers = (h) => h,
+): Promise<NextResponse> {
+  const siga = () => NextResponse.next({ request: { headers: cabeceras(request.headers) } });
   const token = request.cookies.get(COOKIE_SESION)?.value;
-  if (!token) return NextResponse.next();
-  if (await leerSesion(getMysql(), token)) return NextResponse.next();
+  if (!token) return siga();
+  if (await leerSesion(getMysql(), token)) return siga();
 
   // Fuera también de la petición: una acción que siga su camino no puede ver
   // la sesión que se acaba de dar por muerta.
@@ -29,7 +34,7 @@ export async function proxyMysql(request: NextRequest): Promise<NextResponse> {
   const destino = new URL("/entrar", process.env.NEXT_PUBLIC_SITE_URL ?? request.url);
   destino.searchParams.set("caducada", "1");
   if (ruta !== "/") destino.searchParams.set("volver", ruta);
-  const salida = navegando ? NextResponse.redirect(destino) : NextResponse.next({ request: { headers: request.headers } });
+  const salida = navegando ? NextResponse.redirect(destino) : siga();
   salida.cookies.set(COOKIE_SESION, "", { path: "/", maxAge: 0 });
   salida.headers.set("cache-control", "no-store");
   return salida;

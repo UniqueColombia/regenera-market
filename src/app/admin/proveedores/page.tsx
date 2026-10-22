@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DecisionProveedor } from "./decision-proveedor";
+import { VerificacionDocumento } from "./verificacion-documento";
 import { ProviderAvatar } from "@/components/provider-avatar";
 import { TierBadge } from "@/components/tier-badge";
 import { getEmpresasCerradas, getProvidersForReview } from "@/lib/repo";
@@ -135,17 +136,26 @@ export default async function ProveedoresPage() {
                     {p.tagline}
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    {p.city}, {p.department} · {p.email} · postuló el{" "}
+                    {p.city}, {p.department} · {p.email}
+                    {p.taxId && <> · documento {p.taxId}</>} · postuló el{" "}
                     {longDate(p.createdAt)}
                   </p>
                 </div>
 
-                <DecisionProveedor
-                  providerId={p.id}
-                  estado={p.status}
-                  nombre={p.name}
-                  cerrada={cerradas.has(p.id)}
-                />
+                <div className="flex flex-col items-end gap-2">
+                  <DecisionProveedor
+                    providerId={p.id}
+                    estado={p.status}
+                    nombre={p.name}
+                    cerrada={cerradas.has(p.id)}
+                  />
+                  <VerificacionDocumento
+                    providerId={p.id}
+                    nombre={p.name}
+                    documento={p.taxId}
+                    verificado={Boolean(p.documentoVerificado)}
+                  />
+                </div>
               </li>
             ))}
           </ul>

@@ -88,6 +88,38 @@ function rutaValida(bucket: string, duenio: string, archivo: string): boolean {
   return BUCKETS.has(bucket) && UUID.test(duenio) && ARCHIVO.test(archivo);
 }
 
+/**
+ * La cuota de fotos (auditoría del 2026-10-22). Las fotos viven en el mismo disco
+ * que la base de datos: si se llena, se cae el sitio entero. Como el tope de
+ * fotos por publicación de MercadoLibre o de archivos por tienda de Shopify.
+ *
+ * - **Por empresa**: 300 fotos de ofertas. Cada subida es un archivo nuevo de
+ *   hasta medio mega, y abrir una empresa es gratis.
+ * - **En total**: `ALMACEN_LIMITE_GB` (5 por defecto). Lo que mide `statfs` en un
+ *   hosting compartido es el disco del servidor, no la cuota de la cuenta, así
+ *   que se suma lo que ocupa la carpeta.
+ */
+export const CUOTA = {
+  fotosPorEmpresa: 300,
+  limiteTotalBytes: (Number(process.env.ALMACEN_LIMITE_GB) || 5) * 1024 ** 3,
+  /** Una foto subida y no usada en un día se puede borrar: nadie la va a guardar ya. */
+  huerfanaTrasMs: 24 * 3600 * 1000,
+} as const;
+
+/** Lo que ocupa la carpeta, recalculado como mucho cada diez minutos. */
+let ocupado: { bytes: number; medidoEn: number } | null = null;
+
+async function bytesDe(carpeta: string): Promise<number> {
+  let total = 0;
+  const entradas = await readdir(carpeta, { withFileTypes: true }).catch(() => []);
+  for (const e of entradas) {
+    const ruta = join(carpeta, e.name);
+    if (e.isDirectory()) total += await bytesDe(ruta);
+    else total += (await stat(ruta).catch(() => null))?.size ?? 0;
+  }
+  return total;
+}
+
 export class AlmacenDisco implements AlmacenDeImagenes {
   readonly nombre = "disco";
   readonly disponible = true;
@@ -152,6 +184,40 @@ export class AlmacenDisco implements AlmacenDeImagenes {
       if ((e as NodeJS.ErrnoException).code === "ENOENT") return;
       console.error(`[almacenamiento] no se borró ${bucket}/${duenio}/${pieza}: ${e instanceof Error ? e.message : String(e)}`);
     }
+  }
+
+  async hayLugarParaOferta(
+    duenio: string,
+    enUso: ReadonlySet<string>,
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    if (!UUID.test(duenio)) return { ok: false, error: "No pudimos guardar la imagen." };
+
+    if (!ocupado || Date.now() - ocupado.medidoEn > 10 * 60 * 1000) {
+      ocupado = { bytes: await bytesDe(this.carpeta), medidoEn: Date.now() };
+    }
+    if (ocupado.bytes > CUOTA.limiteTotalBytes) {
+      console.error(`[almacenamiento] cuota total superada: ${ocupado.bytes} bytes`);
+      return { ok: false, error: "Ahora mismo no podemos guardar más fotos. Escríbenos y lo resolvemos." };
+    }
+
+    const carpeta = join(this.carpeta, "logos", duenio);
+    const nombres = (await readdir(carpeta).catch(() => [] as string[])).filter((n) => n.startsWith("oferta-") && ARCHIVO.test(n));
+    if (nombres.length < CUOTA.fotosPorEmpresa) return { ok: true };
+
+    // Al tope: primero se van las huérfanas viejas.
+    const ahora = Date.now();
+    for (const n of nombres) {
+      if (enUso.has(n)) continue;
+      const info = await stat(join(carpeta, n)).catch(() => null);
+      if (info && ahora - info.mtimeMs > CUOTA.huerfanaTrasMs) await rm(join(carpeta, n), { force: true });
+    }
+    const quedan = (await readdir(carpeta).catch(() => [] as string[])).filter((n) => n.startsWith("oferta-")).length;
+    return quedan < CUOTA.fotosPorEmpresa
+      ? { ok: true }
+      : {
+          ok: false,
+          error: `Tu empresa llegó al tope de ${CUOTA.fotosPorEmpresa} fotos. Quita fotos de ofertas que ya no uses y vuelve a intentarlo.`,
+        };
   }
 
   /** No lanza, como el de Supabase: lo llama una baja que ya está hecha en la base. */
