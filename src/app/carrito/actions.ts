@@ -319,6 +319,7 @@ async function cerrarCompra(lines: CartLine[], form: unknown): Promise<CheckoutR
           lineas: totals.purchasable.map((l) => ({
             titulo: l.listing.title,
             qty: l.line.qty,
+            fecha: l.line.date,
             diasMin: l.listing.envio?.diasMin,
             diasMax: l.listing.envio?.diasMax,
           })),
