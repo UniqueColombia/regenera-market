@@ -38,18 +38,24 @@ function filasDe(f: FechasDeOferta): Fila[] {
  * Quién elige la fecha de una experiencia y, si la abre quien la organiza, con
  * cuánto cupo. Las reglas viven en `src/lib/fechas.ts`.
  *
- * Va fuera de `FormularioOferta` y con su propio botón porque se guarda aparte:
- * el formulario devuelve a revisión una oferta publicada, y abrir una fecha no
- * tiene por qué sacarla del catálogo.
+ * Se pinta **dentro** de `FormularioOferta`, junto al precio (prop `fechas`),
+ * pero se guarda con su propio botón: el formulario devuelve a revisión una
+ * oferta publicada, y abrir una fecha no tiene por qué sacarla del catálogo.
+ * Por eso sus campos no llevan `name` (no entran en el `FormData` de la
+ * oferta), sus botones son `type="button"` y Enter dentro de él no envía la
+ * oferta.
  */
 export function FechasDeExperiencia({
   inicial,
   guardar,
   esEmpresa = false,
+  className = "",
 }: {
   inicial: FechasDeOferta;
   guardar: (plan: unknown) => Promise<ResultadoGuardarFechas>;
   esEmpresa?: boolean;
+  /** El `order-*` del formulario de oferta, que en el teléfono es una sola columna. */
+  className?: string;
 }) {
   const [modo, setModo] = useState<ModoFechas>(inicial.modo);
   const [filas, setFilas] = useState<Fila[]>(() => filasDe(inicial));
@@ -94,14 +100,21 @@ export function FechasDeExperiencia({
   }
 
   return (
-    <div id="fechas" className="mt-8 scroll-mt-24">
-      <Tarjeta>
+    <div
+      id="fechas"
+      className={`scroll-mt-24 ${className}`}
+      onKeyDown={(e) => {
+        // Enter en un campo enviaría el formulario de la oferta que lo rodea.
+        if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
+      }}
+    >
+      <Tarjeta i={2}>
         <fieldset className="space-y-5" disabled={pendiente}>
           <legend className="font-display text-xl text-ink">Fechas y cupos</legend>
           <p className="-mt-2 text-sm text-muted">
             {esEmpresa
-              ? "Se guardan aparte: tu experiencia sigue publicada mientras las cambias."
-              : "Se guardan aparte del formulario de arriba y no cambian el estado de la oferta."}
+              ? "Tienen su propio botón de guardar: tu experiencia sigue publicada mientras las cambias."
+              : "Tienen su propio botón de guardar y no cambian el estado de la oferta."}
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">

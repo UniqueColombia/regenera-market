@@ -66,14 +66,16 @@ export default async function EditarOfertaPage(
           name: p.name,
           aprobado: p.status === "approved",
         }))}
+        fechas={
+          oferta.kind === "experience" ? (
+            <FechasDeExperiencia
+              className="order-3"
+              inicial={await getFechasDeOferta(oferta.id)}
+              guardar={guardarFechas.bind(null, oferta.id)}
+            />
+          ) : undefined
+        }
       />
-
-      {oferta.kind === "experience" && (
-        <FechasDeExperiencia
-          inicial={await getFechasDeOferta(oferta.id)}
-          guardar={guardarFechas.bind(null, oferta.id)}
-        />
-      )}
     </div>
   );
 }
