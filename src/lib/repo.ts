@@ -237,6 +237,8 @@ interface FilaProvider {
   tier: Tier;
   experience_points: number | null;
   sustainability_verified_at: string | null;
+  /** Desde el 2026-10-22: el equipo comprobó su documento tributario. */
+  documento_verificado_at?: string | null;
   founded_year: number | null;
   traits: ProviderTrait[];
   /** Desde la 0012. */
@@ -375,6 +377,7 @@ function aProvider(f: FilaProvider): Provider {
     // columna poblada, y un proveedor sin puntos es exactamente uno de cero.
     experiencePoints: f.experience_points ?? 0,
     evaluacionVerificada: f.sustainability_verified_at !== null,
+    documentoVerificado: Boolean(f.documento_verificado_at),
     certifications: (f.provider_certifications ?? []).map(
       (c) => c.certification_code,
     ),
@@ -1264,20 +1267,24 @@ export async function getCommunityPosts(limite = 20): Promise<CommunityPost[]> {
  * `community_posts_insert` la rechazaría igual si alguien la forzara.
  */
 export async function getEmpresasQueGestiono(): Promise<
-  { id: string; name: string }[]
+  { id: string; name: string; verificada: boolean }[]
 > {
   const db = await createClient();
   const { data, error } = await db
     .from("provider_members")
-    .select("provider_id, providers(name)");
+    .select("provider_id, providers(name, documento_verificado_at)");
   if (error || !data) return [];
 
   return (data as unknown as {
     provider_id: string;
-    providers: { name: string } | null;
+    providers: { name: string; documento_verificado_at: string | null } | null;
   }[])
     .filter((v) => v.providers)
-    .map((v) => ({ id: v.provider_id, name: v.providers!.name }));
+    .map((v) => ({
+      id: v.provider_id,
+      name: v.providers!.name,
+      verificada: Boolean(v.providers!.documento_verificado_at),
+    }));
 }
 
 /** Una publicación vista desde administración: trae también las ocultas. */

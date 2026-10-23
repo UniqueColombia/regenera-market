@@ -140,6 +140,59 @@ describe.skipIf(!HAY_MYSQL)("comprar en el modo MySQL", () => {
     expect((await servicio().from("listing_availability").select("slots_taken").eq("listing_id", fija.id).single()).data).toEqual({ slots_taken: 0 });
   });
 
+  it("lo que se aparta sin pagar tiene tope (2026-10-22)", async () => {
+    // Más de 20 unidades, solo hasta la mitad de lo que queda.
+    const oferta = await crearOferta(await crearEmpresa(), { stock: 100 });
+    expect((await comprar(await crearPersona(), [{ listing_id: oferta.id, qty: 50 }])).error).toBeNull();
+    const grande = await comprar(await crearPersona(), [{ listing_id: oferta.id, qty: 30 }]);
+    expect(grande.error).toMatchObject({ message: "cantidad-maxima", hint: oferta.title });
+    expect((await comprar(await crearPersona(), [{ listing_id: oferta.id, qty: 20 }])).error).toBeNull();
+    expect((await leer("listings", oferta.id, "stock")).stock).toBe(30);
+
+    // Tres pedidos sin pagar a la vez.
+    const ana = await crearPersona();
+    const otra = await crearOferta(await crearEmpresa(), { stock: 50 });
+    for (let i = 0; i < 3; i++) expect((await comprar(ana, [{ listing_id: otra.id, qty: 1 }])).error).toBeNull();
+    expect((await comprar(ana, [{ listing_id: otra.id, qty: 1 }])).error?.message).toBe("demasiados-pendientes");
+
+    // Quince ofertas distintas apartadas.
+    const empresa = await crearEmpresa();
+    const ofertas = [];
+    for (let i = 0; i < 16; i++) ofertas.push(await crearOferta(empresa, { stock: 5 }));
+    const beto = await crearPersona();
+    const r = await comprar(beto, ofertas.map((o) => ({ listing_id: o.id, qty: 1 })));
+    expect(r.error?.message).toBe("demasiadas-reservas");
+    expect((await comprar(beto, ofertas.slice(0, 15).map((o) => ({ listing_id: o.id, qty: 1 })))).error).toBeNull();
+  });
+
+  it("los puntos vienen de compradores que cuentan: cuenta con 7 días, otro teléfono, uno cada 90 días (2026-10-22)", async () => {
+    const vendedora = await crearPersona();
+    const empresa = await crearEmpresa({ miembro: vendedora });
+    // Un servicio: sin despacho de por medio, el equipo lo da por cumplido.
+    const oferta = await crearOferta(empresa, { price_cop: 600000, kind: "service" });
+    const base = Number((await leer("providers", empresa, "experience_points")).experience_points);
+    const puntos = async () => Number((await leer("providers", empresa, "experience_points")).experience_points) - base;
+    const admin = await crearPersona({ admin: true });
+    const venderA = async (quien: Awaited<ReturnType<typeof crearPersona>>) => {
+      const r = await comprar(quien, [{ listing_id: oferta.id, qty: 1 }]);
+      const orden = await ordenPorReferencia((r.data as { reference: string }).reference);
+      await pagar(orden.id as string);
+      await admin.db.from("orders").update({ status: "in_progress" }).eq("id", orden.id);
+      await admin.db.from("orders").update({ status: "fulfilled" }).eq("id", orden.id);
+      return orden;
+    };
+    // Una cuenta recién creada: la venta existe, los puntos no.
+    await venderA(await crearPersona());
+    expect(await puntos()).toBe(0);
+    // Una cuenta con antigüedad: sí (venta 40 + primera 120 + un tramo de volumen 10).
+    const ana = await crearPersona({ antiguedadDias: 30 });
+    await venderA(ana);
+    expect(await puntos()).toBe(170);
+    // La misma compradora otra vez, dentro de 90 días: no suma.
+    await venderA(ana);
+    expect(await puntos()).toBe(170);
+  });
+
   it("cancelar devuelve el stock; reabrir lo vuelve a tomar; y no se salta de estado", async () => {
     const oferta = await crearOferta(await crearEmpresa(), { stock: 4 });
     const r = await comprar(await crearPersona(), [{ listing_id: oferta.id, qty: 3 }]);
@@ -168,7 +221,7 @@ describe.skipIf(!HAY_MYSQL)("comprar en el modo MySQL", () => {
     // Publicar la oferta aprobada ya dio sus puntos (`oferta_publicada`): se cuenta desde aquí.
     const base = Number((await leer("providers", empresa, "experience_points")).experience_points);
     const puntos = async () => Number((await leer("providers", empresa, "experience_points")).experience_points) - base;
-    const ana = await crearPersona({ nombre: "ana maría pérez" });
+    const ana = await crearPersona({ nombre: "ana maría pérez", antiguedadDias: 30 });
     const r = await comprar(ana, [{ listing_id: oferta.id, qty: 1 }]);
     const orden = await ordenPorReferencia((r.data as { reference: string }).reference);
     const item = orden.order_items[0].id as string;

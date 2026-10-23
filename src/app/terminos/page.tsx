@@ -152,7 +152,10 @@ export default function TerminosPage() {
       </p>
       <p>
         Un pedido sin pagar se cancela solo a las 72 horas, y lo que reservaba
-        vuelve al catálogo. Los ítems marcados como <em>cotización</em> no se
+        vuelve al catálogo. Mientras esperan pago, puedes tener hasta 3 pedidos
+        y 15 ofertas apartadas; y de una oferta, hasta 20 unidades o la mitad de
+        lo que queda, lo que sea mayor. Para un pedido más grande, pide una
+        cotización a quien la vende. Los ítems marcados como <em>cotización</em> no se
         compran directo: se pide un precio y no hay venta hasta que lo aceptas.
       </p>
 

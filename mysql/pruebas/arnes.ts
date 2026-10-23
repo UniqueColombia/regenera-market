@@ -1,6 +1,7 @@
 import { cerrarMysql, getMysql, getPoolMysql } from "../../src/lib/mysql/conexion";
 import { abrirSesion } from "../../src/lib/mysql/cuentas";
 import { clienteDeServicio, clienteDeToken, clienteEfimero, type ClienteMysql } from "../../src/lib/mysql/postgrest/cliente";
+import { sql } from "kysely";
 
 /**
  * Lo que comparten las pruebas del modo MySQL: gente, empresas y ofertas
@@ -34,7 +35,12 @@ export function sinError<T>(r: { data: T | null; error: { message: string } | nu
   return r.data as T;
 }
 
-export async function crearPersona(opciones: { admin?: boolean; nombre?: string } = {}): Promise<Persona> {
+/**
+ * `antiguedadDias`: cuántos días tiene la cuenta. Desde el 2026-10-22 una cuenta
+ * de menos de 7 días compra y reseña, pero no le da puntos a la empresa
+ * (`cuenta_para_puntos` de logica.sql).
+ */
+export async function crearPersona(opciones: { admin?: boolean; nombre?: string; antiguedadDias?: number } = {}): Promise<Persona> {
   const id = crypto.randomUUID();
   const email = `prueba-${marca()}@pruebas.invalid`;
   usuarios.push(id);
@@ -42,12 +48,15 @@ export async function crearPersona(opciones: { admin?: boolean; nombre?: string 
   const db = getMysql();
   await db.insertInto("usuarios").values({ id, email, clave: null, metadatos: JSON.stringify({ full_name: opciones.nombre ?? "Persona De Prueba" }) }).execute();
   await db.updateTable("usuarios").set({ correo_confirmado_at: new Date().toISOString().replace("T", " ").replace("Z", "") }).where("id", "=", id).execute();
+  if (opciones.antiguedadDias) {
+    await db.updateTable("usuarios").set({ creado_at: sql`now(6) - interval ${opciones.antiguedadDias} day` }).where("id", "=", id).execute();
+  }
   if (opciones.admin) sinError(await s.from("user_roles").insert({ user_id: id, role: "admin" }), "rol admin");
   const token = await abrirSesion(db, id);
   return { id, email, db: clienteDeToken(token) };
 }
 
-export async function crearEmpresa(opciones: { miembro?: Persona; verificada?: boolean; puntos?: number; departamento?: string } = {}): Promise<string> {
+export async function crearEmpresa(opciones: { miembro?: Persona; verificada?: boolean; puntos?: number; departamento?: string; documentoVerificado?: boolean } = {}): Promise<string> {
   const id = crypto.randomUUID();
   empresas.push(id);
   const s = servicio();
@@ -62,6 +71,7 @@ export async function crearEmpresa(opciones: { miembro?: Persona; verificada?: b
       status: "approved",
       experience_points: opciones.puntos ?? 0,
       sustainability_verified_at: opciones.verificada ? new Date().toISOString() : null,
+      documento_verificado_at: opciones.documentoVerificado ? new Date().toISOString() : null,
     }),
     "empresa",
   );

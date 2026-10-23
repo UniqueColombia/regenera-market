@@ -442,6 +442,9 @@ create table providers (
   cerrada_at datetime(6),
   cerrada_por char(36) character set ascii collate ascii_bin,
   clave_tributaria varchar(255),
+  -- Cuándo comprobó el equipo el documento tributario (2026-10-22). Solo lo
+  -- escribe un administrador (`providers_antes_de_cambiar`).
+  documento_verificado_at datetime(6),
   primary key (id),
   unique key providers_slug_key (slug),
   key providers_clave_tributaria_idx (clave_tributaria),

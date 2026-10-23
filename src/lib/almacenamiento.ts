@@ -88,6 +88,13 @@ export interface AlmacenDeImagenes {
    * saliendo en su URL. **No lanza**, por lo mismo que `borrarCarpeta`.
    */
   borrarPieza(bucket: Bucket, duenio: string, pieza: Pieza): Promise<void>;
+  /**
+   * ¿Cabe otra foto de oferta en la carpeta de esta empresa? Antes de decir que
+   * no, borra las que ninguna oferta usa (`enUso`, nombres de archivo) y que
+   * tienen más de un día: las subidas de formularios que nunca se guardaron.
+   * Opcional: solo el almacén en disco tiene cuota (auditoría del 2026-10-22).
+   */
+  hayLugarParaOferta?(duenio: string, enUso: ReadonlySet<string>): Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
 /**

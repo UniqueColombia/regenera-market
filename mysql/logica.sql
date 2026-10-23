@@ -238,6 +238,49 @@ create function experiencia_tope_alcanzado(_provider_id char(36) character set a
     when 'certificacion_verificada' then experiencia_topada(_provider_id, _clave, 3, null)
     else false end;
 
+-- ¿Esta venta o esta reseña le da puntos a la empresa? (auditoría del
+-- 2026-10-22). «Nadie se beneficia a sí mismo» miraba solo la cuenta que compra,
+-- y una segunda cuenta propia compraba barato, confirmaba y se reseñaba hasta el
+-- nivel Raíz. Como la reputación de MercadoLibre (las ventas a un mismo
+-- comprador cuentan una vez por periodo) y Amazon (las cuentas nuevas pesan
+-- menos), cuentan solo si:
+--   - la cuenta compradora tiene al menos 7 días;
+--   - su teléfono no es el de la empresa;
+--   - ese comprador no le dio ya puntos de la misma clase en 90 días.
+-- La venta y la reseña existen igual: lo único que no hacen es sumar puntos.
+drop function if exists cuenta_para_puntos;
+create function cuenta_para_puntos(
+  _provider char(36) character set ascii collate ascii_bin,
+  _comprador char(36) character set ascii collate ascii_bin,
+  _telefono text,
+  _clave varchar(64),
+  _referencia varchar(255)
+) returns boolean
+  not deterministic reads sql data
+begin
+  declare _creada datetime(6);
+  declare _tel varchar(20) default right(regexp_replace(coalesce(_telefono, ''), '[^0-9]', ''), 10);
+  if _provider is null or _comprador is null then return false; end if;
+  select creado_at into _creada from usuarios where id = _comprador;
+  if _creada is null or _creada > now(6) - interval 7 day then return false; end if;
+  if _tel <> '' and _tel = (select right(regexp_replace(coalesce(phone, ''), '[^0-9]', ''), 10) from providers where id = _provider) then
+    return false;
+  end if;
+  if _clave = 'venta_entregada' then
+    return not exists (
+      select 1 from experience_events ee join orders o on o.id = ee.referencia
+       where ee.provider_id = _provider and ee.clave = 'venta_entregada' and o.buyer_id = _comprador
+         and ee.referencia_clave <> coalesce(_referencia, '') and ee.created_at > now(6) - interval 90 day);
+  end if;
+  if _clave = 'resena_positiva' then
+    return not exists (
+      select 1 from experience_events ee join reviews r on r.id = ee.referencia
+       where ee.provider_id = _provider and ee.clave = 'resena_positiva' and r.author_id = _comprador
+         and ee.referencia_clave <> coalesce(_referencia, '') and ee.created_at > now(6) - interval 90 day);
+  end if;
+  return true;
+end;
+
 drop procedure if exists otorgar_experiencia;
 create procedure otorgar_experiencia(_provider_id char(36) character set ascii collate ascii_bin, _clave varchar(64), _referencia varchar(255))
   modifies sql data
@@ -310,6 +353,18 @@ begin
   -- community_posts_derivados (INSERT)
   set new.author_name = coalesce(nullif(trim((select full_name from profiles where id = new.author_id)), ''), 'Alguien de la comunidad');
   set new.edited_at = null;
+  if not is_admin() then
+    -- Lo que decide el equipo o la cuenta de reacciones no lo trae quien publica
+    -- (auditoría del 2026-10-22).
+    set new.status = 'approved', new.featured = false, new.reaction_count = 0, new.reaction_counts = json_object();
+    -- Firmar como empresa exige que el equipo haya verificado su documento: como
+    -- las tiendas oficiales de MercadoLibre, nadie habla en nombre de una
+    -- empresa que no se comprobó.
+    if new.provider_id is not null
+       and not exists (select 1 from providers where id = new.provider_id and documento_verificado_at is not null) then
+      signal sqlstate '45000' set message_text = 'empresa-sin-verificar';
+    end if;
+  end if;
   -- community_posts_ritmo
   if not is_admin() then
     call candado(concat('publicar:', new.author_id));
@@ -560,13 +615,16 @@ begin
       bucle: loop
         fetch cur_vendido into _proveedor, _vendido;
         if _fin then leave bucle; end if;
-        call otorgar_experiencia(_proveedor, 'venta_entregada', new.id);
-        call otorgar_experiencia(_proveedor, 'primera_venta', null);
-        set _i = 1;
-        while _i <= least(floor(_vendido / 500000), 50) do
-          call otorgar_experiencia(_proveedor, 'volumen_vendido', concat(new.id, '#', _i));
-          set _i = _i + 1;
-        end while;
+        -- Solo un comprador que cuenta (`cuenta_para_puntos`, 2026-10-22).
+        if cuenta_para_puntos(_proveedor, new.buyer_id, new.buyer_phone, 'venta_entregada', new.id) then
+          call otorgar_experiencia(_proveedor, 'venta_entregada', new.id);
+          call otorgar_experiencia(_proveedor, 'primera_venta', null);
+          set _i = 1;
+          while _i <= least(floor(_vendido / 500000), 50) do
+            call otorgar_experiencia(_proveedor, 'volumen_vendido', concat(new.id, '#', _i));
+            set _i = _i + 1;
+          end while;
+        end if;
       end loop;
       close cur_vendido;
     elseif new.status = 'refunded' and not (old.status <=> 'refunded') then
@@ -717,6 +775,12 @@ create trigger providers_antes_de_insertar before insert on providers for each r
 begin
   call validar_giros(new.giros);
   set new.clave_tributaria = clave_tributaria(new.country, new.tax_id);
+  -- Lo que certifica la plataforma no lo trae quien crea la empresa (auditoría
+  -- del 2026-10-22): al insertar no se pisaba, solo al actualizar.
+  if es_cliente() and not is_admin() then
+    set new.experience_points = 0, new.sustainability_score = 0,
+        new.sustainability_verified_at = null, new.documento_verificado_at = null;
+  end if;
   -- providers_limitar_giros (INSERT): nivel semilla, sin sello.
   if es_cliente() and not is_admin() then
     if json_length(new.giros) > limite_de_giros('semilla') then
@@ -775,7 +839,14 @@ begin
     set new.experience_points = old.experience_points, new.tier = old.tier,
         new.sustainability_score = old.sustainability_score,
         new.sustainability_verified_at = old.sustainability_verified_at,
+        new.documento_verificado_at = old.documento_verificado_at,
         new.status = old.status, new.slug = old.slug;
+  end if;
+  -- Otro documento ya no es el que se verificó (2026-10-22). Salvo que la misma
+  -- operación lo verifique: el equipo corrigiendo el NIT y marcándolo a la vez.
+  if not (new.tax_id <=> old.tax_id and new.country <=> old.country)
+     and new.documento_verificado_at <=> old.documento_verificado_at then
+    set new.documento_verificado_at = null;
   end if;
 
   -- providers_perfil_completo (UPDATE): una sola vez por empresa.
@@ -798,9 +869,15 @@ end;
 drop trigger if exists reviews_despues_de_insertar;
 create trigger reviews_despues_de_insertar after insert on reviews for each row
 begin
-  -- reviews_experiencia
+  -- reviews_experiencia, con `cuenta_para_puntos` (2026-10-22)
+  declare _provider char(36) character set ascii collate ascii_bin;
   if new.rating >= 4 then
-    call otorgar_experiencia((select provider_id from listings where id = new.listing_id), 'resena_positiva', new.id);
+    select max(provider_id) into _provider from listings where id = new.listing_id;
+    if cuenta_para_puntos(_provider, new.author_id,
+         (select o.buyer_phone from order_items oi join orders o on o.id = oi.order_id where oi.id = new.order_item_id),
+         'resena_positiva', new.id) then
+      call otorgar_experiencia(_provider, 'resena_positiva', new.id);
+    end if;
   end if;
 end;
 
@@ -813,7 +890,10 @@ begin
     select max(provider_id) into _provider from listings where id = new.listing_id;
     if not new.oculta and new.rating >= 4 and not exists (
       select 1 from order_items oi join orders o on o.id = oi.order_id
-       where oi.id = new.order_item_id and o.status = 'refunded') then
+       where oi.id = new.order_item_id and o.status = 'refunded')
+       and cuenta_para_puntos(_provider, new.author_id,
+         (select o.buyer_phone from order_items oi join orders o on o.id = oi.order_id where oi.id = new.order_item_id),
+         'resena_positiva', new.id) then
       call otorgar_experiencia(_provider, 'resena_positiva', new.id);
     else
       call revertir_experiencia(_provider, 'resena_positiva', new.id);

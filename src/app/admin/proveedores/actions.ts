@@ -81,3 +81,37 @@ export async function decidirProveedor(
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+const VerificacionSchema = z.object({
+  providerId: z.uuid("Identificador de proveedor inválido"),
+  verificado: z.boolean(),
+});
+
+/**
+ * Marca (o quita) que el equipo comprobó el documento tributario de una empresa
+ * (auditoría del 2026-10-22). Con la marca, su ficha dice «Empresa verificada»
+ * y puede firmar en la Comunidad. Comprobarlo es mirar el registro público del
+ * país (RUES en Colombia) y que quien la gestiona sea de verdad de esa empresa.
+ *
+ * Solo un administrador: el trigger `providers_antes_de_cambiar` pisa la columna
+ * a cualquier otro, y la quita sola si cambian el documento o el país.
+ */
+export async function verificarDocumento(datos: unknown): Promise<ResultadoDecision> {
+  await requireAdmin();
+  const parsed = VerificacionSchema.safeParse(datos);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("providers")
+    .update({ documento_verificado_at: parsed.data.verificado ? new Date().toISOString() : null })
+    .eq("id", parsed.data.providerId)
+    .select("slug");
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-verificar-documento", error)) };
+  if (!data || data.length === 0) {
+    return { ok: false, error: "No se pudo actualizar. ¿Sigues teniendo permiso de administrador?" };
+  }
+  revalidatePath("/admin/proveedores");
+  revalidatePath(`/proveedor/${(data[0] as { slug: string }).slug}`);
+  return { ok: true };
+}

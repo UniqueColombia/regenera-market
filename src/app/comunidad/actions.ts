@@ -60,6 +60,8 @@ const LIMITES: Record<string, string> = {
     "Llegaste a diez publicaciones este mes. El muro se reparte entre todos: vuelve el mes que viene.",
   "limite-reacciones":
     "Vas muy rápido reaccionando. Espera un momento y sigue.",
+  "empresa-sin-verificar":
+    "Para publicar a nombre de tu empresa, primero tenemos que verificar su documento. Mientras tanto, publica a tu nombre.",
 };
 
 /** La frase que toca, o `null` si el error no era un tope. */

@@ -134,9 +134,24 @@ export function dentroDelRitmo(
 export async function origenDeLaPeticion(): Promise<string> {
   const h = await headers();
   const real = h.get("x-real-ip")?.trim();
-  if (real) return real.slice(0, 45);
+  if (real) return agrupar(real.slice(0, 45));
   const ultima = h.get("x-forwarded-for")?.split(",").at(-1)?.trim();
-  return ultima ? ultima.slice(0, 45) : "local";
+  return ultima ? agrupar(ultima.slice(0, 45)) : "local";
+}
+
+/**
+ * Una dirección IPv6 se cuenta por su bloque /64 (auditoría del 2026-10-22). Un
+ * proveedor de internet le da a cada casa un /64 entero: contar cada dirección
+ * por separado dejaba a una sola persona estrenar millones de IP y saltarse
+ * cualquier tope. Las IPv4 se quedan como están.
+ */
+export function agrupar(ip: string): string {
+  if (!ip.includes(":")) return ip;
+  const [cabeza, cola = ""] = ip.split("%")[0].split("::");
+  const a = cabeza ? cabeza.split(":") : [];
+  const b = ip.includes("::") && cola ? cola.split(":") : [];
+  const grupos = ip.includes("::") ? [...a, ...Array(Math.max(8 - a.length - b.length, 0)).fill("0"), ...b] : a;
+  return `${grupos.slice(0, 4).map((g) => g.toLowerCase().replace(/^0+(?=.)/, "")).join(":")}::/64`;
 }
 
 /** Un correo normalizado, para contar por buzón y no por cómo se escribió. */

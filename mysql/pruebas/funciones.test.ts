@@ -147,7 +147,8 @@ describe.skipIf(!HAY_MYSQL)("funciones y comunidad en el modo MySQL", () => {
         .single();
       expect(r.error).toBeNull();
       const post = r.data as { id: string; author_name: string; reaction_count: number };
-      expect(post).toMatchObject({ author_name: "Ana Comunidad", reaction_count: 99 });
+      // El contador no lo trae quien publica (desde el 2026-10-22; antes nacía con 99).
+      expect(post).toMatchObject({ author_name: "Ana Comunidad", reaction_count: 0 });
       const otra = await ana.db.from("community_posts").insert({ author_id: ana.id, title: "Otra práctica", body: "y".repeat(90), topic: "practica" });
       expect(otra.error?.message).toBe("limite-ritmo");
 
@@ -165,12 +166,34 @@ describe.skipIf(!HAY_MYSQL)("funciones y comunidad en el modo MySQL", () => {
 
     it("una publicación de empresa da puntos y borrarla los quita", async () => {
       const ana = await crearPersona();
-      const empresa = await crearEmpresa({ miembro: ana });
+      const empresa = await crearEmpresa({ miembro: ana, documentoVerificado: true });
       const base = Number((await leer("providers", empresa, "experience_points")).experience_points);
       const r = await ana.db.from("community_posts").insert({ author_id: ana.id, provider_id: empresa, title: "Lo que hacemos", body: "z".repeat(90) }).select("id").single();
       expect(Number((await leer("providers", empresa, "experience_points")).experience_points)).toBe(base + 10);
       await ana.db.from("community_posts").delete().eq("id", (r.data as { id: string }).id);
       expect(Number((await leer("providers", empresa, "experience_points")).experience_points)).toBe(base);
+    });
+
+    it("firmar como empresa exige su documento verificado (2026-10-22)", async () => {
+      const ana = await crearPersona();
+      const empresa = await crearEmpresa({ miembro: ana });
+      const r = await ana.db.from("community_posts").insert({ author_id: ana.id, provider_id: empresa, title: "Hablo por ellos", body: "z".repeat(90) });
+      expect(r.error?.message).toBe("empresa-sin-verificar");
+    });
+  });
+
+  describe("verificación del documento de una empresa (2026-10-22)", () => {
+    it("solo la pone el equipo, se pierde al cambiar el documento y nadie la trae al crear", async () => {
+      const ana = await crearPersona();
+      const empresa = await crearEmpresa({ miembro: ana });
+      await ana.db.from("providers").update({ documento_verificado_at: new Date().toISOString() }).eq("id", empresa);
+      expect((await leer("providers", empresa, "documento_verificado_at")).documento_verificado_at).toBeNull();
+
+      const admin = await crearPersona({ admin: true });
+      expect((await admin.db.from("providers").update({ documento_verificado_at: new Date().toISOString(), tax_id: "900123456" }).eq("id", empresa)).error).toBeNull();
+      expect((await leer("providers", empresa, "documento_verificado_at")).documento_verificado_at).not.toBeNull();
+      await ana.db.from("providers").update({ tax_id: "900999999" }).eq("id", empresa);
+      expect((await leer("providers", empresa, "documento_verificado_at")).documento_verificado_at).toBeNull();
     });
   });
 });

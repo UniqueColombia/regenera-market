@@ -4,6 +4,7 @@ import { getMysql } from "../conexion";
 import {
   abrirSesion,
   actualizarMetadatos,
+  anotarFallo,
   borrarCodigos,
   borrarCuenta,
   cambiarClave,
@@ -11,9 +12,11 @@ import {
   cerrarSesion,
   comprobarClave,
   crearCuenta,
+  demasiadosFallos,
   demasiadosRegistros,
   leerCuenta,
   limpiarCuentas,
+  llaveDeEnlace,
   leerSesion,
   pedirCodigo,
   verificarCodigo,
@@ -104,7 +107,9 @@ function sesion(token: string, c: Cuenta) {
 /** Manda el código. En desarrollo, además, lo escribe en la consola: así se puede probar sin buzón. */
 async function mandarCodigo(email: string, codigo: string, id: string, registro: boolean): Promise<void> {
   if (process.env.NODE_ENV !== "production") console.info(`[modo-mysql] código para ${email}: ${codigo}`);
-  const envio = await enviarCorreo(correoDeCodigo({ para: email, codigo, tokenHash: `${id}.${codigo}`, registro }));
+  // El enlace lleva una llave firmada, no el código (`llaveDeEnlace()`).
+  const llave = llaveDeEnlace(id) ?? codigo;
+  const envio = await enviarCorreo(correoDeCodigo({ para: email, codigo, tokenHash: `${id}.${llave}`, registro }));
   if (!envio.ok) console.error(`[modo-mysql] el código no salió (${envio.via}): ${envio.error}`);
 }
 
@@ -204,8 +209,16 @@ export class AuthMysql {
 
   async signInWithPassword(datos: { email: string; password: string }) {
     const db = getMysql();
+    // Tope de fallos por correo, en la base (`FALLOS` de cuentas.ts). Se mira
+    // antes de calcular el scrypt: un correo bloqueado no cuesta CPU.
+    if (await demasiadosFallos(db, "clave", datos.email)) {
+      return { data: { user: null, session: null }, error: error(429, "over_request_rate_limit", "Too many failed attempts") };
+    }
     const r = await comprobarClave(db, datos.email, datos.password);
-    if (!r.ok) return { data: { user: null, session: null }, error: error(400, "invalid_credentials", "Invalid login credentials") };
+    if (!r.ok) {
+      await anotarFallo(db, "clave", datos.email);
+      return { data: { user: null, session: null }, error: error(400, "invalid_credentials", "Invalid login credentials") };
+    }
     if (!r.confirmada) return { data: { user: null, session: null }, error: error(400, "email_not_confirmed", "Email not confirmed") };
     const token = await abrirSesion(db, r.usuarioId);
     this.guardar(token);

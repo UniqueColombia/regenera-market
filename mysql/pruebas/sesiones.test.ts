@@ -11,6 +11,7 @@
 import { hash } from "bcryptjs";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getMysql } from "../../src/lib/mysql/conexion";
+import { llaveDeEnlace } from "../../src/lib/mysql/cuentas";
 import { clienteDeServicio, clienteDeSesion, clienteEfimero, clienteDeToken } from "../../src/lib/mysql/postgrest/cliente";
 import { cerrarPool, HAY_MYSQL } from "./arnes";
 
@@ -130,6 +131,45 @@ describe.skipIf(!HAY_MYSQL)("sesiones en el modo MySQL", () => {
     expect((await clienteDeSesion(frasco()).auth.setSession({ access_token: token, refresh_token: token })).error).not.toBeNull();
   });
 
+  it("diez contraseñas falsas bloquean ese correo un cuarto de hora; un acierto no cuenta (2026-10-22)", async () => {
+    const email = correo();
+    const alta = clienteDeSesion(frasco());
+    await alta.auth.signUp({ email, password: "la clave buena larga" });
+    await idDe(email);
+    await alta.auth.verifyOtp({ email, token: ultimoCodigo(email), type: "email" });
+    const efimero = clienteEfimero();
+    // Los aciertos no acercan al bloqueo.
+    for (let i = 0; i < 12; i++) expect((await efimero.auth.signInWithPassword({ email, password: "la clave buena larga" })).error).toBeNull();
+    for (let i = 0; i < 10; i++) expect((await efimero.auth.signInWithPassword({ email, password: `mala ${i}` })).error?.code).toBe("invalid_credentials");
+    // Bloqueado aunque ahora sea la buena.
+    expect((await efimero.auth.signInWithPassword({ email, password: "la clave buena larga" })).error?.status).toBe(429);
+  });
+
+  it("diez códigos equivocados bloquean los códigos de ese correo hasta el día siguiente (2026-10-22)", async () => {
+    const email = correo();
+    const alta = clienteDeSesion(frasco());
+    await alta.auth.signUp({ email, password: "otra clave larga" });
+    await idDe(email);
+    const otroCodigo = async () => {
+      // Cada código se agota a los 5 intentos y pedir otro exige esperar un minuto.
+      await getMysql().updateTable("codigos").set({ creado_at: "2020-01-01 00:00:00.000000" }).where("email", "=", email).execute();
+      expect((await clienteDeSesion(frasco()).auth.signInWithOtp({ email, options: { shouldCreateUser: false } })).error).toBeNull();
+    };
+    const fallar = async (n: number) => {
+      for (let i = 0; i < n; i++) {
+        const malo = ultimoCodigo(email) === "000000" ? "000001" : "000000";
+        expect((await clienteDeSesion(frasco()).auth.verifyOtp({ email, token: malo, type: "email" })).error).not.toBeNull();
+      }
+    };
+    await fallar(5);
+    await otroCodigo();
+    await fallar(5);
+    await otroCodigo();
+    // Diez fallos entre dos códigos: el tercero no entra ni siendo el bueno.
+    const bueno = await clienteDeSesion(frasco()).auth.verifyOtp({ email, token: ultimoCodigo(email), type: "email" });
+    expect(bueno.error).not.toBeNull();
+  });
+
   it("un aparato desconocido: la acción cierra la sesión efímera y pide un código", async () => {
     const email = correo();
     const alta = clienteDeSesion(frasco());
@@ -152,7 +192,7 @@ describe.skipIf(!HAY_MYSQL)("sesiones en el modo MySQL", () => {
     expect(cookie.valor).toBeTruthy();
   });
 
-  it("pedir código para un correo sin cuenta es un error (la acción dice «regístrate»)", async () => {
+  it("pedir código para un correo sin cuenta es un error de la capa (la acción responde igual que si existiera)", async () => {
     const r = await clienteDeSesion(frasco()).auth.signInWithOtp({ email: correo(), options: { shouldCreateUser: false } });
     expect(r.error?.code).toBe("otp_disabled");
   });
@@ -181,6 +221,29 @@ describe.skipIf(!HAY_MYSQL)("sesiones en el modo MySQL", () => {
     const r = await clienteDeSesion(cookie).auth.verifyOtp({ token_hash: `${id}.${codigo}`, type: "email" });
     expect(r.error).toBeNull();
     expect(cookie.valor).toBeTruthy();
+  });
+
+  it("con SESION_SECRETO el enlace lleva una llave firmada, no el código (2026-10-22)", async () => {
+    const antes = process.env.SESION_SECRETO;
+    process.env.SESION_SECRETO = "secreto-de-prueba-del-enlace";
+    try {
+      const email = correo();
+      await clienteDeSesion(frasco()).auth.signUp({ email, password: "clave larga del enlace firmado" });
+      await idDe(email);
+      const codigo = ultimoCodigo(email);
+      const { id } = await getMysql().selectFrom("codigos").select("id").where("email", "=", email).executeTakeFirstOrThrow();
+      // El código ya no abre el enlace…
+      expect((await clienteDeSesion(frasco()).auth.verifyOtp({ token_hash: `${id}.${codigo}`, type: "email" })).error).not.toBeNull();
+      // …la llave sí, una vez.
+      const cookie = frasco();
+      const r = await clienteDeSesion(cookie).auth.verifyOtp({ token_hash: `${id}.${llaveDeEnlace(id)}`, type: "email" });
+      expect(r.error).toBeNull();
+      expect(cookie.valor).toBeTruthy();
+      expect((await clienteDeSesion(frasco()).auth.verifyOtp({ token_hash: `${id}.${llaveDeEnlace(id)}`, type: "email" })).error).not.toBeNull();
+    } finally {
+      if (antes === undefined) delete process.env.SESION_SECRETO;
+      else process.env.SESION_SECRETO = antes;
+    }
   });
 
   it("cambiar la contraseña cierra las demás sesiones y anula los códigos pendientes; la propia sigue", async () => {

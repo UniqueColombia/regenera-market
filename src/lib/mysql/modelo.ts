@@ -1558,6 +1558,10 @@ export const TABLAS: Record<string, Tabla> = {
         "tipo": "texto",
         "nula": true,
         "generada": true
+      },
+      "documento_verificado_at": {
+        "tipo": "instante",
+        "nula": true
       }
     },
     "pk": [

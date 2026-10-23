@@ -307,7 +307,22 @@ export async function subirImagenDeOferta(datos: FormData): Promise<ResultadoIma
   const revisada = revisarImagen(datos.get("imagen"));
   if (!revisada.ok) return { ok: false, error: revisada.error };
 
-  return getAlmacen().guardar(
+  // La cuota de fotos (`CUOTA` de `src/lib/almacen-disco.ts`). Lo que está en uso
+  // son los archivos que nombran las ofertas de la empresa, en cualquier estado.
+  const almacen = getAlmacen();
+  if (almacen.hayLugarParaOferta) {
+    const supabase = await createClient();
+    const { data: filas, error } = await supabase.from("listings").select("images").eq("provider_id", empresa.id);
+    if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("cuota-fotos", error)) };
+    const enUso = new Set<string>();
+    for (const f of (filas ?? []) as { images: string[] | null }[]) {
+      for (const url of f.images ?? []) enUso.add(url.slice(url.lastIndexOf("/") + 1));
+    }
+    const lugar = await almacen.hayLugarParaOferta(empresa.id, enUso);
+    if (!lugar.ok) return lugar;
+  }
+
+  return almacen.guardar(
     "logos",
     empresa.id,
     revisada.archivo,
