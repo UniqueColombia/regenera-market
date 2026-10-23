@@ -23,7 +23,7 @@ export function ListingCard({
   return (
     <article
       data-brillo
-      className="group flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/5 data-foco:ring-brand-300 data-foco:shadow-lg data-foco:shadow-brand-900/5">
+      className="tarjeta-foco group flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition duration-300 hover:-translate-y-1 hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/10 data-foco:-translate-y-1 data-foco:ring-brand-300 data-foco:shadow-lg data-foco:shadow-brand-900/10">
       {/* El grupo con nombre `/foto` cuelga del propio enlace, no del <article>:
           `:active` en táctil es fiable sobre el elemento que se toca, y aquí lo
           que se toca es el ancla. Colgarlo del artículo dependería de que el
@@ -33,7 +33,7 @@ export function ListingCard({
           entera. */}
       <Link
         href={`/oferta/${listing.slug}`}
-        className="group/foto relative block aspect-4/3 overflow-hidden"
+        className="destello group/foto relative block aspect-4/3 overflow-hidden"
       >
         <ListingMedia
           title={listing.title}

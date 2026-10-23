@@ -74,7 +74,12 @@ export function TarjetaPublicacion({
   const tema = TEMAS[post.topic];
 
   return (
-    <article className="flex h-full min-w-0 flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300">
+    // `tarjeta-foco` sin `grupo-foco` alrededor: salta y se le enciende el
+    // borde, pero no apaga a las vecinas, que alguien puede estar leyendo.
+    <article
+      data-brillo
+      className="tarjeta-foco relative flex h-full min-w-0 flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition duration-300 hover:-translate-y-1 hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/10 data-foco:-translate-y-1 data-foco:ring-brand-300"
+    >
       <header className="flex items-start gap-3">
         {/* La imagen es de quien firma: el logo de la empresa cuando publica
             en su nombre, y la foto de la persona cuando publica a título
