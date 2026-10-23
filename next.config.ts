@@ -40,73 +40,13 @@ const anfitrion = anfitrionDeSupabase();
  * para no pagar una llamada a Supabase por cada chunk—, así que puestas allá
  * dejarían sin cubrir justo lo que más se sirve.
  *
- * ## La política de contenido, y hasta dónde llega
- *
- * **`script-src` lleva `'unsafe-inline'`, y eso hay que decirlo en voz alta.**
- * Next inyecta scripts en línea para hidratar (`self.__next_f.push(...)`), y la
- * única forma de no permitirlos es un `nonce` por respuesta — que obliga a
- * renderizar cada página en cada petición, o sea a renunciar al prerenderizado
- * del catálogo y de las fichas, que es de donde sale la velocidad del sitio.
- * Con `'unsafe-inline'`, esta CSP **no** es una defensa contra XSS.
- *
- * Lo que sí hace, y no es poco, es cerrar todo lo demás:
- *
- * - `frame-ancestors 'none'` — nadie puede meter el sitio en un iframe, que es
- *   el clickjacking clásico: un botón invisible encima de «confirmar pedido».
- * - `form-action 'self'` — un formulario inyectado no puede enviar a otro
- *   dominio. Es lo que convierte un XSS en un robo de datos del formulario.
- * - `base-uri 'self'` — un `<base>` inyectado no puede repuntar todas las rutas
- *   relativas de la página a un servidor ajeno.
- * - `object-src 'none'` — ni Flash, ni applets, ni PDFs incrustados.
- * - `connect-src` acotado — aunque alguien lograra ejecutar algo, no puede
- *   mandar lo que lea a cualquier sitio.
- *
- * **`img-src` acepta cualquier `https:` a propósito.** Hoy la foto de una oferta
- * es una dirección de texto que escribe el proveedor
- * (`src/components/listing-media.tsx` la pinta con un `<img>` pelado), así que
- * acotarla al dominio de Supabase dejaría sin imagen a medio catálogo. El día
- * que subir el archivo sea obligatorio, esta línea se cierra al mismo dominio
- * que `remotePatterns`.
+ * **La política de contenido (CSP) no está aquí** desde el 2026-10-22: lleva un
+ * nonce por petición y la pone `src/proxy.ts` (`src/lib/csp.ts`). Lo que el
+ * proxy no cubre —estáticos e imágenes— no es un documento y no la necesita.
  */
-const TRADUCTOR_SCRIPTS =
-  "https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.google.com https://www.gstatic.com";
-
-/**
- * La pasarela de pago (BOLD, desde el 2026-10-14): su librería pinta el botón
- * en la página del pedido y abre el pago en un recuadro (`iframe`) sobre el
- * sitio. Se declara aunque la pasarela esté apagada: sin llaves, el pedido no
- * pide ese script y estas líneas no abren nada.
- */
-const PASARELA = "https://checkout.bold.co";
-
 function cabecerasDeSeguridad(produccion: boolean) {
-  const supabase = anfitrion ? `https://${anfitrion} wss://${anfitrion}` : "";
-
-  const csp = [
-    "default-src 'self'",
-    // `'unsafe-eval'` solo en desarrollo: lo necesita el recargado en caliente.
-    // El traductor (`selector-idioma.tsx`) necesita estos dominios de Google.
-    // Pide también la lista de idiomas a `translate-pa.googleapis.com`: dejarlo
-    // fuera hace que el combo salga vacío sin error visible.
-    `script-src 'self' 'unsafe-inline'${produccion ? "" : " 'unsafe-eval'"} ${TRADUCTOR_SCRIPTS} ${PASARELA}`,
-    "style-src 'self' 'unsafe-inline' https://www.gstatic.com https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https:",
-    "font-src 'self' data:",
-    `connect-src 'self' ${supabase} https://translate.googleapis.com https://translate-pa.googleapis.com ${PASARELA}`.trim(),
-    "media-src 'self'",
-    "worker-src 'self' blob:",
-    "manifest-src 'self'",
-    `frame-src https://translate.google.com ${PASARELA}`,
-    "frame-ancestors 'none'",
-    `form-action 'self' ${PASARELA}`,
-    "base-uri 'self'",
-    "object-src 'none'",
-    ...(produccion ? ["upgrade-insecure-requests"] : []),
-  ].join("; ");
-
   const cabeceras = [
-    { key: "Content-Security-Policy", value: csp },
-    // Redundante con `frame-ancestors` en navegadores actuales, y gratis.
+    // Lo mismo que `frame-ancestors` de la CSP, para lo que no pasa por el proxy.
     { key: "X-Frame-Options", value: "DENY" },
     { key: "X-Content-Type-Options", value: "nosniff" },
     // Al salir a otro dominio se manda el origen, nunca la ruta: una URL de
