@@ -223,6 +223,47 @@ export async function cambiarEstadoOferta(datos: unknown): Promise<
   return { ok: true };
 }
 
+const DestacarSchema = z.object({
+  id: z.uuid("Identificador de oferta inválido"),
+  featured: z.boolean(),
+});
+
+/**
+ * Poner o quitar una oferta de «Ofertas destacadas» de la portada, desde la
+ * lista y sin abrir el formulario (pedido de Jesús, 2026-10-23). Es el mismo
+ * campo que la casilla «Destacada» del formulario.
+ *
+ * No exige estado ni versión como `cambiarEstadoOferta()`: destacar no publica
+ * nada. Una oferta destacada que no está publicada simplemente no sale.
+ */
+export async function destacarOferta(datos: unknown): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  await requireAdmin();
+
+  const parsed = DestacarSchema.safeParse(datos);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  const { id, featured } = parsed.data;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("listings")
+    .update({ featured })
+    .eq("id", id)
+    .select("id");
+
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ofertas", error)) };
+  // RLS no da error cuando niega: devuelve cero filas.
+  if (!data || data.length === 0) {
+    return { ok: false, error: "No se pudo actualizar. ¿Sigues siendo administrador?" };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 /**
  * Las fechas y los cupos de una experiencia, desde el panel. Es la misma
  * escritura que `guardarFechasDeEmpresa()`; aquí autoriza `availability_admin`.

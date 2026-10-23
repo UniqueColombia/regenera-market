@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -13,19 +13,24 @@ import { DatosDelSitio } from "@/components/datos-estructurados";
 import { HeroBanner } from "@/components/hero-banner";
 import { CampoBusquedaHero } from "@/components/campo-busqueda-hero";
 import { Contador } from "@/components/contador";
-import { ListingCard } from "@/components/listing-card";
+import { CarruselOfertas } from "@/components/carrusel-ofertas";
+import { TarjetaOfertaCompacta } from "@/components/tarjeta-oferta-compacta";
 import { TarjetaPublicacion } from "@/components/tarjeta-publicacion";
 import { TierBadge } from "@/components/tier-badge";
 import { getSesion } from "@/lib/auth";
+import { registrarFallo } from "@/lib/incidencias";
 import {
   getCommunityPosts,
   getFeaturedListings,
   getMarketplaceStats,
+  getOfertasAlAzar,
+  getOfertasMasPedidas,
   getProviderById,
 } from "@/lib/repo";
 import { VERTICALS } from "@/lib/taxonomy";
 import { NIVELES } from "@/lib/niveles";
 import { descripcion, publica } from "@/lib/seo";
+import type { Listing } from "@/lib/types";
 
 /**
  * La portada es la única página que no hereda su título del `template` del
@@ -51,15 +56,27 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [featured, stats, posts, sesion] = await Promise.all([
-    getFeaturedListings(6),
+  const [alAzar, masPedidas, featured, stats, posts, sesion] = await Promise.all([
+    getOfertasAlAzar(24, ["product", "experience"]),
+    // Es la única lectura de la portada con el cliente de servicio, y la menos
+    // necesaria: si falla, se apaga su sección y la portada sigue en pie.
+    getOfertasMasPedidas(24).catch((e) => {
+      registrarFallo("portada-mas-pedidas", e);
+      return [];
+    }),
+    getFeaturedListings(),
     getMarketplaceStats(),
     getCommunityPosts(3),
     getSesion(),
   ]);
   const haySesion = Boolean(sesion);
-  const providers = await Promise.all(
-    featured.map((l) => getProviderById(l.providerId)),
+  // Una consulta por proveedor distinto, no por tarjeta: las tres secciones
+  // repiten proveedores, y a menudo la misma oferta.
+  const idsProveedor = [...new Set([...alAzar, ...masPedidas, ...featured].map((l) => l.providerId))];
+  const nombres = new Map(
+    (await Promise.all(idsProveedor.map((id) => getProviderById(id))))
+      .filter((p) => p !== undefined)
+      .map((p) => [p.id, p.name]),
   );
 
   return (
@@ -131,78 +148,56 @@ export default async function HomePage() {
         </dl>
       </HeroBanner>
 
-      <section className="container-page py-16">
-        <h2 className="font-display text-3xl text-ink">
-          Soluciones para cada tipo de negocio
-        </h2>
-        <p className="mt-2 max-w-2xl text-muted">
-          Encuentra productos y servicios verificados para hacer tu empresa más
-          sostenible.
-        </p>
-
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* ------------------------------------------------------------------ */}
+      {/* Tres carruseles de ofertas (desde el 2026-10-23)                    */}
+      {/*                                                                     */}
+      {/* - Soluciones: productos y experiencias al azar, otros en cada visita. */}
+      {/* - Lo más pedido: lo que más aparece en órdenes y cotizaciones.        */}
+      {/* - Destacadas: lo que el equipo eligió con «Destacar» en el panel.     */}
+      {/*                                                                     */}
+      {/* Las dos últimas desaparecen si están vacías, por lo mismo que la    */}
+      {/* Comunidad de abajo: un bloque que dice «nada todavía» en la portada */}
+      {/* se lee como sitio abandonado.                                       */}
+      {/* ------------------------------------------------------------------ */}
+      <SeccionOfertas
+        titulo="Soluciones para cada tipo de negocio"
+        bajada="Productos y experiencias de proveedores verificados, elegidos al azar. Vuelve y verás otros."
+        ofertas={alAzar}
+        proveedores={nombres}
+      >
+        {/* Las verticales siguen a un clic: eran el contenido de esta sección
+            y son la forma de entrar al catálogo filtrado por tipo de negocio. */}
+        <ul className="mt-5 flex flex-wrap gap-2">
           {VERTICALS.map((v) => (
             <li key={v.id}>
               <Link
                 href={`/catalogo?vertical=${v.id}`}
-                className="group flex h-full flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-400 hover:shadow-md active:ring-brand-400 active:shadow-md"
+                className="inline-block rounded-full bg-white px-3 py-1.5 text-sm text-ink ring-1 ring-hairline transition hover:bg-sand hover:text-brand-700"
               >
-                {/* alt vacío a propósito: el <h3> de debajo dice lo mismo, y un
-                    lector de pantalla que anuncie la foto solo lo repite. */}
-                <div className="relative aspect-16/9 overflow-hidden">
-                  <Image
-                    src={`/img/secciones/vertical-${v.id}.webp`}
-                    alt=""
-                    fill
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover transition duration-500 group-hover:scale-105 group-active:scale-105"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="font-display text-lg text-ink transition-colors group-hover:text-brand-700 group-active:text-brand-700">
-                    {v.label}
-                  </h3>
-                  <p className="mt-1.5 text-sm text-muted">{v.blurb}</p>
-                  <span className="mt-4 flex items-center gap-1 text-sm font-medium text-brand-600">
-                    Ver ofertas
-                    <ArrowRight className="size-4 transition group-hover:translate-x-0.5 group-active:translate-x-0.5" />
-                  </span>
-                </div>
+                {v.label}
               </Link>
             </li>
           ))}
         </ul>
-      </section>
+      </SeccionOfertas>
 
-      <section className="container-page py-10">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="font-display text-3xl text-ink">
-              Ofertas destacadas
-            </h2>
-            <p className="mt-2 text-muted">
-              Priorizamos a quienes completaron su evaluación de sostenibilidad.
-            </p>
-          </div>
-          <Link
-            href="/catalogo"
-            className="flex items-center gap-1 text-sm font-semibold text-brand-700 hover:underline"
-          >
-            Ver el catálogo completo
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
+      {masPedidas.length > 0 && (
+        <SeccionOfertas
+          titulo="Lo más pedido"
+          bajada="Lo que más compran y cotizan hoteles, restaurantes y operadores en Seregenera."
+          ofertas={masPedidas}
+          proveedores={nombres}
+        />
+      )}
 
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {featured.map((listing, i) => (
-            <ListingCard
-              key={listing.id}
-              listing={listing}
-              provider={providers[i]}
-            />
-          ))}
-        </div>
-      </section>
+      {featured.length > 0 && (
+        <SeccionOfertas
+          titulo="Ofertas destacadas"
+          bajada="Elegidas por el equipo de Seregenera."
+          ofertas={featured}
+          proveedores={nombres}
+        />
+      )}
 
       <section className="banda-sand mt-8 bg-sand py-16">
         <div className="container-page">
@@ -342,6 +337,59 @@ export default async function HomePage() {
         </div>
       </section>
     </>
+  );
+}
+
+/**
+ * Un carrusel de ofertas con su título y el enlace al catálogo. Las tres
+ * secciones de ofertas de la portada son esta misma forma; lo que cambia es de
+ * dónde salen.
+ */
+function SeccionOfertas({
+  titulo,
+  bajada,
+  ofertas,
+  proveedores,
+  children,
+}: {
+  titulo: string;
+  bajada: string;
+  ofertas: Listing[];
+  /** Nombre por id de proveedor. */
+  proveedores: Map<string, string>;
+  /** Lo que va entre el título y el carrusel. */
+  children?: ReactNode;
+}) {
+  return (
+    <section className="container-page py-10">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="font-display text-3xl text-ink">{titulo}</h2>
+          <p className="mt-2 max-w-2xl text-muted">{bajada}</p>
+        </div>
+        <Link
+          href="/catalogo"
+          className="flex items-center gap-1 text-sm font-semibold text-brand-700 hover:underline"
+        >
+          Ver el catálogo completo
+          <ArrowRight className="size-4" />
+        </Link>
+      </div>
+      {children}
+
+      <div className="mt-6">
+        <CarruselOfertas
+          etiqueta={titulo}
+          items={ofertas.map((o) => (
+            <TarjetaOfertaCompacta
+              key={o.id}
+              listing={o}
+              proveedor={proveedores.get(o.providerId)}
+            />
+          ))}
+        />
+      </div>
+    </section>
   );
 }
 
