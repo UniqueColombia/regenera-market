@@ -24,7 +24,8 @@ const TAMANOS = "(min-width: 1024px) 16vw, (min-width: 768px) 25vw, (min-width: 
  * - `tarjeta-foco` (Focus Cards + Border Glow): la tarjeta salta un poco, se le
  *   enciende un borde verde donde está el cursor, y las demás de la tanda se
  *   atenúan. La posición del cursor la reparte `EfectosPuntero` por
- *   `data-brillo`.
+ *   `data-brillo`; en el teléfono, el mismo componente marca `data-foco` en la
+ *   tarjeta que está bajo el dedo, y las clases `data-foco:` repiten el hover.
  * - `destello` (Glare Hover): un reflejo cruza la foto al entrar el cursor.
  */
 export function TarjetaOfertaCompacta({
@@ -38,7 +39,7 @@ export function TarjetaOfertaCompacta({
   return (
     <article
       data-brillo
-      className="tarjeta-foco group flex h-full flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition duration-300 hover:-translate-y-1 hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/10"
+      className="tarjeta-foco group flex h-full flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition duration-300 hover:-translate-y-1 hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/10 data-foco:-translate-y-1 data-foco:ring-brand-300 data-foco:shadow-lg data-foco:shadow-brand-900/10"
     >
       <Link
         href={`/oferta/${listing.slug}`}
@@ -51,7 +52,7 @@ export function TarjetaOfertaCompacta({
           category={listing.category}
           images={listing.images}
           sizes={TAMANOS}
-          className="transition duration-500 group-hover:scale-105 group-active/foto:scale-105"
+          className="transition duration-500 group-hover:scale-105 group-data-foco:scale-105"
         />
         <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-medium text-ink shadow-sm">
           {KIND_LABEL[listing.kind]}

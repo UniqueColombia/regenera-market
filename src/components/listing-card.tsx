@@ -10,8 +10,8 @@ import type { Listing, Provider } from "@/lib/types";
 
 /** El ancho real de la tarjeta en la rejilla del catálogo. */
 const TAMANOS = "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw";
-/** La foto crece al pasar por la tarjeta; las del fundido crecen con ella. */
-const CRECER = "transition duration-500 group-hover:scale-105 group-active/foto:scale-105";
+/** La foto crece al pasar por la tarjeta, o con el dedo encima (`data-foco`); las del fundido crecen con ella. */
+const CRECER = "transition duration-500 group-hover:scale-105 group-active/foto:scale-105 group-data-foco:scale-105";
 
 export function ListingCard({
   listing,
@@ -23,7 +23,7 @@ export function ListingCard({
   return (
     <article
       data-brillo
-      className="group flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/5">
+      className="group flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/5 data-foco:ring-brand-300 data-foco:shadow-lg data-foco:shadow-brand-900/5">
       {/* El grupo con nombre `/foto` cuelga del propio enlace, no del <article>:
           `:active` en táctil es fiable sobre el elemento que se toca, y aquí lo
           que se toca es el ancla. Colgarlo del artículo dependería de que el

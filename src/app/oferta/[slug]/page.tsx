@@ -471,7 +471,7 @@ export default async function OfertaPage(props: PageProps<"/oferta/[slug]">) {
           <h2 className="font-display text-2xl text-ink">
             Otras soluciones parecidas
           </h2>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rejilla-centrada mt-6 sm:[--cols:2] lg:[--cols:3]">
             {related.map((l, i) => (
               <ListingCard
                 key={l.id}
