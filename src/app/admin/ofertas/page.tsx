@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FileSpreadsheet, Plus, SquarePen } from "lucide-react";
+import { DestacarOferta } from "./destacar-oferta";
 import { EstadoOferta } from "./estado-oferta";
 import { Paginacion } from "@/components/paginacion";
 import { leerPagina, urlDePagina } from "@/lib/paginacion";
@@ -147,8 +148,14 @@ export default async function OfertasPage(props: PageProps<"/admin/ofertas">) {
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <EstadoOferta id={o.id} estado={o.status} titulo={o.title} version={o.version} />
+                {/* Solo donde tiene efecto: destacar un borrador no lo saca en la
+                    portada. Si ya está destacada sí se ofrece, para poder
+                    quitárselo aunque se haya retirado. */}
+                {(o.status === "approved" || o.featured) && (
+                  <DestacarOferta id={o.id} destacada={o.featured} titulo={o.title} />
+                )}
                 <Link
                   href={`/admin/ofertas/${o.id}`}
                   aria-label={`Editar ${o.title}`}

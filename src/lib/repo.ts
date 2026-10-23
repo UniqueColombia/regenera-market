@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { getUser } from "./auth";
 import { createClient } from "./supabase/server";
+import { createAdminClient } from "./supabase/admin";
 import { nivelesDesde } from "./niveles";
 import { cuantasPaginas, rango, type Pagina } from "./paginacion";
 import {
@@ -553,16 +554,96 @@ export async function getListingsByIds(ids: string[]): Promise<Listing[]> {
   return (data as unknown as FilaListing[]).map(aListing);
 }
 
-export async function getFeaturedListings(limit = 6): Promise<Listing[]> {
+/**
+ * Las que el equipo destacó, y solo esas (desde el 2026-10-23).
+ *
+ * Antes ordenaba por `featured` y luego por puntaje del proveedor y cortaba en
+ * seis, rellenando con no destacadas. Con más de seis destacadas, las de un
+ * proveedor recién llegado (puntaje 0) nunca entraban: el administrador la
+ * destacaba y la portada no cambiaba. Ahora el corte es generoso —cuatro
+ * tandas del carrusel— y lo que no está destacado no entra.
+ */
+export async function getFeaturedListings(limit = 48): Promise<Listing[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("listings_publicos")
     .select((await columnas()).listing)
-    .order("featured", { ascending: false })
-    .order("provider_score", { ascending: false })
+    .eq("featured", true)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
     .limit(limit);
   if (error) throw new Error(`getFeaturedListings: ${error.message}`);
   return (data as unknown as FilaListing[]).map(aListing);
+}
+
+/**
+ * Ofertas publicadas al azar, distintas en cada visita: «Soluciones para cada
+ * tipo de negocio» de la portada.
+ *
+ * Se sortea en JavaScript y no con `order by rand()`: la capa compatible con
+ * PostgREST no lo tiene, y el catálogo cabe entero en una lista de
+ * identificadores. Primero los ids, después las filas de los elegidos — traer
+ * todas las filas completas para quedarse con un puñado sería tirar el resto.
+ */
+export async function getOfertasAlAzar(
+  limit: number,
+  tipos: ListingKind[],
+): Promise<Listing[]> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("listings_publicos")
+    .select("id")
+    .in("kind", tipos);
+  if (error) throw new Error(`getOfertasAlAzar: ${error.message}`);
+
+  const ids = (data as { id: string }[]).map((f) => f.id);
+  // Fisher-Yates: `sort(() => Math.random() - 0.5)` no reparte parejo.
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  return enOrden(await getListingsByIds(ids.slice(0, limit)), ids);
+}
+
+/**
+ * Las ofertas más compradas o pedidas: cuántas órdenes y cotizaciones las
+ * incluyen, de más a menos.
+ *
+ * Se cuenta **cuántas veces se pidió**, no cuántas unidades: si no, un pedido
+ * de quinientos kits de amenities taparía todo lo demás. Cuenta también las
+ * órdenes sin pagar y las cotizaciones sin responder, porque lo que mide es el
+ * interés («más solicitados»), no lo cobrado.
+ *
+ * **Lee con el cliente de servicio**, la única lectura de este archivo que lo
+ * hace: `order_items` y `quotation_items` son de quien compra y RLS no deja que
+ * un visitante las vea. De aquí no sale ningún dato de nadie, solo el conteo
+ * por oferta; y las filas que se devuelven pasan por `listings_publicos`, así
+ * que una oferta retirada no reaparece por haber vendido mucho.
+ */
+export async function getOfertasMasPedidas(limit: number): Promise<Listing[]> {
+  const db = createAdminClient();
+  const [ordenes, cotizaciones] = await Promise.all([
+    db.from("order_items").select("listing_id").not("listing_id", "is", null).limit(5000),
+    db.from("quotation_items").select("listing_id").not("listing_id", "is", null).limit(5000),
+  ]);
+  if (ordenes.error) throw new Error(`getOfertasMasPedidas: ${ordenes.error.message}`);
+  if (cotizaciones.error) throw new Error(`getOfertasMasPedidas: ${cotizaciones.error.message}`);
+
+  const veces = new Map<string, number>();
+  for (const f of [...ordenes.data, ...cotizaciones.data] as { listing_id: string }[]) {
+    veces.set(f.listing_id, (veces.get(f.listing_id) ?? 0) + 1);
+  }
+  const ids = [...veces.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  // Se piden de más: alguna de las primeras puede estar retirada y la vista no
+  // la devuelve.
+  const filas = await getListingsByIds(ids.slice(0, limit * 2));
+  return enOrden(filas, ids).slice(0, limit);
+}
+
+/** Las ofertas en el orden de `ids`: `in (…)` las devuelve en el que quiere la base. */
+function enOrden(ofertas: Listing[], ids: string[]): Listing[] {
+  const posicion = new Map(ids.map((id, i) => [id, i]));
+  return ofertas.sort((a, b) => posicion.get(a.id)! - posicion.get(b.id)!);
 }
 
 export async function getRelatedListings(

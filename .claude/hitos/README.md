@@ -65,3 +65,4 @@ referencie al anterior.
 | 2026-10-17 | [La auditoría del modo MySQL ya en producción: lo que se arregló y lo que falta](2026-10-17-auditoria-del-modo-mysql.md) | Jesús Seiler | — (vía B-2: después del corte) |
 | 2026-10-17 | [Los pendientes menores de la auditoría, el CI que prueba MariaDB y las copias de seguridad diarias](2026-10-17-pendientes-de-la-auditoria-y-copias.md) | Jesús Seiler | — (vía B-2: después del corte) |
 | 2026-10-20 | [Copias cifradas, el monitor apuntado a producción con revisión de configuración, y Dependabot](2026-10-20-copias-cifradas-monitor-y-dependabot.md) | Jesús Seiler | — (vía B-2: después del corte) |
+| 2026-10-23 | [La portada en tres carruseles, y «Destacar» desde la lista del panel](2026-10-23-portada-en-carruseles-y-destacar.md) | Jesús Seiler | — |
