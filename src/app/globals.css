@@ -912,6 +912,114 @@ body {
   }
 }
 
+/* Carrusel de ofertas de la portada (`carrusel-ofertas.tsx` y
+   `tarjeta-oferta-compacta.tsx`). Ideas de React Bits escritas a mano, como el
+   «Glass Tiles» de OPCIONES: sus componentes traen GSAP o Motion para lo que
+   aquí resuelve CSS, y solo se anima `transform` y `opacity`.
+
+   Cascada (Animated Content): las tarjetas entran en diagonal, de izquierda a
+   derecha; `--i` lo pone el carrusel. `.carrusel-esperando` las esconde solo
+   mientras la sección está debajo del pliegue (patrón de `Revelar`). La
+   tarjeta anima `transform` en el `<li>` y no en el `<article>`: el `both` de
+   la animación se queda con la propiedad al terminar, y el salto y el foco del
+   hover —que van en el artículo, con `translate` y `scale`— no responderían. */
+@media (prefers-reduced-motion: no-preference) {
+  .carrusel-esperando .carrusel-tanda > li {
+    opacity: 0;
+  }
+
+  .carrusel-tanda.cascada > li {
+    animation: tarjeta-entra 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+
+  /* La tanda siguiente llega por la derecha; la anterior y la primera, por la
+     izquierda. */
+  .carrusel-tanda[data-desde="derecha"] > li {
+    --desde: 2.5rem;
+  }
+}
+
+@keyframes tarjeta-entra {
+  from {
+    opacity: 0;
+    transform: translateX(var(--desde, -2.5rem)) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Lo que responde al cursor, con la misma condición que `[data-brillo]`: en un
+   teléfono no hay hover que resaltar y un efecto pegado al último toque se lee
+   como fallo.
+
+   Foco (Focus Cards): mientras el cursor está sobre la tanda, todas menos la
+   señalada se atenúan. Se ata a la tanda y no a la tarjeta para que el hueco
+   entre dos tarjetas no las devuelva a todas a pleno un instante: eso
+   parpadeaba al pasar de una a otra.
+
+   Borde que sigue al cursor (Border Glow de Magic Bento): un anillo verde que
+   solo se enciende cerca del cursor. Es un degradado radial recortado al borde
+   con la máscara `exclude`; `--mx` y `--my` los reparte `EfectosPuntero`.
+
+   Destello (Glare Hover): un reflejo cruza la foto al entrar el cursor. Solo
+   tiene transición de ida: al salir vuelve a su sitio sin animar, fuera de la
+   foto, y no se ve un segundo reflejo al revés. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .carrusel-tanda:hover .tarjeta-foco:not(:hover) {
+    opacity: 0.55;
+    scale: 0.97;
+  }
+
+  .tarjeta-foco::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    padding: 2px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      200px circle at var(--mx, 50%) var(--my, 50%),
+      var(--color-brand-500),
+      transparent 70%
+    );
+    /* La máscara solo lee la opacidad: cualquier color opaco sirve. */
+    mask:
+      linear-gradient(var(--color-ink) 0 0) content-box,
+      linear-gradient(var(--color-ink) 0 0);
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+  }
+
+  .tarjeta-foco:hover::before {
+    opacity: 1;
+  }
+
+  .destello::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      110deg,
+      transparent 35%,
+      color-mix(in srgb, var(--color-white) 45%, transparent) 50%,
+      transparent 65%
+    );
+    transform: translateX(-110%);
+  }
+
+  .tarjeta-foco:hover .destello::after {
+    transform: translateX(110%);
+    transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
 /* Hojas que salen del botón al agregar a la cesta (`src/lib/hojas.ts`). Fijas y
    por encima de todo, incluido el encabezado pegajoso. La forma de hoja es un
    cuadrado con dos esquinas opuestas redondeadas. */

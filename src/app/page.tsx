@@ -57,7 +57,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [alAzar, masPedidas, featured, stats, posts, sesion] = await Promise.all([
-    getOfertasAlAzar(24, ["product", "experience"]),
+    getOfertasAlAzar(24),
     // Es la única lectura de la portada con el cliente de servicio, y la menos
     // necesaria: si falla, se apaga su sección y la portada sigue en pie.
     getOfertasMasPedidas(24).catch((e) => {
@@ -151,7 +151,7 @@ export default async function HomePage() {
       {/* ------------------------------------------------------------------ */}
       {/* Tres carruseles de ofertas (desde el 2026-10-23)                    */}
       {/*                                                                     */}
-      {/* - Soluciones: productos y experiencias al azar, otros en cada visita. */}
+      {/* - Soluciones: un grupo al azar del catálogo, otro en cada visita.     */}
       {/* - Lo más pedido: lo que más aparece en órdenes y cotizaciones.        */}
       {/* - Destacadas: lo que el equipo eligió con «Destacar» en el panel.     */}
       {/*                                                                     */}
@@ -161,7 +161,7 @@ export default async function HomePage() {
       {/* ------------------------------------------------------------------ */}
       <SeccionOfertas
         titulo="Soluciones para cada tipo de negocio"
-        bajada="Productos y experiencias de proveedores verificados, elegidos al azar. Vuelve y verás otros."
+        bajada="Productos, servicios y experiencias de proveedores verificados, elegidos al azar. Vuelve y verás otros."
         ofertas={alAzar}
         proveedores={nombres}
       >
@@ -193,7 +193,7 @@ export default async function HomePage() {
       {featured.length > 0 && (
         <SeccionOfertas
           titulo="Ofertas destacadas"
-          bajada="Elegidas por el equipo de Seregenera."
+          bajada="Lo mejor del catálogo, destacado para ti."
           ofertas={featured}
           proveedores={nombres}
         />
