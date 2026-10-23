@@ -8,7 +8,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
   correo, y **el 2026-10-17** en correos, legales, envíos, pagos y la base de
   datos (los tres primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.14.0`, desde el 2026-10-22) con la skill `desplegar-hostinger`;
+  desplegado **por tag** (hoy `v0.15.3`, desde el 2026-10-23) con la skill `desplegar-hostinger`;
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
   2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
   el primer recuadro). **Supabase y Vercel ya no son parte de producción**
@@ -17,6 +17,20 @@ qué hacer, empieza aquí y no en el ROADMAP.
   porque perdió las suyas). Seregenera corre solo sobre MariaDB y Hostinger,
   en el mismo hosting. Ya no hay vuelta atrás a Supabase: el respaldo son las
   copias diarias de MariaDB. Queda quitar el modo Supabase del código.
+
+> ## 🟢 Nuevo del 2026-10-23: portada en carruseles y solo Unique Colombia a la vista
+>
+> - **Portada** (`v0.15.0` a `v0.15.3`): tres carruseles —al azar, lo más
+>   pedido, destacadas—, botón «Destacar» en `/admin/ofertas`, y el efecto de
+>   las tarjetas (salto, borde que sigue al cursor, destello, foco) en todos
+>   los menús, también con el dedo. Hitos del 2026-10-23.
+> - **Solo Unique Colombia en el sitio**
+>   ([hito](../.claude/hitos/2026-10-23-solo-unique-colombia-a-la-vista.md)):
+>   las 18 ofertas de ejemplo en borrador y los 13 proveedores de ejemplo y de
+>   prueba suspendidos. Vuelven desde el panel. **No correr `scripts/seed.mts`
+>   contra producción**: las volvería a publicar.
+> - **Falta, Jesús:** mirar en el navegador (escritorio, teléfono y oscuro) y
+>   decidir qué hacer con **Tejido Wayúu Süchiimma**, que espera revisión.
 
 > ## 🟠 Auditoría de seguridad del 2026-10-22: lo corregido y lo que queda
 >
@@ -68,9 +82,12 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >          (Antes salía «0 fotos» en Windows: el `tar` de Git no lee rutas
 >          `C:\`. Corregido en el script.)
 >    - [x] `… bajar`: la del 2026-10-23, cifrada, en `outputs/respaldos/` de este PC.
->    - [ ] `… retirar-sin-cifrar` y borrar de `outputs/respaldos/` las copias
->          viejas en claro (`.sql.gz` / `.tar.gz`). Espera el visto bueno de
->          Jesús: no se puede deshacer.
+>    - [x] Borradas de `outputs/respaldos/` del PC de la casa las copias viejas
+>          en claro (2026-10-23).
+>    - [ ] `node --env-file=.env scripts/respaldos.mts retirar-sin-cifrar`:
+>          autorizado por Jesús, pero el modo automático de Claude Code lo
+>          frena aunque haya regla de permisos (borrado irreversible). Lo corre
+>          Jesús con `!`.
 >    - [ ] Al día siguiente, la salida del cron (`hosting_cron-jobs_output`):
 >          «respaldo … (cifrado)».
 > 3. ~~`.env` del PC de la oficina~~: **listo el 2026-10-20** (token de API
