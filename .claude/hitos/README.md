@@ -67,3 +67,4 @@ referencie al anterior.
 | 2026-10-20 | [Copias cifradas, el monitor apuntado a producción con revisión de configuración, y Dependabot](2026-10-20-copias-cifradas-monitor-y-dependabot.md) | Jesús Seiler | — (vía B-2: después del corte) |
 | 2026-10-23 | [La portada en tres carruseles, y «Destacar» desde la lista del panel](2026-10-23-portada-en-carruseles-y-destacar.md) | Jesús Seiler | — |
 | 2026-10-23 | [Movimiento en las tarjetas de la portada, y el sorteo toma todo el catálogo](2026-10-23-movimiento-en-las-tarjetas-de-la-portada.md) | Jesús Seiler | — |
+| 2026-10-23 | [Las tarjetas responden al dedo, y la última fila de una rejilla sale centrada](2026-10-23-foco-tactil-y-rejilla-centrada.md) | Jesús Seiler | — |

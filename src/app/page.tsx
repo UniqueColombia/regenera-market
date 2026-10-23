@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -27,7 +26,6 @@ import {
   getOfertasMasPedidas,
   getProviderById,
 } from "@/lib/repo";
-import { VERTICALS } from "@/lib/taxonomy";
 import { NIVELES } from "@/lib/niveles";
 import { descripcion, publica } from "@/lib/seo";
 import type { Listing } from "@/lib/types";
@@ -164,22 +162,7 @@ export default async function HomePage() {
         bajada="Productos, servicios y experiencias de proveedores verificados, elegidos al azar. Vuelve y verás otros."
         ofertas={alAzar}
         proveedores={nombres}
-      >
-        {/* Las verticales siguen a un clic: eran el contenido de esta sección
-            y son la forma de entrar al catálogo filtrado por tipo de negocio. */}
-        <ul className="mt-5 flex flex-wrap gap-2">
-          {VERTICALS.map((v) => (
-            <li key={v.id}>
-              <Link
-                href={`/catalogo?vertical=${v.id}`}
-                className="inline-block rounded-full bg-white px-3 py-1.5 text-sm text-ink ring-1 ring-hairline transition hover:bg-sand hover:text-brand-700"
-              >
-                {v.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </SeccionOfertas>
+      />
 
       {masPedidas.length > 0 && (
         <SeccionOfertas
@@ -284,10 +267,12 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          {/* `grid-cols-1` y `min-w-0` explícitos: sin ellos la columna implícita
-              es `auto` y una palabra larga de una publicación la ensancha más
-              que la pantalla en móvil. Es el mismo arreglo de `/comunidad`. */}
-          <ul className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
+          {/* `rejilla-centrada`: con dos publicaciones quedan centradas y no
+              pegadas a la izquierda. Su `min-width: 0` en cada hijo es lo que
+              impide que una palabra larga ensanche la columna más que la
+              pantalla en móvil, el arreglo que antes hacían `grid-cols-1` y
+              `min-w-0`. */}
+          <ul className="rejilla-centrada mt-8 md:[--cols:3]">
             {posts.map((post) => (
               <li key={post.id} className="min-w-0">
                 <TarjetaPublicacion post={post} haySesion={haySesion} />
@@ -350,18 +335,17 @@ function SeccionOfertas({
   bajada,
   ofertas,
   proveedores,
-  children,
 }: {
   titulo: string;
   bajada: string;
   ofertas: Listing[];
   /** Nombre por id de proveedor. */
   proveedores: Map<string, string>;
-  /** Lo que va entre el título y el carrusel. */
-  children?: ReactNode;
 }) {
+  // `py-6` y no `py-10`: entre el paginador de una sección y el título de la
+  // siguiente quedaban 80 px y se leían como bloques sueltos.
   return (
-    <section className="container-page py-10">
+    <section className="container-page py-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="font-display text-3xl text-ink">{titulo}</h2>
@@ -375,9 +359,7 @@ function SeccionOfertas({
           <ArrowRight className="size-4" />
         </Link>
       </div>
-      {children}
-
-      <div className="mt-6">
+      <div className="mt-5">
         <CarruselOfertas
           etiqueta={titulo}
           items={ofertas.map((o) => (
