@@ -56,18 +56,21 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >
 > 1. **Sincronizar:** `git pull` de `staging` y `main`, y `npm ci`.
 > 2. **Copias cifradas** (`docs/MODO-MYSQL.md`, «Copias de seguridad»; el
->    servidor tiene OpenSSL 3.5.8, comprobado). **Al 2026-10-23 sigue sin
->    empezar, y se hace desde el PC de la casa** (Jesús): no hay llaves en el
->    PC de la oficina, `~/respaldos` no tiene certificado y el `respaldar.sh`
->    del servidor es el viejo, que guarda en claro. v0.14.0 ya está desplegado:
->    esto es lo único que quedaba de esa entrega.
->    - [ ] `node scripts/respaldos.mts llave` y **guardar la llave privada y el
->          certificado en el gestor** antes de seguir. Se crea una sola vez; en
->          el otro PC se copian del gestor a `~/.ssh/`.
->    - [ ] `node --env-file=.env scripts/respaldos.mts instalar`
->    - [ ] `… probar`: tablas, rutinas, triggers, vistas y fotos ✓.
->    - [ ] `… retirar-sin-cifrar` y `… bajar`; borrar de `outputs/respaldos/`
->          las copias viejas en claro (`.sql.gz` / `.tar.gz`).
+>    servidor tiene OpenSSL 3.5.8, comprobado). **Empezadas el 2026-10-23 desde
+>    el PC de la casa**: la primera copia cifrada está en el servidor y se
+>    restauró entera.
+>    - [x] `node scripts/respaldos.mts llave`, con la llave privada y el
+>          certificado **guardados en el gestor** (Jesús). Viven en el PC de la
+>          casa; en el de la oficina se copian del gestor a `~/.ssh/`.
+>    - [x] `node --env-file=.env scripts/respaldos.mts instalar`: certificado y
+>          `respaldar.sh` nuevos, primera copia «(cifrado)».
+>    - [x] `… probar`: 30 tablas, 28 rutinas, 30 triggers, 3 vistas y 10 fotos ✓.
+>          (Antes salía «0 fotos» en Windows: el `tar` de Git no lee rutas
+>          `C:\`. Corregido en el script.)
+>    - [x] `… bajar`: la del 2026-10-23, cifrada, en `outputs/respaldos/` de este PC.
+>    - [ ] `… retirar-sin-cifrar` y borrar de `outputs/respaldos/` las copias
+>          viejas en claro (`.sql.gz` / `.tar.gz`). Espera el visto bueno de
+>          Jesús: no se puede deshacer.
 >    - [ ] Al día siguiente, la salida del cron (`hosting_cron-jobs_output`):
 >          «respaldo … (cifrado)».
 > 3. ~~`.env` del PC de la oficina~~: **listo el 2026-10-20** (token de API

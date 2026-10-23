@@ -42,7 +42,7 @@ import { spawnSync } from "node:child_process";
 import { randomInt } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { gunzipSync } from "node:zlib";
 
 const DOMINIO = "seregenera.com";
@@ -265,7 +265,16 @@ async function probar(usuario: string): Promise<number> {
       `${clave}\n${volcado}`,
     );
     if (!restaurada.ok) return fallo(restaurada.salida.replaceAll(clave, "***"));
-    const enLaCopia = spawnSync("tar", ["-tzf", tarGz], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+    // Solo el nombre, con la carpeta como `cwd`: con la ruta entera, el `tar` de
+    // Git que suele ganar en el PATH de Windows lee `C:` como un servidor
+    // remoto, no lista nada, y la copia salía con «0 fotos» teniendo diez
+    // (2026-10-23). El `tar` de Windows y el de Git aceptan los dos un nombre
+    // relativo.
+    const enLaCopia = spawnSync("tar", ["-tzf", basename(tarGz)], {
+      cwd: dirname(tarGz),
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+    });
     const fotosEnLaCopia = (enLaCopia.stdout ?? "").split("\n").filter((l) => l && !l.endsWith("/")).length;
 
     const guion = `
