@@ -49,7 +49,7 @@ export default async function ProveedoresPage() {
         </p>
       </HeroBanner>
 
-      <ul className="container-page mt-10 grid gap-5 pb-10 md:grid-cols-2">
+      <ul className="container-page rejilla-centrada mt-10 pb-10 md:[--cols:2]">
         {providers.map((p, i) => (
           // Entran al desplazarse, de a dos, escalonadas por columna. Las de
           // la primera pantalla no se animan: ver `revelar.tsx`.
@@ -57,7 +57,7 @@ export default async function ProveedoresPage() {
             <Link
               href={`/proveedor/${p.slug}`}
               data-brillo
-              className="group flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-md active:ring-brand-300 active:shadow-md"
+              className="group flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-md active:ring-brand-300 active:shadow-md data-foco:ring-brand-300 data-foco:shadow-md"
             >
               <div className="flex items-start gap-3">
                 <ProviderAvatar name={p.name} logoUrl={p.logoUrl} />

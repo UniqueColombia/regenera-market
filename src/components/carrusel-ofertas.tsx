@@ -18,8 +18,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
  * **Siempre dos filas, cambia cuántas columnas.** Con doce fijas, un teléfono
  * a dos columnas apilaba seis filas —casi dos pantallas— antes de llegar a las
  * flechas. Así la tanda mide lo mismo en todos los anchos: 4 en el teléfono,
- * 6 · 8 · 12 hacia arriba. Las columnas de `COLUMNAS` y las clases de la
- * rejilla tienen que decir lo mismo; si se separan, la última fila queda coja.
+ * 6 · 8 · 12 hacia arriba. Las columnas de `COLUMNAS` y las `--cols` de la
+ * rejilla tienen que decir lo mismo; si se separan, las tandas dejan de llenar
+ * sus dos filas. Una tanda incompleta (once en seis columnas) centra la fila
+ * que le sobra: es la `rejilla-centrada` de `globals.css`.
  *
  * Las tarjetas llegan ya pintadas por el servidor (`items`): este componente
  * solo las reparte y las mueve, así que la tarjeta sigue siendo de servidor.
@@ -156,7 +158,7 @@ export function CarruselOfertas({
               // `px-1.5 py-2`: el anillo, la sombra y el salto del hover de la
               // tarjeta se dibujan por fuera, y el `overflow-hidden` de arriba
               // los cortaría.
-              className={`carrusel-tanda grid w-full shrink-0 grid-cols-2 content-start gap-3 px-1.5 py-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 ${
+              className={`carrusel-tanda rejilla-centrada w-full shrink-0 content-start px-1.5 py-2 [--cols:2] [--gap:0.75rem] sm:[--cols:3] md:[--cols:4] lg:[--cols:6] ${
                 entrada === "cascada" && t === actual ? "cascada" : ""
               }`}
             >
@@ -167,7 +169,6 @@ export function CarruselOfertas({
                 // primera.
                 <li
                   key={i}
-                  className="min-w-0"
                   style={{ "--i": (i % columnas) + Math.floor(i / columnas) } as CSSProperties}
                 >
                   {item}
@@ -178,38 +179,47 @@ export function CarruselOfertas({
         </div>
       </div>
 
+      {/* El paginador: una píldora con las flechas en verde lleno, los puntos y
+          la cuenta. Va pegado a la tanda (`mt-4`) porque con más aire se leía
+          como el comienzo de la sección de abajo. */}
       {tandas.length > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => ir(actual - 1, "izquierda")}
-            aria-label="Tanda anterior"
-            className="flex size-9 items-center justify-center rounded-full bg-white text-brand-700 ring-1 ring-hairline transition hover:bg-sand"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <div className="flex items-center gap-1.5">
-            {tandas.map((_, t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => ir(t, t > actual ? "derecha" : "izquierda")}
-                aria-label={`Ver la tanda ${t + 1} de ${tandas.length}`}
-                aria-current={t === actual ? "true" : undefined}
-                className={`h-2 rounded-full transition-all ${
-                  t === actual ? "w-6 bg-brand-700" : "w-2 bg-hairline hover:bg-brand-300"
-                }`}
-              />
-            ))}
+        <div className="mt-4 flex justify-center">
+          <div className="flex items-center gap-2.5 rounded-full bg-white p-1.5 shadow-sm ring-1 ring-hairline">
+            <button
+              type="button"
+              onClick={() => ir(actual - 1, "izquierda")}
+              aria-label="Tanda anterior"
+              className="group/flecha flex size-9 items-center justify-center rounded-full bg-brand-700 text-white shadow-sm transition hover:bg-brand-800 active:scale-90"
+            >
+              <ChevronLeft className="size-4 transition group-hover/flecha:-translate-x-0.5" />
+            </button>
+            <div className="flex items-center gap-1.5">
+              {tandas.map((_, t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => ir(t, t > actual ? "derecha" : "izquierda")}
+                  aria-label={`Ver la tanda ${t + 1} de ${tandas.length}`}
+                  aria-current={t === actual ? "true" : undefined}
+                  // El punto activo se estira: dice dónde estás sin leer nada.
+                  className={`h-2.5 rounded-full transition-all duration-300 ${
+                    t === actual ? "w-8 bg-brand-600" : "w-2.5 bg-brand-200 hover:bg-brand-400"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="min-w-10 text-center text-xs font-semibold text-brand-700 tabular-nums">
+              {actual + 1} / {tandas.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => ir(actual + 1, "derecha")}
+              aria-label="Tanda siguiente"
+              className="group/flecha flex size-9 items-center justify-center rounded-full bg-brand-700 text-white shadow-sm transition hover:bg-brand-800 active:scale-90"
+            >
+              <ChevronRight className="size-4 transition group-hover/flecha:translate-x-0.5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => ir(actual + 1, "derecha")}
-            aria-label="Tanda siguiente"
-            className="flex size-9 items-center justify-center rounded-full bg-white text-brand-700 ring-1 ring-hairline transition hover:bg-sand"
-          >
-            <ChevronRight className="size-4" />
-          </button>
         </div>
       )}
     </div>

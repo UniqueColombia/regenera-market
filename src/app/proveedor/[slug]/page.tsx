@@ -199,7 +199,7 @@ export default async function ProveedorPage(
             {listings.length} {listings.length === 1 ? "oferta" : "ofertas"} en el
             catálogo
           </h2>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          <div className="rejilla-centrada mt-6 sm:[--cols:2]">
             {listings.map((l) => (
               <ListingCard key={l.id} listing={l} provider={provider} />
             ))}
