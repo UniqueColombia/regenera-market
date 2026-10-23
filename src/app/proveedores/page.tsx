@@ -49,7 +49,7 @@ export default async function ProveedoresPage() {
         </p>
       </HeroBanner>
 
-      <ul className="container-page rejilla-centrada mt-10 pb-10 md:[--cols:2]">
+      <ul className="container-page grupo-foco rejilla-centrada mt-10 pb-10 md:[--cols:2]">
         {providers.map((p, i) => (
           // Entran al desplazarse, de a dos, escalonadas por columna. Las de
           // la primera pantalla no se animan: ver `revelar.tsx`.
@@ -57,8 +57,11 @@ export default async function ProveedoresPage() {
             <Link
               href={`/proveedor/${p.slug}`}
               data-brillo
-              className="group flex h-full flex-col rounded-xl bg-white p-6 ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-md active:ring-brand-300 active:shadow-md data-foco:ring-brand-300 data-foco:shadow-md"
+              className="tarjeta-foco group relative flex h-full flex-col overflow-hidden rounded-xl bg-white p-6 ring-1 ring-hairline transition duration-300 hover:-translate-y-1 hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/10 active:ring-brand-300 active:shadow-md data-foco:-translate-y-1 data-foco:ring-brand-300 data-foco:shadow-lg data-foco:shadow-brand-900/10"
             >
+              {/* El destello cruza la tarjeta entera: no tiene foto propia y el
+                  `::after` del enlace ya lo usa el brillo de `data-brillo`. */}
+              <span aria-hidden className="destello pointer-events-none absolute inset-0" />
               <div className="flex items-start gap-3">
                 <ProviderAvatar name={p.name} logoUrl={p.logoUrl} />
                 <div className="min-w-0 flex-1">

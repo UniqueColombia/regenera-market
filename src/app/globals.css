@@ -934,11 +934,15 @@ body {
    la animación se queda con la propiedad al terminar, y el salto y el foco del
    hover —que van en el artículo, con `translate` y `scale`— no responderían.
 
-   Foco (Focus Cards): la tarjeta señalada salta y las demás de la tanda se
-   atenúan. Con ratón se ata a la tanda (`:hover` en ella) y no a la tarjeta,
-   para que el hueco entre dos no las devuelva a todas a pleno un instante: eso
-   parpadeaba al pasar de una a otra. Con el dedo, `EfectosPuntero` marca la
-   tanda con `data-con-foco` y la tarjeta con `data-foco`.
+   Foco (Focus Cards): la tarjeta señalada salta y las demás de su grupo se
+   atenúan. El grupo es el contenedor con `.grupo-foco`: la tanda del carrusel,
+   la rejilla del catálogo, la de proveedores (desde el 2026-10-23 el efecto de
+   la portada está en todas las tarjetas de oferta y de proveedor). Con ratón se
+   ata al grupo (`:hover` en él) y no a la tarjeta, para que el hueco entre dos
+   no las devuelva a todas a pleno un instante: eso parpadeaba al pasar de una
+   a otra. Con el dedo, `EfectosPuntero` marca el grupo con `data-con-foco` y la
+   tarjeta con `data-foco`. Una tarjeta `tarjeta-foco` fuera de un grupo (las
+   de la Comunidad) salta y brilla, pero no apaga a nadie.
 
    Borde que sigue al cursor (Border Glow de Magic Bento): un anillo verde que
    solo se enciende cerca del cursor o del dedo. Es un degradado radial recortado
@@ -1001,7 +1005,7 @@ body {
     transform: translateX(-110%);
   }
 
-  .carrusel-tanda[data-con-foco] .tarjeta-foco:not([data-foco]) {
+  .grupo-foco[data-con-foco] .tarjeta-foco:not([data-foco]) {
     opacity: 0.55;
     scale: 0.97;
   }
@@ -1028,7 +1032,7 @@ body {
 }
 
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .carrusel-tanda:hover .tarjeta-foco:not(:hover) {
+  .grupo-foco:hover .tarjeta-foco:not(:hover) {
     opacity: 0.55;
     scale: 0.97;
   }

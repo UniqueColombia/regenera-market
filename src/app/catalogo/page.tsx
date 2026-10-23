@@ -244,7 +244,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
         ) : (
           // `rejilla-centrada`: la última fila de una página corta sale
           // centrada en vez de pegada a la izquierda.
-          <div className="rejilla-centrada mt-6 sm:[--cols:2] lg:[--cols:3]">
+          <div className="grupo-foco rejilla-centrada mt-6 sm:[--cols:2] lg:[--cols:3]">
             {listings.map((listing, i) => (
               // Entran al desplazarse, escalonadas por columna. `Revelar` no
               // anima lo que ya está en la primera pantalla, así que filtrar no

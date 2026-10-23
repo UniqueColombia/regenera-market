@@ -158,7 +158,7 @@ export function CarruselOfertas({
               // `px-1.5 py-2`: el anillo, la sombra y el salto del hover de la
               // tarjeta se dibujan por fuera, y el `overflow-hidden` de arriba
               // los cortaría.
-              className={`carrusel-tanda rejilla-centrada w-full shrink-0 content-start px-1.5 py-2 [--cols:2] [--gap:0.75rem] sm:[--cols:3] md:[--cols:4] lg:[--cols:6] ${
+              className={`carrusel-tanda grupo-foco rejilla-centrada w-full shrink-0 content-start px-1.5 py-2 [--cols:2] [--gap:0.75rem] sm:[--cols:3] md:[--cols:4] lg:[--cols:6] ${
                 entrada === "cascada" && t === actual ? "cascada" : ""
               }`}
             >

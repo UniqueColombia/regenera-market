@@ -90,7 +90,7 @@ const SOLTAR_MS = 450;
 /**
  * El foco de las tarjetas con el dedo. `:hover` no sirve en táctil —se queda
  * pegado al último toque—, así que se marca a mano: `data-foco` en la tarjeta
- * bajo el dedo y `data-con-foco` en su tanda del carrusel, si la tiene. El CSS
+ * bajo el dedo y `data-con-foco` en su `.grupo-foco`, si lo tiene. El CSS
  * de los dos atributos está en `globals.css`, junto al de `:hover`.
  *
  * Se busca con `elementFromPoint` y no con el `target` del toque: al deslizar,
@@ -106,7 +106,7 @@ function escucharTactil(): () => void {
   function quitar() {
     if (!tocada) return;
     tocada.removeAttribute("data-foco");
-    tocada.closest(".carrusel-tanda")?.removeAttribute("data-con-foco");
+    tocada.closest(".grupo-foco")?.removeAttribute("data-con-foco");
     tocada = null;
   }
 
@@ -119,7 +119,7 @@ function escucharTactil(): () => void {
       quitar();
       if (ficha) {
         ficha.setAttribute("data-foco", "");
-        ficha.closest(".carrusel-tanda")?.setAttribute("data-con-foco", "");
+        ficha.closest(".grupo-foco")?.setAttribute("data-con-foco", "");
       }
       tocada = ficha;
     }
