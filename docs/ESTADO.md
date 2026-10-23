@@ -56,7 +56,11 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >
 > 1. **Sincronizar:** `git pull` de `staging` y `main`, y `npm ci`.
 > 2. **Copias cifradas** (`docs/MODO-MYSQL.md`, «Copias de seguridad»; el
->    servidor tiene OpenSSL 3.5.8, comprobado):
+>    servidor tiene OpenSSL 3.5.8, comprobado). **Al 2026-10-23 sigue sin
+>    empezar, y se hace desde el PC de la casa** (Jesús): no hay llaves en el
+>    PC de la oficina, `~/respaldos` no tiene certificado y el `respaldar.sh`
+>    del servidor es el viejo, que guarda en claro. v0.14.0 ya está desplegado:
+>    esto es lo único que quedaba de esa entrega.
 >    - [ ] `node scripts/respaldos.mts llave` y **guardar la llave privada y el
 >          certificado en el gestor** antes de seguir. Se crea una sola vez; en
 >          el otro PC se copian del gestor a `~/.ssh/`.
