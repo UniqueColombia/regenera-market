@@ -17,6 +17,15 @@ const TAMANOS = "(min-width: 1024px) 16vw, (min-width: 768px) 25vw, (min-width: 
  *
  * Sin directiva: la pinta el servidor y la pasa ya hecha al carrusel, que es
  * de cliente.
+ *
+ * El movimiento al pasar el cursor vive en `globals.css` («Carrusel de
+ * ofertas»), con ideas de React Bits escritas a mano:
+ *
+ * - `tarjeta-foco` (Focus Cards + Border Glow): la tarjeta salta un poco, se le
+ *   enciende un borde verde donde está el cursor, y las demás de la tanda se
+ *   atenúan. La posición del cursor la reparte `EfectosPuntero` por
+ *   `data-brillo`.
+ * - `destello` (Glare Hover): un reflejo cruza la foto al entrar el cursor.
  */
 export function TarjetaOfertaCompacta({
   listing,
@@ -29,13 +38,13 @@ export function TarjetaOfertaCompacta({
   return (
     <article
       data-brillo
-      className="group flex h-full flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/5"
+      className="tarjeta-foco group flex h-full flex-col overflow-hidden rounded-xl bg-white ring-1 ring-hairline transition duration-300 hover:-translate-y-1 hover:ring-brand-300 hover:shadow-lg hover:shadow-brand-900/10"
     >
       <Link
         href={`/oferta/${listing.slug}`}
         tabIndex={-1}
         aria-hidden
-        className="group/foto relative block aspect-4/3 overflow-hidden"
+        className="destello group/foto relative block aspect-4/3 overflow-hidden"
       >
         <ListingMedia
           title={listing.title}

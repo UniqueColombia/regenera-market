@@ -578,22 +578,18 @@ export async function getFeaturedListings(limit = 48): Promise<Listing[]> {
 
 /**
  * Ofertas publicadas al azar, distintas en cada visita: «Soluciones para cada
- * tipo de negocio» de la portada.
+ * tipo de negocio» de la portada. Sale de todo lo que muestra el catálogo
+ * —productos, servicios y experiencias—; el 2026-10-23 se dejaron fuera los
+ * servicios unas horas y Jesús pidió que entraran.
  *
  * Se sortea en JavaScript y no con `order by rand()`: la capa compatible con
  * PostgREST no lo tiene, y el catálogo cabe entero en una lista de
  * identificadores. Primero los ids, después las filas de los elegidos — traer
  * todas las filas completas para quedarse con un puñado sería tirar el resto.
  */
-export async function getOfertasAlAzar(
-  limit: number,
-  tipos: ListingKind[],
-): Promise<Listing[]> {
+export async function getOfertasAlAzar(limit: number): Promise<Listing[]> {
   const db = await createClient();
-  const { data, error } = await db
-    .from("listings_publicos")
-    .select("id")
-    .in("kind", tipos);
+  const { data, error } = await db.from("listings_publicos").select("id");
   if (error) throw new Error(`getOfertasAlAzar: ${error.message}`);
 
   const ids = (data as { id: string }[]).map((f) => f.id);
