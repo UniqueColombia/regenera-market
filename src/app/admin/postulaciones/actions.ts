@@ -237,3 +237,30 @@ export async function decidirPostulacion(
   revalidatePath("/", "layout");
   return { ok: true, aviso };
 }
+
+const EliminarSchema = z.object({ id: z.uuid("Identificador de postulación inválido") });
+
+/**
+ * Eliminar una postulación (desde el 2026-10-23). **No se puede deshacer.**
+ *
+ * Borra el formulario que llegó por `/vender`, nada más: si ya se aprobó, la
+ * empresa que creó y la cuenta de quien postuló siguen como estaban
+ * (`provider_applications` no es dueña de ninguna de las dos). Sirve para
+ * limpiar pruebas, repetidas y spam.
+ *
+ * Con el cliente de sesión: autoriza `provider_applications_admin`.
+ */
+export async function eliminarPostulacion(datos: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+  const parsed = EliminarSchema.safeParse(datos);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("provider_applications").delete().eq("id", parsed.data.id).select("id");
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-postulaciones-borrar", error)) };
+  // Cero filas sin error: ya la había borrado otra pestaña. Da lo mismo.
+
+  revalidatePath("/admin/postulaciones");
+  revalidatePath("/admin");
+  return { ok: true };
+}

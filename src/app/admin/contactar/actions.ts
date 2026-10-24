@@ -211,6 +211,42 @@ export async function idsDelFiltro(filtros: unknown): Promise<string[]> {
   return f.success ? getIdsDeProspectos(f.data) : [];
 }
 
+const VistaSchema = z.object({
+  tipo: z.enum(["invitacion", "noticia"]),
+  asunto: z.string().max(160),
+  cuerpo: z.string().max(8000),
+  empresa: z.string().max(200),
+  ciudad: z.string().max(80).optional(),
+  correo: z.string().max(200).optional(),
+});
+
+/**
+ * El correo tal como le llega a la empresa: el mismo `correoDeCampana()` que
+ * usa `enviarLote()`, con logo, botón y pie de baja. Antes la pantalla
+ * enseñaba solo el texto, y lo que se veía no era lo que salía.
+ *
+ * El enlace de baja lleva un token de mentira: la vista previa no es de nadie.
+ */
+export async function vistaPreviaCorreo(
+  datos: unknown,
+): Promise<{ ok: true; asunto: string; html: string } | { ok: false }> {
+  await requireAdmin();
+  const r = VistaSchema.safeParse(datos);
+  if (!r.success) return { ok: false };
+  const d = r.data;
+  const destino = { nombre: d.empresa, ciudad: d.ciudad };
+  const m = correoDeCampana({
+    tipo: d.tipo,
+    para: d.correo || "contacto@empresa.co",
+    empresa: d.empresa,
+    asunto: rellenar(d.asunto, destino),
+    cuerpo: rellenar(d.cuerpo, destino),
+    token: "vista-previa",
+    responderA: CONTACTO.correo,
+  });
+  return { ok: true, asunto: m.asunto, html: m.html };
+}
+
 const LoteSchema = z.object({
   /** Lo genera la pantalla una vez por envío: reintentar no duplica (invariante 24). */
   campanaId: z.uuid(),
@@ -251,7 +287,7 @@ export async function enviarLote(datos: unknown): Promise<ResultadoLote> {
     return {
       ok: false,
       error:
-        "El correo de la aplicación no está configurado (faltan las SMTP_* en Vercel), así que no saldría ninguno. Mientras tanto, invita por WhatsApp.",
+        "El correo de la aplicación no está configurado (faltan las SMTP_* en Hostinger), así que no saldría ninguno. Mientras tanto, invita por WhatsApp.",
     };
   }
 

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MessagesSquare } from "lucide-react";
 import { DecisionPublicacion } from "./decision-publicacion";
+import { BuscadorAdmin } from "../buscador";
+import { coincide, leerBusqueda } from "@/lib/busqueda";
 import { TEMAS } from "@/components/tarjeta-publicacion";
 import { getPostsForAdmin } from "@/lib/repo";
 import { longDate } from "@/lib/format";
@@ -25,16 +27,20 @@ export const metadata: Metadata = {
  */
 export const dynamic = "force-dynamic";
 
-export default async function AdminComunidadPage() {
-  const posts = await getPostsForAdmin();
+export default async function AdminComunidadPage(props: PageProps<"/admin/comunidad">) {
+  const q = leerBusqueda((await props.searchParams).q);
+  const todos = await getPostsForAdmin();
+  const posts = todos.filter((p) => coincide(q, p.title, p.body, p.authorName));
   const ocultas = posts.filter((p) => p.status !== "approved").length;
 
   return (
     <div>
       <h1 className="font-display text-2xl text-ink">Comunidad</h1>
       <p className="mt-1 text-sm text-muted">
-        {posts.length === 0
+        {todos.length === 0
           ? "Todavía no hay publicaciones."
+          : q
+            ? `${posts.length} de ${todos.length} publicaciones.`
           : `${posts.length} publicaciones${ocultas > 0 ? `, ${ocultas} oculta${ocultas === 1 ? "" : "s"}` : ""}.`}{" "}
         <Link
           href="/comunidad"
@@ -44,11 +50,17 @@ export default async function AdminComunidadPage() {
         </Link>
       </p>
 
+      {todos.length > 0 && (
+        <BuscadorAdmin ruta="/admin/comunidad" q={q} placeholder="Título, texto o autor…" />
+      )}
+
       {posts.length === 0 ? (
         <div className="mt-8 rounded-xl bg-white p-10 text-center ring-1 ring-hairline">
           <MessagesSquare className="mx-auto size-8 text-muted" />
           <p className="mt-3 text-sm text-muted">
-            Cuando alguien escriba en la Comunidad, aparecerá aquí para moderar.
+            {q
+              ? `Ninguna publicación coincide con «${q}».`
+              : "Cuando alguien escriba en la Comunidad, aparecerá aquí para moderar."}
           </p>
         </div>
       ) : (

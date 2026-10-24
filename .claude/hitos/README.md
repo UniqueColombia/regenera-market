@@ -69,3 +69,4 @@ referencie al anterior.
 | 2026-10-23 | [Movimiento en las tarjetas de la portada, y el sorteo toma todo el catálogo](2026-10-23-movimiento-en-las-tarjetas-de-la-portada.md) | Jesús Seiler | — |
 | 2026-10-23 | [Las tarjetas responden al dedo, y la última fila de una rejilla sale centrada](2026-10-23-foco-tactil-y-rejilla-centrada.md) | Jesús Seiler | — |
 | 2026-10-23 | [Solo Unique Colombia a la vista: las ofertas y proveedores de ejemplo, ocultos](2026-10-23-solo-unique-colombia-a-la-vista.md) | Jesús Seiler | — |
+| 2026-10-23 | [El panel busca, borra órdenes, postulaciones y cuentas, y «Contactar» enseña el correo real](2026-10-23-panel-buscar-borrar-y-contactar.md) | Jesús Seiler | — |

@@ -2,6 +2,7 @@ import { cache } from "react";
 import { getUser } from "./auth";
 import { createClient } from "./supabase/server";
 import { createAdminClient } from "./supabase/admin";
+import { patron } from "./busqueda";
 import { nivelesDesde } from "./niveles";
 import { cuantasPaginas, rango, type Pagina } from "./paginacion";
 import {
@@ -397,17 +398,6 @@ function aProvider(f: FilaProvider): Provider {
  * usuario deja de parecerse a lo que hay indexado y la búsqueda empieza a no
  * encontrar cosas que sí están.
  */
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "");
-}
-
-/** Escapa lo que PostgREST trata como sintaxis dentro de un `ilike`. */
-function patron(s: string): string {
-  return `%${normalize(s).replace(/[%_,()]/g, " ").trim()}%`;
-}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -886,11 +876,16 @@ export const OFERTAS_ADMIN_POR_PAGINA = 40;
  * Consulta `listings` y **no** la vista `listings_publicos`: la vista filtra a
  * "aprobado de proveedor aprobado", que es justo lo contrario de lo que hace
  * falta aquí — el panel existe para ver lo que todavía no está publicado.
+ *
+ * `busca` (desde el 2026-10-23) mira el texto de la oferta y el nombre de su
+ * proveedor, las dos columnas `busqueda` ya normalizadas. Las cifras por estado
+ * siguen siendo de todas: son las de los botones de filtro.
  */
 export async function getOfertasParaAdmin(
   estado: ReviewStatus | undefined,
   pagina: number,
   porPagina = OFERTAS_ADMIN_POR_PAGINA,
+  busca?: string,
 ): Promise<Pagina<ListingAdmin> & { porEstado: Record<ReviewStatus, number> }> {
   const db = await createClient();
   const [desde, hasta] = rango(pagina, porPagina);
@@ -900,6 +895,13 @@ export async function getOfertasParaAdmin(
     .from("listings")
     .select(`${(await columnas()).listing}, providers(name, status)`, { count: "exact" });
   if (estado) q = q.eq("status", estado);
+  if (busca) {
+    const p = patron(busca);
+    const { data: deProveedor, error } = await db.from("providers").select("id").ilike("busqueda", p);
+    if (error) throw new Error(`getOfertasParaAdmin: ${error.message}`);
+    const ids = (deProveedor as { id: string }[]).map((f) => f.id);
+    q = q.or(`busqueda.ilike.${p}${ids.length ? `,provider_id.in.(${ids.join(",")})` : ""}`);
+  }
 
   const [pag, ...conteos] = await Promise.all([
     q.order("created_at", { ascending: false }).order("id", { ascending: true }).range(desde, hasta),
@@ -907,7 +909,12 @@ export async function getOfertasParaAdmin(
   ]);
   for (const c of conteos) if (c.error) throw new Error(`getOfertasParaAdmin: ${c.error.message}`);
   const porEstado = Object.fromEntries(ESTADOS.map((e, i) => [e, conteos[i].count ?? 0])) as Record<ReviewStatus, number>;
-  const total = estado ? porEstado[estado] : ESTADOS.reduce((s, e) => s + porEstado[e], 0);
+  // Con búsqueda, el total es el de lo encontrado, que solo sabe la consulta.
+  const total = busca
+    ? (pag.count ?? 0)
+    : estado
+      ? porEstado[estado]
+      : ESTADOS.reduce((s, e) => s + porEstado[e], 0);
   const paginas = cuantasPaginas(total, porPagina);
 
   // PGRST103: la página ya no existe. Vacía, con el total real.

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ModerarResena } from "./moderar-resena";
+import { BuscadorAdmin } from "../buscador";
+import { coincide, leerBusqueda } from "@/lib/busqueda";
 import { Estrellas } from "@/components/estrellas";
 import { longDate } from "@/lib/format";
 import { getResenasParaModerar, logisticaDisponible } from "@/lib/repo";
@@ -16,9 +18,11 @@ export const dynamic = "force-dynamic";
  * hay spam que filtrar antes— y aquí el equipo oculta la que no debería estar:
  * un insulto, un dato personal, algo que no habla del producto.
  */
-export default async function ResenasAdminPage() {
+export default async function ResenasAdminPage(props: PageProps<"/admin/resenas">) {
+  const q = leerBusqueda((await props.searchParams).q);
   const disponible = await logisticaDisponible();
-  const resenas = await getResenasParaModerar();
+  const todas = await getResenasParaModerar();
+  const resenas = todas.filter((r) => coincide(q, r.autorNombre, r.body, r.listingTitle));
   const ocultas = resenas.filter((r) => r.oculta).length;
 
   return (
@@ -32,13 +36,17 @@ export default async function ResenasAdminPage() {
         </p>
       </header>
 
+      {todas.length > 0 && (
+        <BuscadorAdmin ruta="/admin/resenas" q={q} placeholder="Quién la escribió, qué dice o de qué oferta…" />
+      )}
+
       {!disponible ? (
         <p className="mt-8 rounded-xl bg-sand p-6 text-sm text-muted">
           Falta aplicar la migración <code>0014</code> en Supabase.
         </p>
       ) : resenas.length === 0 ? (
         <p className="mt-8 rounded-xl bg-white p-8 text-center text-sm text-muted ring-1 ring-hairline">
-          Todavía no hay reseñas.
+          {q ? `Ninguna reseña coincide con «${q}».` : "Todavía no hay reseñas."}
         </p>
       ) : (
         <>

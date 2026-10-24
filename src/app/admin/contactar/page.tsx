@@ -98,8 +98,8 @@ export default async function ContactarPage(props: PageProps<"/admin/contactar">
       {!correoListo && (
         <p className="mt-5 rounded-xl bg-clay-100 p-4 text-sm text-clay-700 ring-1 ring-clay-300/60">
           <strong className="font-semibold">Los correos todavía no salen:</strong> faltan
-          las variables SMTP_* en Vercel (pendiente con Ivan, ver docs/ESTADO.md). Puedes
-          preparar la lista e invitar por WhatsApp mientras tanto.
+          las variables SMTP_* en Hostinger (ver docs/VARIABLES.md). Puedes preparar la
+          lista e invitar por WhatsApp mientras tanto.
         </p>
       )}
 
