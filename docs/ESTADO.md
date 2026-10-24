@@ -84,10 +84,9 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >    - [x] `… bajar`: la del 2026-10-23, cifrada, en `outputs/respaldos/` de este PC.
 >    - [x] Borradas de `outputs/respaldos/` del PC de la casa las copias viejas
 >          en claro (2026-10-23).
->    - [ ] `node --env-file=.env scripts/respaldos.mts retirar-sin-cifrar`:
->          autorizado por Jesús, pero el modo automático de Claude Code lo
->          frena aunque haya regla de permisos (borrado irreversible). Lo corre
->          Jesús con `!`.
+>    - [x] `node --env-file=.env scripts/respaldos.mts retirar-sin-cifrar`
+>          (2026-10-23, lo corrió Jesús): 12 copias en claro borradas del
+>          servidor; quedan solo las cifradas.
 >    - [ ] Al día siguiente, la salida del cron (`hosting_cron-jobs_output`):
 >          «respaldo … (cifrado)».
 > 3. ~~`.env` del PC de la oficina~~: **listo el 2026-10-20** (token de API
