@@ -1047,6 +1047,28 @@ body {
   }
 }
 
+/* La barra de desplazamiento de `CarruselDesplazable` (las ofertas de un
+   proveedor): fina, verde y visible, porque es una de las formas de navegar la
+   fila —Jesús la pidió—. Firefox y Chrome nuevo leen `scrollbar-color`; Safari,
+   los pseudoelementos. */
+.barra-desplazamiento {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-brand-300) transparent;
+}
+
+.barra-desplazamiento::-webkit-scrollbar {
+  height: 8px;
+}
+
+.barra-desplazamiento::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: var(--color-brand-300);
+}
+
+.barra-desplazamiento::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* Rejilla cuya última fila, si queda incompleta, sale centrada (2026-10-23).
 
    Con `grid`, once tarjetas en seis columnas dejaban la segunda fila pegada a

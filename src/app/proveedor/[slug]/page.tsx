@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BadgeCheck, Calendar, Globe, Mail, MapPin, Phone } from "lucide-react";
 import { DatosDeMiga, DatosDeProveedor } from "@/components/datos-estructurados";
+import { CarruselDesplazable } from "@/components/carrusel-desplazable";
 import { ListingCard } from "@/components/listing-card";
 import { HeroBanner } from "@/components/hero-banner";
 import { TierBadge } from "@/components/tier-badge";
@@ -199,11 +200,26 @@ export default async function ProveedorPage(
             {listings.length} {listings.length === 1 ? "oferta" : "ofertas"} en el
             catálogo
           </h2>
-          <div className="grupo-foco rejilla-centrada mt-6 sm:[--cols:2]">
-            {listings.map((l) => (
-              <ListingCard key={l.id} listing={l} provider={provider} />
-            ))}
-          </div>
+          {/* Con más de dos, una fila que se desplaza de lado y avanza sola en
+              vez de una rejilla que crece hacia abajo: con quince ofertas la
+              página no terminaba nunca (Jesús, 2026-10-23). Con una o dos,
+              la rejilla de siempre, que ya cabe en una fila. */}
+          {listings.length > 2 ? (
+            <div className="mt-6">
+              <CarruselDesplazable
+                etiqueta={`Ofertas de ${provider.name}`}
+                items={listings.map((l) => (
+                  <ListingCard key={l.id} listing={l} provider={provider} />
+                ))}
+              />
+            </div>
+          ) : (
+            <div className="grupo-foco rejilla-centrada mt-6 sm:[--cols:2]">
+              {listings.map((l) => (
+                <ListingCard key={l.id} listing={l} provider={provider} />
+              ))}
+            </div>
+          )}
         </div>
 
         <aside className="space-y-5">
