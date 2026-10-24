@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Building2, FileText, Landmark, Mail, MapPin, Phone } from "lucide-react";
+import { eliminarPostulacion } from "./actions";
 import { DecisionPostulacion } from "./decision-postulacion";
+import { BotonEliminar } from "../boton-eliminar";
+import { BuscadorAdmin } from "../buscador";
+import { coincide, leerBusqueda } from "@/lib/busqueda";
 import { getApplications } from "@/lib/repo";
 import { etiquetaTipoOrganizacion } from "@/lib/paises";
 import { VERTICALS } from "@/lib/taxonomy";
@@ -32,8 +36,14 @@ const COLOR: Partial<Record<ReviewStatus, string>> = {
  * se decide si una empresa entra al marketplace, y resumirlo obligaría a abrir
  * otra pantalla para lo único que importa de esta.
  */
-export default async function PostulacionesPage() {
-  const postulaciones = await getApplications();
+export default async function PostulacionesPage(props: PageProps<"/admin/postulaciones">) {
+  const q = leerBusqueda((await props.searchParams).q);
+  const todas = await getApplications();
+  // Se cargan enteras (son pocas y se agrupan por estado): la búsqueda filtra
+  // aquí, con la misma normalización que el catálogo.
+  const postulaciones = todas.filter((p) =>
+    coincide(q, p.name, p.contactName, p.email, p.city, p.department, p.country, p.taxId),
+  );
 
   const grupos = (["pending_review", "approved", "rejected"] as const)
     .map((estado) => ({
@@ -53,7 +63,22 @@ export default async function PostulacionesPage() {
         </p>
       </header>
 
-      {postulaciones.length === 0 && (
+      {todas.length > 0 && (
+        <BuscadorAdmin ruta="/admin/postulaciones" q={q} placeholder="Empresa, contacto, correo, ciudad o NIT…" />
+      )}
+      {q && (
+        <p className="mt-2 text-sm text-muted">
+          {postulaciones.length} de {todas.length}.
+        </p>
+      )}
+
+      {q && postulaciones.length === 0 && (
+        <p className="mt-10 rounded-xl bg-white p-10 text-center text-muted ring-1 ring-hairline">
+          Ninguna postulación coincide con «{q}».
+        </p>
+      )}
+
+      {todas.length === 0 && (
         <p className="mt-10 rounded-xl bg-white p-10 text-center text-muted ring-1 ring-hairline">
           Todavía no ha postulado nadie por{" "}
           <Link href="/vender" className="text-brand-700 underline underline-offset-4">
@@ -175,6 +200,14 @@ export default async function PostulacionesPage() {
                   nombre={p.name}
                   decidida={p.status !== "pending_review"}
                 />
+
+                <div className="mt-3 flex justify-end border-t border-hairline pt-3">
+                  <BotonEliminar
+                    accion={eliminarPostulacion}
+                    datos={{ id: p.id }}
+                    pregunta={`¿Eliminar la postulación de ${p.name}?${p.status === "approved" ? " La empresa que se creó al aprobarla se queda como está." : ""}`}
+                  />
+                </div>
               </li>
             ))}
           </ul>

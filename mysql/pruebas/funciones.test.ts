@@ -83,6 +83,26 @@ describe.skipIf(!HAY_MYSQL)("funciones y comunidad en el modo MySQL", () => {
       const libre = await crearPersona();
       expect((await libre.db.rpc("preparar_baja_de_cuenta")).data).toEqual({ empresas_borradas: [], empresas_cerradas: 0 });
     });
+
+    it("dar de baja a otra cuenta desde el panel: solo un administrador, nunca a sí mismo ni a otro administrador", async () => {
+      const admin = await crearPersona({ admin: true });
+      const otroAdmin = await crearPersona({ admin: true });
+      const ana = await crearPersona();
+      expect((await ana.db.rpc("admin_preparar_baja_de_usuario", { _user_id: admin.id })).error?.message).toBe("solo-admin");
+      expect((await admin.db.rpc("admin_preparar_baja_de_usuario", { _user_id: admin.id })).error?.message).toBe("es-uno-mismo");
+      expect((await admin.db.rpc("admin_preparar_baja_de_usuario", { _user_id: otroAdmin.id })).error?.message).toBe("es-admin");
+
+      // Las mismas reglas que la baja propia: con un pedido en curso, no.
+      const oferta = await crearOferta(await crearEmpresa());
+      await ana.db.rpc("crear_orden", { _id: crypto.randomUUID(), _lineas: [{ listing_id: oferta.id, qty: 1 }], _nombre: "Ana Pérez", _telefono: "3001234567", _departamento: "Boyacá", _ciudad: "Tunja", _direccion: "Calle 1 # 2-3" });
+      expect((await admin.db.rpc("admin_preparar_baja_de_usuario", { _user_id: ana.id })).error?.message).toBe("pedidos-en-curso");
+
+      // Su empresa sin ventas se borra entera, cerrada en su nombre.
+      const bea = await crearPersona();
+      const empresa = await crearEmpresa({ miembro: bea });
+      expect((await admin.db.rpc("admin_preparar_baja_de_usuario", { _user_id: bea.id })).data).toEqual({ empresas_borradas: [empresa], empresas_cerradas: 0 });
+      expect((await servicio().from("providers").select("id").eq("id", empresa)).data).toHaveLength(0);
+    });
   });
 
   describe("prospectos, visitas y panel", () => {

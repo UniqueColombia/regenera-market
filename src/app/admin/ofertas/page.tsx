@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { FileSpreadsheet, Plus, SquarePen } from "lucide-react";
 import { DestacarOferta } from "./destacar-oferta";
 import { EstadoOferta } from "./estado-oferta";
+import { BuscadorAdmin } from "../buscador";
 import { Paginacion } from "@/components/paginacion";
+import { conParametros, leerBusqueda } from "@/lib/busqueda";
 import { leerPagina, urlDePagina } from "@/lib/paginacion";
 import { getOfertasParaAdmin } from "@/lib/repo";
 import { money } from "@/lib/format";
@@ -49,8 +51,9 @@ export default async function OfertasPage(props: PageProps<"/admin/ofertas">) {
   // `hasOwn` y no `in`: `"toString" in ETIQUETA` es verdadero.
   const estado = pedido && Object.hasOwn(ETIQUETA, pedido) ? (pedido as ReviewStatus) : undefined;
   const pedida = leerPagina(sp.pagina);
+  const q = leerBusqueda(sp.q);
 
-  const resultado = await getOfertasParaAdmin(estado, pedida);
+  const resultado = await getOfertasParaAdmin(estado, pedida, undefined, q);
   if (pedida > resultado.paginas) redirect(urlDePagina("/admin/ofertas", sp, resultado.paginas));
   const { filas: ofertas, pagina, paginas, porEstado } = resultado;
 
@@ -87,13 +90,26 @@ export default async function OfertasPage(props: PageProps<"/admin/ofertas">) {
         </div>
       </header>
 
-      <nav aria-label="Filtrar por estado" className="mt-6 flex flex-wrap gap-2">
+      <BuscadorAdmin
+        ruta="/admin/ofertas"
+        q={q}
+        placeholder="Título, palabra o proveedor…"
+        conservar={{ estado }}
+      />
+      {q && (
+        <p className="mt-2 text-sm text-muted">
+          {resultado.total} {resultado.total === 1 ? "encontrada" : "encontradas"}.
+        </p>
+      )}
+
+      <nav aria-label="Filtrar por estado" className="mt-4 flex flex-wrap gap-2">
         {([undefined, ...(Object.keys(ETIQUETA) as ReviewStatus[])] as (ReviewStatus | undefined)[]).map((e) => {
           const activo = e === estado;
           return (
             <Link
               key={e ?? "todas"}
-              href={e ? `/admin/ofertas?estado=${e}` : "/admin/ofertas"}
+              // La búsqueda se conserva al cambiar de estado.
+              href={`/admin/ofertas${conParametros({ estado: e, q })}`}
               aria-current={activo ? "page" : undefined}
               className={`rounded-full px-3 py-1.5 text-sm ring-1 transition ${
                 activo ? "bg-brand-700 text-white ring-brand-700" : "bg-white text-ink ring-hairline hover:bg-sand"
@@ -108,7 +124,11 @@ export default async function OfertasPage(props: PageProps<"/admin/ofertas">) {
 
       {ofertas.length === 0 ? (
         <p className="mt-10 rounded-xl bg-white p-10 text-center text-muted ring-1 ring-hairline">
-          {estado ? "No hay ofertas en este estado." : "No hay ninguna oferta todavía."}
+          {q
+            ? `Ninguna oferta coincide con «${q}».`
+            : estado
+              ? "No hay ofertas en este estado."
+              : "No hay ninguna oferta todavía."}
         </p>
       ) : (
         <ul className="mt-6 grid gap-2 xl:grid-cols-2">

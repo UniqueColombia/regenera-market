@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Globe, Loader2, Mail, MessageCircle, Phone, Send, Trash2, X } from "lucide-react";
 import {
@@ -10,13 +10,13 @@ import {
   enviarLote,
   idsDelFiltro,
 } from "./actions";
+import { VistaPreviaCorreo } from "./vista-previa-correo";
 import {
   ENCAJES,
   ESTADOS,
   POR_LOTE,
   TEXTOS,
   enlaceDeWhatsApp,
-  rellenar,
   type EstadoProspecto,
   type Prospecto,
   type TipoCampana,
@@ -34,6 +34,10 @@ import type { FiltrosProspectos } from "@/lib/repo";
  * La llave de la campaña (`campana.current`) se genera al primer envío y se
  * conserva hasta que cambie el texto: si la conexión se corta a la mitad y se
  * vuelve a pulsar «Enviar», el servidor salta a quienes ya les llegó.
+ *
+ * Para escribirle a una sola empresa, el botón «Correo» de su fila la deja
+ * como única elegida y abre el editor (2026-10-23). El texto viene redactado
+ * (`TEXTOS`) y se puede cambiar; la vista previa es el correo real.
  */
 export function TablaProspectos({
   filas,
@@ -59,6 +63,7 @@ export function TablaProspectos({
   const [resultado, setResultado] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [pendiente, iniciar] = useTransition();
   const campana = useRef<string | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   const elegidos = todosDelFiltro ? total : marcados.size;
   const visiblesElegidas = filas.filter((f) => todosDelFiltro || marcados.has(f.id));
@@ -75,6 +80,16 @@ export function TablaProspectos({
       else n.add(id);
       return n;
     });
+  }
+
+  /** «Correo» en una fila: solo esa empresa, y el editor abierto a la vista. */
+  function escribirA(id: string) {
+    setTodosDelFiltro(false);
+    setMarcados(new Set([id]));
+    setResultado(null);
+    campana.current = null;
+    setEditor(true);
+    requestAnimationFrame(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   function cambiarTexto(cambio: () => void) {
@@ -153,11 +168,6 @@ export function TablaProspectos({
     });
   }
 
-  const vistaPrevia = useMemo(
-    () => (ejemplo ? { asunto: rellenar(asunto, ejemplo), cuerpo: rellenar(cuerpo, ejemplo) } : null),
-    [ejemplo, asunto, cuerpo],
-  );
-
   return (
     <section className="mt-6">
       {/* Barra de selección */}
@@ -225,7 +235,7 @@ export function TablaProspectos({
 
       {/* Editor del correo */}
       {editor && (
-        <div className="mt-4 rounded-xl bg-white p-5 ring-1 ring-brand-300">
+        <div ref={editorRef} className="mt-4 scroll-mt-32 rounded-xl bg-white p-5 ring-1 ring-brand-300">
           <div className="flex items-start justify-between gap-3">
             <h2 className="font-display text-xl text-ink">Correo a {elegidos} {elegidos === 1 ? "empresa" : "empresas"}</h2>
             <button type="button" onClick={() => setEditor(false)} aria-label="Cerrar el editor" className="text-muted hover:text-ink">
@@ -283,18 +293,7 @@ export function TablaProspectos({
               </p>
             </div>
 
-            {vistaPrevia && (
-              <div className="rounded-lg bg-sand p-4 text-sm">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">Así le llega a {ejemplo?.nombre}</p>
-                <p className="mt-2 font-semibold text-ink">{vistaPrevia.asunto}</p>
-                <div className="mt-2 whitespace-pre-line text-ink">{vistaPrevia.cuerpo}</div>
-                {tipo === "invitacion" && (
-                  <p className="mt-3 inline-block rounded-full bg-brand-700 px-4 py-1.5 text-xs font-semibold text-white">
-                    Publicar mis productos
-                  </p>
-                )}
-              </div>
-            )}
+            {ejemplo && <VistaPreviaCorreo tipo={tipo} asunto={asunto} cuerpo={cuerpo} ejemplo={ejemplo} />}
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -315,7 +314,7 @@ export function TablaProspectos({
           </div>
           {!correoListo && (
             <p className="mt-2 text-xs text-clay-700">
-              Faltan las SMTP_* en Vercel: hasta entonces no sale ningún correo.
+              Faltan las SMTP_* en las variables de Hostinger: hasta entonces no sale ningún correo.
             </p>
           )}
           {resultado && (
@@ -404,6 +403,16 @@ export function TablaProspectos({
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
+                  {p.correo && !p.bajaAt && (
+                    <button
+                      type="button"
+                      onClick={() => escribirA(p.id)}
+                      className="inline-flex items-center gap-1 rounded-full bg-brand-700 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-800"
+                    >
+                      <Mail className="size-3.5" aria-hidden />
+                      Correo
+                    </button>
+                  )}
                   {whatsapp && !p.bajaAt && (
                     <a
                       href={whatsapp}

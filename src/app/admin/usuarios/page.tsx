@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { FilaUsuario } from "./fila-usuario";
+import { BuscadorAdmin } from "../buscador";
+import { coincide, leerBusqueda } from "@/lib/busqueda";
 import { getUser } from "@/lib/auth";
 import { getProvidersForReview, getUsuarios, getVinculosProveedor } from "@/lib/repo";
 
@@ -23,8 +25,9 @@ export const dynamic = "force-dynamic";
  * (producción desde el 2026-10-17) es un `insert` en `user_roles` hecho desde
  * el servidor (`docs/MODO-MYSQL.md`).
  */
-export default async function UsuariosPage() {
-  const [usuarios, proveedores, vinculos, yo] = await Promise.all([
+export default async function UsuariosPage(props: PageProps<"/admin/usuarios">) {
+  const q = leerBusqueda((await props.searchParams).q);
+  const [todos, proveedores, vinculos, yo] = await Promise.all([
     getUsuarios(),
     getProvidersForReview(),
     getVinculosProveedor(),
@@ -32,6 +35,15 @@ export default async function UsuariosPage() {
   ]);
 
   const empresas = proveedores.map((p) => ({ id: p.id, name: p.name }));
+  const usuarios = todos.filter((u) =>
+    coincide(
+      q,
+      u.fullName,
+      u.email,
+      u.phone,
+      ...vinculos.filter((v) => v.userId === u.id).map((v) => v.providerName),
+    ),
+  );
 
   const sinDueno = proveedores.filter(
     (p) => !vinculos.some((v) => v.providerId === p.id),
@@ -42,7 +54,7 @@ export default async function UsuariosPage() {
       <header className="mt-8">
         <h1 className="font-display text-3xl text-ink sm:text-4xl">Usuarios</h1>
         <p className="mt-2 max-w-2xl text-muted">
-          {usuarios.length} {usuarios.length === 1 ? "cuenta" : "cuentas"}. Dar
+          {todos.length} {todos.length === 1 ? "cuenta" : "cuentas"}. Dar
           administración entrega el control de la plataforma; enlazar a alguien
           con una empresa es lo que le permite gestionarla.
         </p>
@@ -58,6 +70,13 @@ export default async function UsuariosPage() {
           ({sinDueno.map((p) => p.name).join(", ")}). Mientras siga así, nadie
           puede editar su ficha ni publicar sus ofertas más que un administrador.
           Se arregla enlazándolas abajo con la persona que corresponda.
+        </p>
+      )}
+
+      <BuscadorAdmin ruta="/admin/usuarios" q={q} placeholder="Nombre, correo, teléfono o empresa…" />
+      {q && (
+        <p className="mt-2 text-sm text-muted">
+          {usuarios.length} de {todos.length}.
         </p>
       )}
 

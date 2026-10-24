@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { eliminarOrden } from "./actions";
 import { EstadoOrden } from "./estado-orden";
+import { BotonEliminar } from "../boton-eliminar";
+import { BuscadorAdmin } from "../buscador";
 import { Paginacion } from "@/components/paginacion";
 import { listarOrdenes, resumenDeOrdenes, vencerPedidosSinPago } from "@/lib/orders";
+import { conParametros, leerBusqueda } from "@/lib/busqueda";
 import { leerPagina, urlDePagina } from "@/lib/paginacion";
 import type { OrderStatus } from "@/lib/types";
 import { ETIQUETA_ENVIO } from "@/lib/envios";
 import { money } from "@/lib/format";
-import { COLOR_ESTADO, ETIQUETA_ESTADO } from "@/lib/order-status";
+import { COLOR_ESTADO, ETIQUETA_ESTADO, ORDENES_BORRABLES } from "@/lib/order-status";
 import { mostrarTelefono } from "@/lib/telefono";
 
 export const metadata: Metadata = { title: "Órdenes" };
@@ -33,12 +37,13 @@ export default async function OrdenesPage(props: PageProps<"/admin/ordenes">) {
   const estadoPedido = Array.isArray(sp.estado) ? sp.estado[0] : sp.estado;
   const estado = ESTADOS.includes(estadoPedido as OrderStatus) ? (estadoPedido as OrderStatus) : undefined;
   const pedida = leerPagina(sp.pagina);
+  const q = leerBusqueda(sp.q);
 
   // Los pedidos sin pagar de más de 72 horas se cancelan y devuelven lo que
   // reservaban. Lo hace `pg_cron` cada hora; esto es la red por si el proyecto
   // no lo tiene activo. Idempotente: si ya vencieron, no hace nada.
   await vencerPedidosSinPago();
-  const [resultado, resumen] = await Promise.all([listarOrdenes(estado, pedida), resumenDeOrdenes()]);
+  const [resultado, resumen] = await Promise.all([listarOrdenes(estado, pedida, undefined, q), resumenDeOrdenes()]);
   if (pedida > resultado.paginas) redirect(urlDePagina("/admin/ordenes", sp, resultado.paginas));
   const { filas: ordenes, pagina, paginas } = resultado;
 
@@ -82,14 +87,26 @@ export default async function OrdenesPage(props: PageProps<"/admin/ordenes">) {
       {/* Filtro por estado: con las órdenes paginadas, sin él una orden por
           cobrar podía quedar en la página 4. Enlaces, no un formulario: cada
           estado es una URL. */}
-      <nav aria-label="Filtrar por estado" className="mt-6 flex flex-wrap gap-2">
+      <BuscadorAdmin
+        ruta="/admin/ordenes"
+        q={q}
+        placeholder="Referencia, comprador, empresa o correo…"
+        conservar={{ estado }}
+      />
+      {q && (
+        <p className="mt-2 text-sm text-muted">
+          {resultado.total} {resultado.total === 1 ? "encontrada" : "encontradas"}.
+        </p>
+      )}
+
+      <nav aria-label="Filtrar por estado" className="mt-4 flex flex-wrap gap-2">
         {[undefined, ...ESTADOS].map((e) => {
           const activo = e === estado;
           const n = e ? resumen[e].cantidad : todas;
           return (
             <Link
               key={e ?? "todas"}
-              href={e ? `/admin/ordenes?estado=${e}` : "/admin/ordenes"}
+              href={`/admin/ordenes${conParametros({ estado: e, q })}`}
               aria-current={activo ? "page" : undefined}
               className={`rounded-full px-3 py-1.5 text-sm ring-1 transition ${
                 activo ? "bg-brand-700 text-white ring-brand-700" : "bg-white text-ink ring-hairline hover:bg-sand"
@@ -103,7 +120,11 @@ export default async function OrdenesPage(props: PageProps<"/admin/ordenes">) {
 
       {ordenes.length === 0 ? (
         <p className="mt-10 rounded-xl bg-white p-10 text-center text-muted ring-1 ring-hairline">
-          {estado ? "No hay órdenes en este estado." : "Todavía no hay ninguna orden."}
+          {q
+            ? `Ninguna orden coincide con «${q}».`
+            : estado
+              ? "No hay órdenes en este estado."
+              : "Todavía no hay ninguna orden."}
         </p>
       ) : (
         <ul className="mt-6 grid items-start gap-3 xl:grid-cols-2">
@@ -149,6 +170,14 @@ export default async function OrdenesPage(props: PageProps<"/admin/ordenes">) {
                       referencia={o.reference}
                       totalCop={o.totalCop}
                     />
+                    {/* Solo las que nunca se cobraron: ver `ORDENES_BORRABLES`. */}
+                    {ORDENES_BORRABLES.includes(o.status) && (
+                      <BotonEliminar
+                        accion={eliminarOrden}
+                        datos={{ orderId: o.id }}
+                        pregunta={`¿Eliminar la orden ${o.reference} de ${o.buyerName}?${o.status === "pending_payment" ? " Se cancela primero y vuelven al catálogo las unidades y los cupos que reservaba." : ""}`}
+                      />
+                    )}
                   </div>
                 </div>
 

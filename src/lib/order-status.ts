@@ -37,6 +37,15 @@ export const TRANSICIONES: Record<OrderStatus, OrderStatus[]> = {
   refunded: [],
 };
 
+/**
+ * Las órdenes que el panel deja eliminar (desde el 2026-10-23): las que nunca
+ * se cobraron. Una pagada, en camino, entregada o devuelta es un registro
+ * contable —comisión, pago al proveedor, factura— y no se borra; se cancela o
+ * se devuelve. La base lo refuerza: una orden con fila en `pagos` no se puede
+ * borrar (`pagos_order_id_fkey`, `on delete restrict`).
+ */
+export const ORDENES_BORRABLES: OrderStatus[] = ["pending_payment", "cancelled"];
+
 export const ETIQUETA_ESTADO: Record<OrderStatus, string> = {
   pending_payment: "Esperando pago",
   paid: "Pagada",
