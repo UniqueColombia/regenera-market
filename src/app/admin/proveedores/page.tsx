@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DecisionProveedor } from "./decision-proveedor";
 import { VerificacionDocumento } from "./verificacion-documento";
+import { BuscadorAdmin } from "../buscador";
+import { coincide, leerBusqueda } from "@/lib/busqueda";
 import { ProviderAvatar } from "@/components/provider-avatar";
 import { TierBadge } from "@/components/tier-badge";
 import { getEmpresasCerradas, getProvidersForReview } from "@/lib/repo";
@@ -55,8 +57,13 @@ const COLOR: Record<ReviewStatus, string> = {
  */
 export const dynamic = "force-dynamic";
 
-export default async function ProveedoresPage() {
-  const [proveedores, cerradas] = await Promise.all([getProvidersForReview(), getEmpresasCerradas()]);
+export default async function ProveedoresPage(props: PageProps<"/admin/proveedores">) {
+  const q = leerBusqueda((await props.searchParams).q);
+  const [todos, cerradas] = await Promise.all([getProvidersForReview(), getEmpresasCerradas()]);
+  // Se cargan enteros (se agrupan por estado): la búsqueda filtra aquí.
+  const proveedores = todos.filter((p) =>
+    coincide(q, p.name, p.legalName, p.taxId, p.email, p.city, p.department, p.slug),
+  );
 
   const porEstado = ORDEN.map((estado) => ({
     estado,
@@ -81,6 +88,13 @@ export default async function ProveedoresPage() {
           suspenderlo las esconde sin borrar nada.
         </p>
       </header>
+
+      <BuscadorAdmin ruta="/admin/proveedores" q={q} placeholder="Nombre, razón social, NIT, correo o ciudad…" />
+      {q && (
+        <p className="mt-2 text-sm text-muted">
+          {proveedores.length} de {todos.length}.
+        </p>
+      )}
 
       <p className="mt-6 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800 ring-1 ring-brand-100">
         El nivel y el puntaje no se tocan desde aquí: los escribe la base cuando

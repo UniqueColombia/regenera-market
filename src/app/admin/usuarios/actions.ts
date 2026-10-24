@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { getAlmacen } from "@/lib/almacenamiento";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 
@@ -183,5 +185,72 @@ export async function desenlazarProveedor(datos: unknown): Promise<ResultadoRol>
   }
 
   revalidatePath("/admin/usuarios");
+  return { ok: true };
+}
+
+const EliminarSchema = z.object({ userId: z.uuid("Identificador de usuario inválido") });
+
+/** Lo que dice la pantalla cuando la base no deja eliminar la cuenta. */
+const MOTIVOS: Record<string, string> = {
+  "es-uno-mismo": "Tu propia cuenta se elimina desde «Mi cuenta», con tu contraseña.",
+  "es-admin": "Es administrador. Quítale primero la administración y después podrás eliminar la cuenta.",
+  "firmo-revisiones":
+    "Revisó postulaciones, evaluaciones o certificados, y su nombre queda como firma de esas decisiones. No se puede eliminar.",
+  "pedidos-en-curso": "Tiene pedidos sin terminar (por pagar, pagados o en camino). Cuando se completen o se cancelen se podrá eliminar.",
+  "solicitudes-abiertas": "Tiene una solicitud de cotización abierta. Cuando se responda o se cierre se podrá eliminar.",
+  "ventas-en-curso": "Su empresa tiene pedidos sin terminar. Cuando se entreguen o se cancelen se podrá eliminar.",
+};
+
+/**
+ * Eliminar la cuenta de otra persona desde el panel (2026-10-23). **No se puede
+ * deshacer.**
+ *
+ * Son los pasos de `eliminarMiCuenta()` (`src/app/cuenta/actions.ts`) sin la
+ * contraseña, que aquí no tiene sentido: la decide un administrador.
+ *
+ * 1. **`admin_preparar_baja_de_usuario()`**, en una transacción, con las mismas
+ *    reglas que la baja propia: no con pedidos o cotizaciones abiertas, no a un
+ *    administrador ni a uno mismo. Cierra la empresa de la que es la única
+ *    persona y oculta sus reseñas. Si dice que no, no se tocó nada.
+ * 2. **Borrar el usuario**, que se lleva en cascada el perfil, los roles, las
+ *    sesiones y lo publicado en la Comunidad. Sus pedidos terminados quedan sin
+ *    dueño y con sus datos congelados (`on delete set null`).
+ * 3. Sus fotos (avatar y logos de las empresas que se borraron).
+ *
+ * No se le manda correo: casi siempre es limpiar una cuenta de prueba o
+ * abandonada. Si alguien pide su baja por escrito, que la haga desde «Mi
+ * cuenta», que sí le deja la constancia.
+ */
+export async function eliminarUsuario(datos: unknown): Promise<ResultadoRol> {
+  await requireAdmin();
+  const parsed = EliminarSchema.safeParse(datos);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  const id = parsed.data.userId;
+
+  const supabase = await createClient();
+  const { data: preparada, error } = await supabase.rpc("admin_preparar_baja_de_usuario", { _user_id: id });
+  if (error) {
+    const motivo = Object.keys(MOTIVOS).find((m) => error.message.includes(m));
+    if (motivo) return { ok: false, error: MOTIVOS[motivo] };
+    return { ok: false, error: mensajeDeFallo(registrarFallo("admin-usuarios-borrar", error, { paso: "preparar" })) };
+  }
+
+  try {
+    const { error: errorBorrado } = await createAdminClient().auth.admin.deleteUser(id);
+    if (errorBorrado) throw new Error(errorBorrado.message);
+  } catch (e) {
+    // Lo del paso 1 ya se hizo y repetirlo es seguro: volver a pulsar
+    // reintenta solo lo que falta.
+    return { ok: false, error: mensajeDeFallo(registrarFallo("admin-usuarios-borrar", e, { paso: "borrar-usuario" })) };
+  }
+
+  const borradas = ((preparada as { empresas_borradas?: string[] } | null)?.empresas_borradas ?? []).filter(
+    (p) => typeof p === "string",
+  );
+  const almacen = getAlmacen();
+  await almacen.borrarCarpeta("avatares", id);
+  for (const p of borradas) await almacen.borrarCarpeta("logos", p);
+
+  revalidatePath("/", "layout");
   return { ok: true };
 }

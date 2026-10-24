@@ -154,8 +154,14 @@ function primeraFrase(descripcion: unknown): string {
 
 // ---------------------------------------------------------------------------
 
-async function cerrarMiEmpresa(c: Ctx, proveedor: string): Promise<{ resultado: string; slug: string }> {
-  const uid = c.actor.id;
+/**
+ * Cierra (o borra, si no tiene historia) una empresa de su dueña. `duena` es
+ * quien sesión tiene, salvo cuando un administrador elimina la cuenta de otra
+ * persona (`admin_preparar_baja_de_usuario`, 2026-10-23): ahí se cierra en
+ * nombre de la dueña, con las mismas reglas.
+ */
+async function cerrarMiEmpresa(c: Ctx, proveedor: string, duena: string | null = c.actor.id): Promise<{ resultado: string; slug: string }> {
+  const uid = duena;
   if (!uid) throw new ErrorPg("sin-sesion");
   if (!(await uno(c, "select 1 as x from provider_members where provider_id = ? and user_id = ? and is_owner", [proveedor, uid]))) {
     throw new ErrorPg("no-es-duena");
@@ -183,6 +189,38 @@ async function cerrarMiEmpresa(c: Ctx, proveedor: string): Promise<{ resultado: 
     await w(c, "delete from user_roles where user_id = ? and role = 'provider'", [uid]);
   }
   return { resultado: conHistoria ? "cerrada" : "borrada", slug };
+}
+
+/**
+ * Lo común a las dos bajas: decide si se puede —sin pedidos ni cotizaciones
+ * abiertas— y, si sí, cierra las empresas de las que es la única persona y
+ * oculta sus reseñas para quitar los puntos que dieron. No borra el usuario:
+ * eso viene después, fuera de la transacción.
+ */
+async function prepararBaja(c: Ctx, uid: string): Promise<{ empresas_borradas: string[]; empresas_cerradas: number }> {
+  if (await uno(c, "select 1 as x from orders where buyer_id = ? and status in ('pending_payment', 'paid', 'in_progress') limit 1", [uid])) {
+    throw new ErrorPg("pedidos-en-curso");
+  }
+  if (await uno(c, "select 1 as x from quotations where buyer_id = ? and status not in ('accepted', 'declined', 'cancelled', 'expired') limit 1", [uid])) {
+    throw new ErrorPg("solicitudes-abiertas");
+  }
+  const solas = await q<{ provider_id: string }>(
+    c,
+    `select pm.provider_id from provider_members pm
+      where pm.user_id = ? and pm.is_owner
+        and not exists (select 1 from provider_members o where o.provider_id = pm.provider_id and o.user_id <> ?)
+      order by pm.provider_id`,
+    [uid, uid],
+  );
+  const borradas: string[] = [];
+  let cerradas = 0;
+  for (const { provider_id } of solas) {
+    const r = await cerrarMiEmpresa(c, provider_id, uid);
+    if (r.resultado === "borrada") borradas.push(provider_id);
+    else cerradas++;
+  }
+  await w(c, "update reviews set oculta = true where author_id = ? and not oculta", [uid]);
+  return { empresas_borradas: borradas, empresas_cerradas: cerradas };
 }
 
 export const RPCS: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
@@ -748,30 +786,39 @@ export const RPCS: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
     const uid = c.actor.id;
     if (!uid) throw new ErrorPg("sin-sesion");
     if (await esAdmin(c)) throw new ErrorPg("es-admin");
-    if (await uno(c, "select 1 as x from orders where buyer_id = ? and status in ('pending_payment', 'paid', 'in_progress') limit 1", [uid])) {
-      throw new ErrorPg("pedidos-en-curso");
-    }
-    if (await uno(c, "select 1 as x from quotations where buyer_id = ? and status not in ('accepted', 'declined', 'cancelled', 'expired') limit 1", [uid])) {
-      throw new ErrorPg("solicitudes-abiertas");
-    }
-    const solas = await q<{ provider_id: string }>(
-      c,
-      `select pm.provider_id from provider_members pm
-        where pm.user_id = ? and pm.is_owner
-          and not exists (select 1 from provider_members o where o.provider_id = pm.provider_id and o.user_id <> ?)
-        order by pm.provider_id`,
-      [uid, uid],
-    );
-    const borradas: string[] = [];
-    let cerradas = 0;
-    for (const { provider_id } of solas) {
-      const r = await cerrarMiEmpresa(c, provider_id);
-      if (r.resultado === "borrada") borradas.push(provider_id);
-      else cerradas++;
-    }
-    await w(c, "update reviews set oculta = true where author_id = ? and not oculta", [uid]);
-    return { empresas_borradas: borradas, empresas_cerradas: cerradas };
+    return prepararBaja(c, uid);
   },
+
+  /**
+   * Lo mismo que `preparar_baja_de_cuenta`, pero de **otra** cuenta, desde el
+   * panel (2026-10-23). Solo un administrador, nunca sobre sí mismo (para eso
+   * está «Mi cuenta», que pide la contraseña) ni sobre otro administrador: el
+   * rol se quita primero, a la vista. Después la acción borra el usuario.
+   */
+  async admin_preparar_baja_de_usuario(c, a) {
+    if (!(await esAdmin(c))) throw new ErrorPg("solo-admin");
+    const uid = uuid(a._user_id);
+    if (uid === c.actor.id) throw new ErrorPg("es-uno-mismo");
+    if (await uno(c, "select 1 as x from user_roles where user_id = ? and role = 'admin' limit 1", [uid])) {
+      throw new ErrorPg("es-admin");
+    }
+    // Quien revisó postulaciones, evaluaciones o certificados queda como firma
+    // de esas decisiones (sin `on delete`): la base no dejaría borrarlo, y se
+    // dice antes de cerrar nada.
+    if (
+      await uno(
+        c,
+        `select 1 as x from provider_applications where reviewed_by = ?
+         union all select 1 from sustainability_assessments where reviewed_by = ?
+         union all select 1 from provider_certifications where verified_by = ? limit 1`,
+        [uid, uid, uid],
+      )
+    ) {
+      throw new ErrorPg("firmo-revisiones");
+    }
+    return prepararBaja(c, uid);
+  },
+
 
   async registrar_visita(c, a) {
     const ruta = a._path;

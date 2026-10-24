@@ -4,6 +4,7 @@ import { getUser } from "./auth";
 import { COMMISSION_RATE } from "./pricing";
 import { logisticaDisponible } from "./repo";
 import { modoMysql } from "./modo";
+import { patronLiteral } from "./busqueda";
 import { cuantasPaginas, rango, type Pagina } from "./paginacion";
 import type {
   DestinoEnvio,
@@ -464,11 +465,16 @@ export const ORDENES_POR_PAGINA = 20;
  * devuelve conjuntos distintos según quién la haga**, que es exactamente lo que
  * RLS existe para conseguir: aquí no hay un `where` escrito a mano en el que
  * confiar.
+ *
+ * `busca` (desde el 2026-10-23) mira la referencia, el comprador, su empresa y
+ * su correo. Esas columnas no tienen copia sin tildes, así que se busca tal
+ * como está escrito, sin distinguir mayúsculas (`patronLiteral`).
  */
 export async function listarOrdenes(
   estado: OrderStatus | undefined,
   pagina: number,
   porPagina = ORDENES_POR_PAGINA,
+  busca?: string,
 ): Promise<Pagina<Order>> {
   const db = await createClient();
   const [desde, hasta] = rango(pagina, porPagina);
@@ -477,6 +483,10 @@ export async function listarOrdenes(
     .from("orders")
     .select(`*, order_items(${await columnasItem()})`, { count: "exact" });
   if (estado) q = q.eq("status", estado);
+  if (busca) {
+    const p = patronLiteral(busca);
+    q = q.or(`reference.ilike.${p},buyer_name.ilike.${p},buyer_company.ilike.${p},buyer_email.ilike.${p}`);
+  }
   // `id` desempata dos órdenes del mismo instante: sin él, una puede salir en
   // dos páginas y otra en ninguna.
   const { data, error, count } = await q
@@ -486,7 +496,7 @@ export async function listarOrdenes(
 
   if (error?.code === "PGRST103" && desde > 0) {
     // La página ya no existe: se devuelve vacía con el total real.
-    const { total } = await listarOrdenes(estado, 1, 1);
+    const { total } = await listarOrdenes(estado, 1, 1, busca);
     return { filas: [], total, pagina, porPagina, paginas: cuantasPaginas(total, porPagina) };
   }
   if (error) throw new Error(`listarOrdenes: ${error.message}`);

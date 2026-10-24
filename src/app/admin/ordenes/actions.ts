@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { avisarCambioDeOrden } from "@/lib/correo/notificaciones";
 import { createClient } from "@/lib/supabase/server";
-import { ETIQUETA_ESTADO, TRANSICIONES } from "@/lib/order-status";
+import { ETIQUETA_ESTADO, ORDENES_BORRABLES, TRANSICIONES } from "@/lib/order-status";
 import type { OrderStatus } from "@/lib/types";
 import { mensajeDeFallo, registrarFallo } from "@/lib/incidencias";
 
@@ -128,5 +128,67 @@ export async function cambiarEstadoOrden(datos: unknown): Promise<ResultadoOrden
     await avisarCambioDeOrden(parsed.data.orderId, parsed.data.estado);
   }
 
+  return { ok: true };
+}
+
+const EliminarSchema = z.object({ orderId: z.uuid("Identificador de orden inválido") });
+
+/**
+ * Eliminar una orden que nunca se cobró (`ORDENES_BORRABLES`). **No se puede
+ * deshacer.** Pedido de Jesús, 2026-10-23: limpiar pruebas y pedidos que no
+ * siguieron.
+ *
+ * Una «esperando pago» se **cancela primero** y después se borra: la
+ * cancelación es la que devuelve el stock y el cupo que reservaba
+ * (`orders_liberar_reservas`, invariante 10). Borrarla directo los dejaba
+ * descontados para siempre. Al comprador no se le avisa: es una limpieza del
+ * equipo, no una decisión sobre su compra.
+ *
+ * Se van con ella sus líneas (`order_items`, en cascada). Con un pago
+ * registrado no se borra, aunque esté cancelada: el pago es la prueba de que
+ * entró plata, y la base tampoco lo permite.
+ */
+export async function eliminarOrden(datos: unknown): Promise<ResultadoOrden> {
+  await requireAdmin();
+  const parsed = EliminarSchema.safeParse(datos);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  const id = parsed.data.orderId;
+  const supabase = await createClient();
+
+  const { data: actual, error: errorLectura } = await supabase.from("orders").select("status").eq("id", id).maybeSingle();
+  if (errorLectura) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ordenes-borrar", errorLectura)) };
+  if (!actual) return { ok: true }; // Ya no está: otra pestaña la borró.
+  const estado = actual.status as OrderStatus;
+  if (!ORDENES_BORRABLES.includes(estado)) {
+    return {
+      ok: false,
+      error: `Una orden ${ETIQUETA_ESTADO[estado].toLowerCase()} no se elimina: es registro de un cobro. Si no siguió, cancélala o devuélvela.`,
+    };
+  }
+
+  const { data: pago, error: errorPago } = await supabase.from("pagos").select("id").eq("order_id", id).limit(1);
+  if (errorPago) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ordenes-borrar", errorPago)) };
+  if (pago && pago.length > 0) {
+    return { ok: false, error: "Tiene un pago registrado: no se elimina, para no perder el rastro de ese dinero." };
+  }
+
+  if (estado === "pending_payment") {
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "cancelled" })
+      .eq("id", id)
+      .eq("status", "pending_payment");
+    if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ordenes-borrar", error, { paso: "cancelar" })) };
+  }
+
+  // Solo si quedó cancelada: si alguien confirmó el pago entretanto, cero filas.
+  const { data, error } = await supabase.from("orders").delete().eq("id", id).eq("status", "cancelled").select("id");
+  if (error) return { ok: false, error: mensajeDeFallo(registrarFallo("admin-ordenes-borrar", error, { paso: "borrar" })) };
+  if (!data || data.length === 0) {
+    return { ok: false, error: "La orden cambió mientras la mirabas (¿se confirmó el pago?). Recarga la lista." };
+  }
+
+  revalidatePath("/admin/ordenes");
+  revalidatePath("/admin");
   return { ok: true };
 }

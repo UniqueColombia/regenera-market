@@ -84,8 +84,12 @@ export function ImportarProspectos() {
       </summary>
       <div className="mt-4 space-y-3 text-sm">
         <p className="text-muted">
-          Sirve el Excel del prospector tal cual. Los que ya están (mismo NIT o
-          correo) se saltan sin pisar lo que anotaste.
+          Sirve el Excel del prospector tal cual, o{" "}
+          <a href="/api/plantilla-prospectos" className="font-medium text-brand-700 underline">
+            descarga el formato en blanco
+          </a>{" "}
+          y llénalo. Los que ya están (mismo NIT o correo) se saltan sin pisar lo
+          que anotaste.
         </p>
         <button
           type="button"

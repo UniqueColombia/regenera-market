@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Link2, Loader2, ShieldCheck, Store, Unlink } from "lucide-react";
-import { cambiarRol, desenlazarProveedor, enlazarProveedor } from "./actions";
+import { cambiarRol, desenlazarProveedor, eliminarUsuario, enlazarProveedor } from "./actions";
+import { BotonEliminar } from "../boton-eliminar";
 import type { AdminUsuario } from "@/lib/types";
 
 export interface EmpresaOpcion {
@@ -177,6 +178,19 @@ export function FilaUsuario({
           <Link2 className="size-3.5" />
           Enlazar
         </button>
+        {/* Ni la propia (va por «Mi cuenta», con contraseña) ni la de otro
+            administrador (primero se le quita el rol, a la vista). La acción
+            lo vuelve a comprobar. */}
+        {!esYo && !esAdmin && (
+          <div className="ml-auto">
+            <BotonEliminar
+              accion={eliminarUsuario}
+              datos={{ userId: usuario.id }}
+              etiqueta="Eliminar cuenta"
+              pregunta={`¿Eliminar la cuenta de ${usuario.fullName || usuario.email}? Se borran su perfil y lo que publicó en la Comunidad, y se cierra la empresa de la que sea la única persona. Sus pedidos terminados se conservan sin dueño.`}
+            />
+          </div>
+        )}
       </div>
 
       {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
