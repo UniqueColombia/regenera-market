@@ -8,7 +8,7 @@ qué hacer, empieza aquí y no en el ROADMAP.
   correo, y **el 2026-10-17** en correos, legales, envíos, pagos y la base de
   datos (los tres primeros recuadros de abajo)
 - **Producción:** desde el 2026-10-16, **https://seregenera.com** en Hostinger,
-  desplegado **por tag** (hoy `v0.15.3`, desde el 2026-10-23) con la skill `desplegar-hostinger`;
+  desplegado **por tag** (hoy `v0.16.0`, desde el 2026-10-23) con la skill `desplegar-hostinger`;
   desde el 2026-10-17, con un comando: `scripts/desplegar.mts`. **Desde el
   2026-10-17 la base es el MariaDB de Hostinger** (`BASE_DE_DATOS=mysql`, ver
   el primer recuadro). **Supabase y Vercel ya no son parte de producción**
@@ -29,8 +29,14 @@ qué hacer, empieza aquí y no en el ROADMAP.
 >   las 18 ofertas de ejemplo en borrador y los 13 proveedores de ejemplo y de
 >   prueba suspendidos. Vuelven desde el panel. **No correr `scripts/seed.mts`
 >   contra producción**: las volvería a publicar.
-> - **Falta, Jesús:** mirar en el navegador (escritorio, teléfono y oscuro) y
->   decidir qué hacer con **Tejido Wayúu Süchiimma**, que espera revisión.
+> - **Panel** (`v0.16.0`,
+>   [hito](../.claude/hitos/2026-10-23-panel-buscar-borrar-y-contactar.md)):
+>   buscador en todas las listas; eliminar órdenes que nunca se cobraron,
+>   postulaciones y cuentas; en Contactar, el formato en blanco, la vista previa
+>   real del correo y un botón «Correo» por empresa.
+> - **Falta, Jesús:** importar la planilla del prospector en Contactar y probar
+>   un envío; decidir qué hacer con **Tejido Wayúu Süchiimma**, que espera
+>   revisión.
 
 > ## 🟠 Auditoría de seguridad del 2026-10-22: lo corregido y lo que queda
 >
